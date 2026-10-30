@@ -329,7 +329,7 @@ public sealed class LeitorNotaFiscalXml
     private static ItemNota LerProd(XmlReader prod)
     {
         string codigo = string.Empty, descricao = string.Empty, unidade = string.Empty, cfop = string.Empty;
-        decimal quantidade = 0m, valor = 0m;
+        decimal quantidade = 0m, valor = 0m, valorUnitario = 0m;
         string? lote = null;
         DateOnly? validade = null;
 
@@ -343,6 +343,7 @@ public sealed class LeitorNotaFiscalXml
                 case "CFOP": cfop = r.ReadElementContentAsString(); return true;
                 case "qCom": quantidade = ParseDecimal(r.ReadElementContentAsString()); return true;
                 case "vProd": valor = ParseDecimal(r.ReadElementContentAsString()); return true;
+                case "vUnCom": valorUnitario = ParseDecimal(r.ReadElementContentAsString()); return true;
                 case "rastro":
                     (lote, validade) = LerRastro(r.ReadSubtree());
                     return true;
@@ -357,6 +358,7 @@ public sealed class LeitorNotaFiscalXml
             Quantidade = quantidade,
             Unidade = unidade,
             ValorProduto = valor,
+            ValorUnitario = valorUnitario,
             Cfop = cfop,
             Lote = lote,
             Validade = validade,

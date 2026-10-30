@@ -17,8 +17,11 @@ public record ItemNota
     /// <summary>Unidade comercial — <c>prod/uCom</c>.</summary>
     public string Unidade { get; init; } = string.Empty;
 
-    /// <summary>Valor do produto — <c>prod/vProd</c>.</summary>
+    /// <summary>Valor do produto (total do item) — <c>prod/vProd</c>.</summary>
     public decimal ValorProduto { get; init; }
+
+    /// <summary>Valor unitário comercial — <c>prod/vUnCom</c>.</summary>
+    public decimal ValorUnitario { get; init; }
 
     /// <summary>CFOP — <c>prod/CFOP</c>.</summary>
     public string Cfop { get; init; } = string.Empty;

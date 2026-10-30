@@ -49,6 +49,9 @@ public sealed class ConstrutorI60 : IConstrutorI60
                 QtdeProdutoConfirmada = item.Quantidade,
                 // A CONFIRMAR: sem fator de conversão, qtdeEmbalagem replica qCom.
                 QtdeEmbalagem = item.Quantidade,
+                // Valor unitário = vUnCom do XML (confirmado).
+                ValorOriginalItem = item.ValorUnitario,
+                ValorAtualItem = item.ValorUnitario,
                 NumeroLote = item.Lote ?? string.Empty,
                 DataValidade = FormatoWms.Data(item.Validade) ?? string.Empty,
             });
