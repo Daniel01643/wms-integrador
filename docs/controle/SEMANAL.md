@@ -1,0 +1,32 @@
+# Controle Semanal — Integrador WMS (KitWmsIntegrador)
+
+Consolida horas (humanas e IA) e marcos por semana. Atualizar ao fechar cada semana.
+Detalhe diário em `docs/diario/`; registro mestre em `docs/CONTROLE-FINANCEIRO.md`.
+
+---
+
+## Semana 2026-W44 (27/out a 02/nov) — FECHADA
+
+| Data       | Humana | IA  | Total | Marcos |
+|------------|--------|-----|-------|--------|
+| 2026-10-29 | 2,0    | 0,6 | 2,6   | Desenho: briefing, arquitetura, deck, financeiro |
+| 2026-10-30 | 5,0    | 1,8 | 6,8   | Stack .NET, 4 etapas de código, comunicação validada, chamado I60 |
+| **Total**  | **7,0** | **2,4** | **9,4** | |
+
+**Resumo da semana:**
+- Projeto iniciado: do desenho à validação de comunicação ao vivo com o WMS.
+- Entregue: esqueleto .NET 8, parser de XML, Cliente WMS, Construtores I10/I30/I50/I60.
+- Cadeia I30→I10→I50 validada 100% no homolog; I60 em chamado com o fornecedor.
+- 4 de ~7 etapas de código concluídas e aprovadas. Etapa 5 (Orquestrador) aguarda I60.
+
+**Pendência que atravessa a semana:** resposta do fornecedor sobre conferência de
+quantidade da I60 (retomar terça 03/11).
+
+---
+
+## Semana 2026-W45 (03/nov a 09/nov) — em aberto
+
+| Data | Humana | IA | Total | Marcos |
+|------|--------|-----|-------|--------|
+| 2026-11-03 | - | - | - | (retomada: resposta do fornecedor + Etapa 5) |
+| **Total** | **0,0** | **0,0** | **0,0** | |

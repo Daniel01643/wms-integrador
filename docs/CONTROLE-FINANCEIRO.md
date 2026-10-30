@@ -22,14 +22,16 @@ contabilizadas automaticamente pelo agente (tempo de execução da sessão).
 | 2026-10-29 | Humana  | 2,0   | Levantamento do fluxo, regras de negócio, decisões               | _a definir_ |
 | 2026-10-29 | IA      | 0,6   | Briefing, arquitetura + diagramas, deck de 4 slides, financeiro   | _a definir_ |
 | 2026-10-30 | IA      | 0,5   | Mapeamento dos dados reais, verificação do ambiente, instalação SDK | _a definir_ |
+| 2026-10-30 | Humana  | 5,0   | Decisões de negócio, validações no WMS, testes de comunicação, chamado | _a definir_ |
+| 2026-10-30 | IA      | 1,8   | Etapas 3+4 (cliente WMS, construtores), testes E2E ao vivo, correções, chamado | _a definir_ |
 
 ## Totais
 
 | Tipo    | Horas | Custo (R$) |
 |---------|-------|------------|
-| IA      | 1,1   | _a definir_ |
-| Humana  | 2,0   | _a definir_ |
-| **Total** | **3,1** | _a definir_ |
+| IA      | 2,9   | _a definir_ |
+| Humana  | 7,0   | _a definir_ |
+| **Total** | **9,9** | _a definir_ |
 
 ## Notas
 
