@@ -67,9 +67,9 @@ public sealed record EmpresaI10
     [JsonPropertyName("cep")]
     public string Cep { get; init; } = string.Empty;
 
-    /// <summary>Indireto — "CL" cliente (template).</summary>
+    /// <summary>Indireto — confirmado BRF: "IN" (INDIRETO).</summary>
     [JsonPropertyName("indireto")]
-    public string Indireto { get; init; } = "CL";
+    public string Indireto { get; init; } = "IN";
 
     /// <summary>Nome abreviado — não disponível no XML; branco.</summary>
     [JsonPropertyName("nomeabrev")]

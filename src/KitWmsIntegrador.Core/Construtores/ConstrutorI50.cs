@@ -39,8 +39,11 @@ public sealed class ConstrutorI50 : IConstrutorI50
                 nameof(numeroTransporte));
         }
 
-        // Data de emissão formatada uma vez; reaproveitada em dataprev/DhprevEmbarque.
+        // Data de emissão formatada; previsão = emissão + 2 dias (confirmado BRF).
         var emissao = FormatoWms.Data(nota.DataEmissao);
+        var previsao = nota.DataEmissao.HasValue
+            ? FormatoWms.Data(nota.DataEmissao.Value.AddDays(2))
+            : emissao;
 
         var endereco = nota.Endereco;
         var local = MontarLocalEntrega(endereco);
@@ -65,33 +68,37 @@ public sealed class ConstrutorI50 : IConstrutorI50
 
         var pedido = new PedidoI50
         {
-            // CONFIG operacional (não hardcoded).
-            CnpjProprietario = _operacional.CnpjDepositante,
-            CnpjDestinatario = nota.DestinatarioCnpj,
+            // CONFIG operacional (não hardcoded). CNPJ do proprietário já vem mascarado
+            // da config; o do destinatário vem cru do XML → aplicar máscara.
+            CnpjProprietario = FormatoWms.Documento(_operacional.CnpjDepositante),
+            CnpjDestinatario = FormatoWms.Documento(nota.DestinatarioCnpj),
             Deposito = _operacional.Deposito,
-            CnpjArmazem = _operacional.CnpjArmazem,
+            CnpjArmazem = FormatoWms.Documento(_operacional.CnpjArmazem),
 
-            // Amarração I50↔I60: numeroPedido derivado do nNF (A CONFIRMAR nNF vs xPed).
+            // Amarração I50↔I60: o numeroPedido da I50 identifica o DocCarga; a I60
+            // repete esse valor em pedidos[]. (Confirmado: usa o nNF.)
             NumeroPedido = nota.Numero,
 
             // CONFIG da I50.
             TipoCarga = _i50.TipoCarga,
-            TipoAcondicionamento = _i50.TipoAcondicionamento, // A CONFIRMAR (PC vs PP)
+            TipoAcondicionamento = _i50.TipoAcondicionamento, // Confirmado BRF: PC (template)
             TipoSeparacao = _i50.TipoSeparacao,
             TipoSeparacao2 = _i50.TipoSeparacao2,
 
             // Agrupador da onda = número do transporte (string, zeros à esquerda).
             Nroagrupseparacao = transporte,
+            // Confirmado BRF: numeroPlanejamento repete o número do transporte.
+            NumeroPlanejamento = transporte,
 
             DataEmissao = emissao,
-            Dataprev = emissao,          // A CONFIRMAR: emissão + N dias?
-            DhprevEmbarque = emissao,    // A CONFIRMAR: template Unidasul usa emissão + 2 dias.
+            Dataprev = previsao,         // Confirmado BRF: emissão + 2 dias.
+            DhprevEmbarque = previsao,   // Confirmado BRF: emissão + 2 dias.
             // NumeroEmbarque omitido (null) nesta etapa — onda nasce do nroagrupseparacao.
 
             IndicaLocalEntregaNome = local.Nome,
             IndicaLocalEntregaBairro = local.Bairro,
             IndicaLocalEntregaCidade = local.Cidade,
-            IndicaLocalEntregaCep = local.Cep,
+            IndicaLocalEntregaCep = FormatoWms.Cep(local.Cep),
             IndicaLocalEntregaUf = local.Uf,
 
             ItemPedido = itens,

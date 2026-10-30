@@ -31,22 +31,23 @@ public sealed class ConstrutorI10 : IConstrutorI10
         var empresa = new EmpresaI10
         {
             Razaosocial = nota.DestinatarioNome,
-            Cnpj = nota.DestinatarioCnpj, // CHAVE
+            Cnpj = FormatoWms.Documento(nota.DestinatarioCnpj), // CHAVE, com máscara
             Endereco = endereco?.Logradouro ?? string.Empty,
             Numero = endereco?.Numero ?? string.Empty,
             Bairro = endereco?.Bairro ?? string.Empty,
             Cidade = endereco?.Municipio ?? string.Empty,
             Uf = endereco?.Uf ?? string.Empty,
-            Cep = endereco?.Cep ?? string.Empty,
+            Cep = FormatoWms.Cep(endereco?.Cep),
 
-            // CONFIG operacional (não hardcoded).
-            CnpjArmazem = _operacional.CnpjArmazem,
-            CnpjProprietaria = _operacional.CnpjDepositante,
+            // CONFIG operacional (não hardcoded), com máscara.
+            CnpjArmazem = FormatoWms.Documento(_operacional.CnpjArmazem),
+            CnpjProprietaria = FormatoWms.Documento(_operacional.CnpjDepositante),
             Deposito = _operacional.Deposito,
 
-            // Campos fixos (indireto="CL", ie="ISENTO", classe="B", tpoperacao="FI",
-            // tpacao="I") e os "a confirmar" (codigoempresa, siglaempresa vazios) vêm
-            // dos defaults do DTO — ver TODOs no PayloadI10.
+            // Campos fixos vêm dos defaults do DTO.
+            // A CONFIRMAR (msg usuário): campo "indireto" — usuário indicou "sempre IN"
+            // (INDIRETO), hoje default pode estar "CL". Validar na Etapa 5/produção.
+            // codigoempresa/siglaempresa/tpoperacao ainda a definir — ver TODOs no PayloadI10.
         };
 
         return new PayloadI10 { Empresa = new[] { empresa } };

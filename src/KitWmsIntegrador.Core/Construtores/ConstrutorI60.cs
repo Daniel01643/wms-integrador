@@ -56,16 +56,17 @@ public sealed class ConstrutorI60 : IConstrutorI60
 
         var notaVenda = new NotaVendaI60
         {
-            CnpjEmitente = nota.EmitenteCnpj,
-            CnpjRemetente = nota.EmitenteCnpj,
-            CnpjDestinatario = nota.DestinatarioCnpj,
-            CnpjLocalEntrega = nota.DestinatarioCnpj,
-            CnpjTransportadora = cnpjTransportadora,
+            CnpjEmitente = FormatoWms.Documento(nota.EmitenteCnpj),
+            CnpjRemetente = FormatoWms.Documento(nota.EmitenteCnpj),
+            CnpjDestinatario = FormatoWms.Documento(nota.DestinatarioCnpj),
+            CnpjLocalEntrega = FormatoWms.Documento(nota.DestinatarioCnpj),
+            CnpjTransportadora = FormatoWms.Documento(cnpjTransportadora),
             CodNatOperacaoFiscal = cfopPrimeiroItem,
             NumeroNota = nota.Numero,
             SerieNota = nota.Serie,
             Chavenfe = nota.ChaveNFe,
-            CnpjNota = nota.EmitenteCnpj,
+            Protocolo = nota.Protocolo ?? string.Empty,
+            CnpjNota = FormatoWms.Documento(nota.EmitenteCnpj),
             DataEmissao = FormatoWms.Data(nota.DataEmissao),
             QtdeTotalNota = qtdeTotal,
             PesoBrutoKg = volumes?.PesoBruto ?? 0m,
@@ -73,10 +74,10 @@ public sealed class ConstrutorI60 : IConstrutorI60
             QtdeVolume = qtdeVolume,
             ValorTotal = nota.ValorTotal ?? 0m,
 
-            // CONFIG operacional (não hardcoded).
-            CnpjProprietariaProduto = _operacional.CnpjDepositante,
+            // CONFIG operacional (não hardcoded), com máscara.
+            CnpjProprietariaProduto = FormatoWms.Documento(_operacional.CnpjDepositante),
             Deposito = _operacional.Deposito,
-            CnpjArmazem = _operacional.CnpjArmazem,
+            CnpjArmazem = FormatoWms.Documento(_operacional.CnpjArmazem),
 
             // Amarração ao DocCarga da I50: mesmo numeroPedido (= nNF). A CONFIRMAR (nNF vs xPed).
             Pedidos = new[] { nota.Numero },

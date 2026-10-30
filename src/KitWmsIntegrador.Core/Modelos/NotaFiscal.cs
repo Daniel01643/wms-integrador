@@ -51,6 +51,9 @@ public record NotaFiscal
     /// <summary>CNPJ da transportadora — <c>transp/transporta/CNPJ</c>.</summary>
     public string? TransportadoraCnpj { get; init; }
 
+    /// <summary>Protocolo de autorização — <c>protNFe/infProt/nProt</c>.</summary>
+    public string? Protocolo { get; init; }
+
     /// <summary>
     /// Número do transporte (agrupador da onda), extraído de
     /// <c>infNFe/infAdic/infCpl</c> via "Transporte: &lt;dígitos&gt;".

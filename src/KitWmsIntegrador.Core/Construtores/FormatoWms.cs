@@ -54,4 +54,41 @@ public static class FormatoWms
         var texto = valor ?? string.Empty;
         return texto.Length >= largura ? texto : texto.PadLeft(largura, '0');
     }
+
+    /// <summary>
+    /// Aplica a máscara de CNPJ (<c>XX.XXX.XXX/XXXX-XX</c>) ou CPF (<c>XXX.XXX.XXX-XX</c>)
+    /// a um documento com ou sem máscara. Só os dígitos são considerados; 14 dígitos →
+    /// CNPJ, 11 → CPF. Qualquer outro tamanho retorna o valor original (não força formato
+    /// inválido). Vazio/nulo retorna string vazia.
+    /// </summary>
+    public static string Documento(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return string.Empty;
+        }
+
+        var d = new string(valor.Where(char.IsDigit).ToArray());
+        return d.Length switch
+        {
+            14 => $"{d[..2]}.{d[2..5]}.{d[5..8]}/{d[8..12]}-{d[12..]}",
+            11 => $"{d[..3]}.{d[3..6]}.{d[6..9]}-{d[9..]}",
+            _ => valor,
+        };
+    }
+
+    /// <summary>
+    /// Aplica a máscara de CEP (<c>XXXXX-XXX</c>). Só os dígitos contam; 8 dígitos →
+    /// mascarado; qualquer outro tamanho retorna o valor original. Vazio/nulo → "".
+    /// </summary>
+    public static string Cep(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return string.Empty;
+        }
+
+        var d = new string(valor.Where(char.IsDigit).ToArray());
+        return d.Length == 8 ? $"{d[..5]}-{d[5..]}" : valor;
+    }
 }

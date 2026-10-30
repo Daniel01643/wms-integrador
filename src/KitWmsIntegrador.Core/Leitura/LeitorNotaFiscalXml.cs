@@ -49,6 +49,7 @@ public sealed class LeitorNotaFiscalXml
         string? transportadoraNome = null;
         string? transportadoraCnpj = null;
         string? infCpl = null;
+        string? protocolo = null;
 
         // Captura campos que preciso preservar fora do lambda por referência.
         var ideNumero = string.Empty;
@@ -114,6 +115,10 @@ public sealed class LeitorNotaFiscalXml
                 case "chNFe":
                     chaveProt ??= reader.ReadElementContentAsString();
                     break;
+
+                case "nProt":
+                    protocolo ??= reader.ReadElementContentAsString();
+                    break;
             }
         }
 
@@ -139,6 +144,7 @@ public sealed class LeitorNotaFiscalXml
             Volumes = volumes,
             TransportadoraNome = transportadoraNome,
             TransportadoraCnpj = transportadoraCnpj,
+            Protocolo = protocolo,
             NumeroTransporte = ExtratorTransporte.Extrair(infCpl),
             ArquivoOrigem = arquivoOrigem,
         };

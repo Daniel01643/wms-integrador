@@ -13,8 +13,36 @@ depósito) vêm da configuração — ver `AMBIENTE-SERVIDOR.md` e a seção de 
 ## Identificadores (query `IDENTIFICADOR`)
 
 - `WEBAPI-I10-Json` → cadastro de empresa (`EMPRESA`)
+- `WEBAPI-I30-Json` → cadastro de produto (`PRODUTO`) — contenção (caso produto não cadastrado)
 - `WEBAPI-I50-Json` → pedido/DocCarga (`PEDIDO`)
 - `WEBAPI-I60-Json` → nota de venda (`NOTAS_VENDA`)
+
+> **Envelope header/body**: o template do I30 (Unidasul) usa o envelope
+> `{ "header": {...}, "body": {...} }`, com os 5 parâmetros (identificador,
+> requisitante, cnpjrequisitante, destino, cnpjdestino) dentro de `header` e o payload
+> em `body`. Nos testes de I50/I60 passamos os 5 parâmetros na **query string** e
+> funcionou. **A CONFIRMAR** se a API aceita as duas formas para todas as interfaces ou
+> se o envelope é preferível — ver `TESTE-COMUNICACAO.md`.
+
+### I30 de contenção: cadastro PROVISÓRIO + revisão do colaborador (regra)
+
+O I30 é montado só com os dados disponíveis no XML da NF-e (código, descrição, EAN,
+NCM, unidade), então o produto criado é **provisório/incompleto** — faltam atributos
+mestres (curva ABC, dimensões, temperatura, shelf-life, picking) que o XML não traz e
+que a operação exige. Decisão do cliente:
+
+- Com a flag ligada (padrão em **homolog**), ao detectar produto não cadastrado o agente
+  envia o I30 automaticamente **para desbloquear a integração da nota** (a I50 passa a
+  ser aceita).
+- O cadastro gerado pelo I30 **NÃO é considerado completo**: ele **entra em revisão pelo
+  colaborador**, porque vai gerar erro em outros pontos (separação/endereçamento). O
+  agente deve **registrar uma PENDÊNCIA de revisão** (relatório + alerta) para cada
+  produto criado por contenção, não tratar como sucesso silencioso.
+- Em produção a flag pode ser desligada (produto não cadastrado vira só pendência, sem
+  auto-criar) — decisão operacional futura.
+
+Portanto o resultado de uma contenção I30 é: **nota desbloqueada E pendência de revisão
+registrada**. Os dois ao mesmo tempo.
 
 ---
 
@@ -204,3 +232,100 @@ não disponíveis no XML: vazio `""` ou default documentado. `indireto="CL"` (cl
 | `pedidos[]` | I60 | `[nNF]` | nNF vs `xPed` |
 | `tpoperacao` | I10 | `FI` | valor p/ cliente BRF |
 | `codigoempresa` | I10 | — | usa código ERP? (3509308 é do depositante) |
+
+---
+
+## I30 — PRODUTO (cadastro de produto; contenção)
+
+Template comentado (base Unidasul). Usado como **contenção** quando a I50 falha com
+"produto não ativo/não cadastrado". Montado a partir dos dados do XML (código,
+descrição, EAN/DUN, NCM, unidade); o restante usa defaults do template. O produto
+resultante é **provisório** e **entra em revisão do colaborador** (ver regra acima).
+Valores operacionais (armazém/proprietária/depósito) vêm da config BRF.
+
+Usa o envelope `{ "header": {...}, "body": {...} }` (confirmar se query string também
+serve). `IDENTIFICADOR` = `WEBAPI-I30-Json`. Muitos campos são obrigatórios (S no
+manual) e sem correspondência no XML → preencher com os defaults do template.
+
+```jsonc
+{
+  "header": {
+    "identificador": "WEBAPI-I30-Json",
+    "requisitante": "<config: BRF 01.838.723/0098-50>",
+    "cnpjrequisitante": "",
+    "destino": "<config: 14.605.065/0001-75>",
+    "cnpjdestino": ""
+  },
+  "body": {
+    "PRODUTO": [
+      {
+        "codtpprod1": "2",                 // Fixo "2" (picking)
+        "codigo": "<cProd do XML, SEM zeros à esquerda>",   // obrigatório
+        "descricao": "<xProd do XML>",     // obrigatório
+        "codempresa": "<config: código empresa proprietária, ou usar cnpjProprietaria>",
+        "codunidade": "<uCom do XML; precisa existir no WMS (CX, UN...)>", // obrigatório
+        "ctrunifiscal": "E",               // E=embalagem / U=unidade (a confirmar p/ BRF)
+        "ctrunifisica": "E",               // peso padrão "E" / peso variável "U"
+        "aliasproduto": "<descrição abreviada>",
+        "codcliente": "<cProd COM zeros à esquerda, como no XML>",
+        "eancliente": "<cEAN do XML (EAN13) ou branco>",
+        "validaeancliente": "N",
+        "codtipologia": "SEC",             // SEC/RES/CONG — a confirmar origem (BRF é alimento congelado/resfriado!)
+        "tipoqtd": "C",                    // C calculada / I informada
+        "organimal": "N",                  // (template Unidasul comenta "S"); a confirmar p/ BRF
+        "exportacao": "N",
+        "qtdliquido": "1.0000", "qtdbruto": "1.0000", "qtdmedio": "1.0000", "qtdm3": "1.0000",
+        "codclassabc": "A", "codclassabcf": "B", "prioridade": "0",
+        "ean": "<DUN14 do XML ou branco>",
+        "aliqicms": "0.00", "aliqipi": "0.00",
+        "codmensagemanter": "", "codmensagempost": "",
+        "tipovalidade": "N",               // D diária / M mensal / N nenhuma — a confirmar (alimento tem validade!)
+        "qtddiascriticos": "0", "qtddiasvalidade": "0", "qtddiasmaturacao": "0", "qtddiasvencimento": "0",
+        "codclassificacao": "<NCM ou DEF; a confirmar>",
+        "codclassificacaosif": "",
+        "codgrupofatura": "", "ctrunifatura": "U", "percentualseguro": "0",
+        "codtpprod2": "1", "codtpprod3": "3",
+        "temppadrao": "25.00",             // temperatura — a confirmar p/ BRF (congelado -12, resfriado 5, seco 27)
+        "tempcongelamento": "0.00", "temprcf": "0.00", "qtdmedcxpick": "0",
+        "tpacao": "I",                     // só inclusão (contenção); sem update
+        "codigotributario": "040",
+        "codunidadefisica": "", "tparmazpicking": "",
+        "qtdunembalag": "1.000",           // qtd produto por caixa
+        "qtdpcembalag": "1.000",           // peso bruto da caixa
+        "codcatmanuseio": "4",
+        "qtddiasvalcrisup": "", "qtddiasvalcriinf": "", "qtddiasvalncrisup": "", "qtddiasvalncriinf": "",
+        "coddetalhe1": "", "coddetalhe2": "", "coddetalhe3": "", "coddetalhe4": "",
+        "qtdunperigosa": "",
+        "qtdcxcamada": "1",                // se 0 não cria embalagem; template sugere "10" fallback
+        "largura": "1.00", "altura": "1.00", "profundidade": "1.00",
+        "codtipocontenedor": "PALLET",
+        "qtdpadraopallet": "1",            // fallback template "50"
+        "psindividual": "1.000",           // peso líquido da caixa; se 0 não cria embalagem
+        "classificacaoncm": "<NCM do XML>",
+        "qtddiascongelamento": "0",
+        "cnpjArmazem": "<config: 14.605.065/0001-75>",
+        "cnpjProprietaria": "<config: 01.838.723/0098-50>",
+        "deposito": "<config: JD>",
+        "usactlindividual": "N"
+      }
+    ]
+  }
+}
+```
+
+### Campos "a confirmar" do I30 para a BRF (produto entra em revisão de qualquer forma)
+
+Como o produto criado por contenção já entra em revisão do colaborador, os defaults
+abaixo são aceitáveis para desbloquear a nota, mas idealmente seriam ajustados:
+
+| Campo | Default | Observação p/ BRF |
+|-------|---------|-------------------|
+| `codtipologia` | `SEC` | BRF é alimento — provável RES/CONG, não SEC |
+| `tipovalidade` | `N` | alimento tem validade (D?) |
+| `temppadrao` | `25.00` | congelado/resfriado tem temperatura própria |
+| `ctrunifiscal`/`ctrunifisica` | `E` | confirmar E vs U |
+| `codempresa` | config | usa código empresa ou cnpjProprietaria |
+| `qtdliquido`/`qtdbruto` | `1.0000` | peso real da caixa não vem no XML |
+
+> Esses defaults fazem o produto nascer "genérico"; por isso a revisão do colaborador é
+> obrigatória. O objetivo do I30 de contenção é só **não travar a nota**.

@@ -87,7 +87,8 @@ public class ConstrutorI50Tests
         var pedido = Assert.Single(Criar().Construir(nota).Pedido);
 
         Assert.Equal(44, nota.ChaveNFe.Length);
-        Assert.Equal("28288914000119", pedido.CnpjDestinatario);
+        // CNPJ do destinatário sai com máscara (regra confirmada).
+        Assert.Equal("28.288.914/0001-19", pedido.CnpjDestinatario);
     }
 
     [Fact]
@@ -154,9 +155,11 @@ public class ConstrutorI50Tests
 
         var pedido = Assert.Single(Criar().Construir(nota).Pedido);
 
-        // dhEmi = 2025-12-15T08:29:34-03:00 → "15/12/2025 08:29:34".
+        // dhEmi = 2025-12-15T08:29:34-03:00 → emissão "15/12/2025 08:29:34".
         Assert.Equal("15/12/2025 08:29:34", pedido.DataEmissao);
-        Assert.Equal("15/12/2025 08:29:34", pedido.DhprevEmbarque);
+        // Previsão confirmada BRF = emissão + 2 dias → "17/12/2025 08:29:34".
+        Assert.Equal("17/12/2025 08:29:34", pedido.DhprevEmbarque);
+        Assert.Equal("17/12/2025 08:29:34", pedido.Dataprev);
     }
 
     [Fact]

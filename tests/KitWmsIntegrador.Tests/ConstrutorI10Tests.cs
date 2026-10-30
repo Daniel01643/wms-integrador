@@ -43,7 +43,8 @@ public class ConstrutorI10Tests
 
         var empresa = Assert.Single(Criar().Construir(nota).Empresa);
 
-        Assert.Equal("28288914000119", empresa.Cnpj);
+        // CNPJ do destinatário sai com máscara (regra confirmada).
+        Assert.Equal("28.288.914/0001-19", empresa.Cnpj);
         Assert.Equal(nota.DestinatarioNome, empresa.Razaosocial);
     }
 
@@ -59,7 +60,8 @@ public class ConstrutorI10Tests
         Assert.Equal(nota.Endereco!.Bairro ?? string.Empty, empresa.Bairro);
         Assert.Equal(nota.Endereco!.Municipio ?? string.Empty, empresa.Cidade);
         Assert.Equal(nota.Endereco!.Uf ?? string.Empty, empresa.Uf);
-        Assert.Equal(nota.Endereco!.Cep ?? string.Empty, empresa.Cep);
+        // CEP sai com máscara (regra confirmada): 05705901 → 05705-901.
+        Assert.Equal("05705-901", empresa.Cep);
     }
 
     [Fact]
@@ -81,7 +83,8 @@ public class ConstrutorI10Tests
 
         var empresa = Assert.Single(Criar().Construir(nota).Empresa);
 
-        Assert.Equal("CL", empresa.Indireto);
+        // indireto confirmado BRF = "IN" (INDIRETO), não "CL".
+        Assert.Equal("IN", empresa.Indireto);
         Assert.Equal("I", empresa.Tpacao);
         Assert.Equal("ISENTO", empresa.Ie);
         Assert.Equal("B", empresa.Classe);
@@ -95,7 +98,7 @@ public class ConstrutorI10Tests
         var json = Criar().ConstruirJson(nota);
 
         Assert.Contains("\"EMPRESA\"", json);
-        Assert.Contains("\"cnpj\":\"28288914000119\"", json);
+        Assert.Contains("\"cnpj\":\"28.288.914/0001-19\"", json);
         Assert.Contains("\"cnpjArmazem\":\"14.605.065/0001-75\"", json);
         Assert.Contains("\"deposito\":\"JD\"", json);
     }

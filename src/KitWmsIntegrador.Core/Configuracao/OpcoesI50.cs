@@ -42,7 +42,7 @@ public sealed class OpcoesI50
 
     /// <summary>
     /// Base da quantidade do item (campo <c>qtdMandante</c>). "U" produtos /
-    /// "E" embalagens/caixas. Default <c>U</c> — A CONFIRMAR (U vs E).
+    /// "E" embalagens/caixas. Configurável; BRF confirmado = <c>E</c> (caixas).
     /// </summary>
-    public string QtdMandante { get; set; } = "U";
+    public string QtdMandante { get; set; } = "E";
 }
