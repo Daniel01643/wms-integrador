@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrador WMS — Apresentação</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #05080f; font-family: "Segoe UI", Arial, sans-serif; overflow: hidden; }
+  .stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .slide { display: none; width: 100vw; height: 100vh; align-items: center; justify-content: center; }
+  .slide.active { display: flex; }
+  .slide svg { width: auto; height: auto; max-width: 100vw; max-height: 100vh; }
+  /* nav */
+  .nav { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; z-index: 10; }
+  .nav button { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 10px; padding: 8px 16px; font-size: 15px; cursor: pointer; transition: background .15s; }
+  .nav button:hover { background: #334155; }
+  .nav button:disabled { opacity: .35; cursor: default; }
+  .counter { color: #94a3b8; font-size: 14px; min-width: 52px; text-align: center; }
+  .dots { position: fixed; bottom: 22px; right: 24px; display: flex; gap: 8px; z-index: 10; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #334155; cursor: pointer; }
+  .dot.active { background: #10b981; }
+  .hint { position: fixed; top: 16px; right: 20px; color: #475569; font-size: 12px; z-index: 10; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- SLIDE 1 — CAPA -->
+  <section class="slide active" data-i="0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bgc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="0.6" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+    <linearGradient id="gc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+    <filter id="shc"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.4"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgc)"/>
+  <circle cx="1120" cy="120" r="220" fill="#10b981" opacity="0.07"/>
+  <circle cx="160" cy="620" r="200" fill="#3b82f6" opacity="0.07"/>
+  <rect x="120" y="250" width="90" height="6" rx="3" fill="url(#gc)"/>
+  <text x="120" y="330" fill="#f8fafc" font-size="64" font-weight="800">Integrador WMS</text>
+  <text x="120" y="384" fill="#cbd5e1" font-size="28" font-weight="500">Agente autônomo de importação e ondas</text>
+  <text x="120" y="430" fill="#94a3b8" font-size="20">SolWMS Assist · REST/JSON · da pasta à onda, sem trabalho manual</text>
+  <g filter="url(#shc)"><rect x="120" y="500" width="300" height="110" rx="16" fill="#111c33" stroke="#334155"/><text x="140" y="540" fill="#6ee7b7" font-size="15" font-weight="700">AUTOMAÇÃO</text><text x="140" y="576" fill="#e2e8f0" font-size="17">Lê XML + planilha,</text><text x="140" y="598" fill="#e2e8f0" font-size="17">integra sozinho</text></g>
+  <g filter="url(#shc)"><rect x="440" y="500" width="300" height="110" rx="16" fill="#111c33" stroke="#334155"/><text x="460" y="540" fill="#93c5fd" font-size="15" font-weight="700">CONTROLE</text><text x="460" y="576" fill="#e2e8f0" font-size="17">Sabe o que entrou,</text><text x="460" y="598" fill="#e2e8f0" font-size="17">o que falhou e reenvia</text></g>
+  <g filter="url(#shc)"><rect x="760" y="500" width="300" height="110" rx="16" fill="#111c33" stroke="#334155"/><text x="780" y="540" fill="#fcd34d" font-size="15" font-weight="700">ONDA AUTOMÁTICA</text><text x="780" y="576" fill="#e2e8f0" font-size="17">Nasce da I50, sem</text><text x="780" y="598" fill="#e2e8f0" font-size="17">montagem manual</text></g>
+  <text x="120" y="680" fill="#64748b" font-size="15">Proposta de arquitetura · 29/10/2026</text>
+</svg>
+  </section>
+
+  <!-- SLIDE 2 — FLUXO -->
+  <section class="slide" data-i="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="60" y="64" fill="#f8fafc" font-size="34" font-weight="700">Integrador WMS</text>
+  <text x="60" y="94" fill="#94a3b8" font-size="18">Agente autônomo: da pasta à onda, sem trabalho manual</text>
+  <rect x="60" y="106" width="120" height="4" rx="2" fill="url(#green)"/>
+  <g filter="url(#shadow)"><rect x="60" y="180" width="200" height="150" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1.5"/><rect x="60" y="180" width="200" height="46" rx="16" fill="url(#blue)"/><rect x="60" y="210" width="200" height="16" fill="url(#blue)"/><text x="160" y="210" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">1 · Pasta</text><text x="160" y="258" fill="#cbd5e1" font-size="14" text-anchor="middle">C:\Envia xml</text><text x="160" y="284" fill="#94a3b8" font-size="13" text-anchor="middle">XMLs da NFe</text><text x="160" y="304" fill="#94a3b8" font-size="13" text-anchor="middle">+ planilha</text></g>
+  <g filter="url(#shadow)"><rect x="320" y="180" width="200" height="150" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1.5"/><rect x="320" y="180" width="200" height="46" rx="16" fill="url(#purple)"/><rect x="320" y="210" width="200" height="16" fill="url(#purple)"/><text x="420" y="210" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">2 · Cruzamento</text><text x="420" y="256" fill="#cbd5e1" font-size="13" text-anchor="middle">chave = nº da nota</text><text x="420" y="282" fill="#cbd5e1" font-size="13" text-anchor="middle">agrupa por</text><text x="420" y="302" fill="#cbd5e1" font-size="13" text-anchor="middle">"No. Transporte" = onda</text></g>
+  <g filter="url(#shadow)"><rect x="580" y="180" width="200" height="150" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1.5"/><rect x="580" y="180" width="200" height="46" rx="16" fill="url(#green)"/><rect x="580" y="210" width="200" height="16" fill="url(#green)"/><text x="680" y="210" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">3 · POST I50</text><text x="680" y="256" fill="#cbd5e1" font-size="13" text-anchor="middle">cria DocCarga</text><text x="680" y="282" fill="#6ee7b7" font-size="13" font-weight="600" text-anchor="middle">nroagrupseparacao</text><text x="680" y="302" fill="#6ee7b7" font-size="13" font-weight="600" text-anchor="middle">= onda automática</text></g>
+  <g filter="url(#shadow)"><rect x="840" y="180" width="200" height="150" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1.5"/><rect x="840" y="180" width="200" height="46" rx="16" fill="url(#green)"/><rect x="840" y="210" width="200" height="16" fill="url(#green)"/><text x="940" y="210" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">4 · POST I60</text><text x="940" y="256" fill="#cbd5e1" font-size="13" text-anchor="middle">1 por nota</text><text x="940" y="282" fill="#cbd5e1" font-size="13" text-anchor="middle">referencia o</text><text x="940" y="302" fill="#cbd5e1" font-size="13" text-anchor="middle">DocCarga (associa)</text></g>
+  <g filter="url(#shadow)"><rect x="1100" y="180" width="120" height="150" rx="16" fill="#0b1220" stroke="#475569" stroke-width="1.5"/><circle cx="1160" cy="236" r="26" fill="url(#blue)"/><text x="1160" y="244" fill="#fff" font-size="22" font-weight="700" text-anchor="middle">WMS</text><text x="1160" y="292" fill="#94a3b8" font-size="12" text-anchor="middle">endpoint único</text><text x="1160" y="310" fill="#94a3b8" font-size="12" text-anchor="middle">3 balanceados</text></g>
+  <line x1="262" y1="255" x2="318" y2="255" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="522" y1="255" x2="578" y2="255" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="782" y1="255" x2="838" y2="255" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="1042" y1="255" x2="1098" y2="255" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="610" y="346" width="340" height="30" rx="15" fill="#334155"/>
+  <text x="780" y="366" fill="#e2e8f0" font-size="14" text-anchor="middle">Ordem fixa: I50 cria a onda · depois I60 associa as notas</text>
+  <g filter="url(#shadow)"><rect x="60" y="430" width="580" height="210" rx="16" fill="#111c33" stroke="#334155" stroke-width="1.5"/><text x="84" y="466" fill="#f8fafc" font-size="18" font-weight="700">Controle &amp; resiliência</text><circle cx="96" cy="502" r="5" fill="#10b981"/><text x="112" y="507" fill="#cbd5e1" font-size="14">Estado por grupo: pendente → concluído / falhou</text><circle cx="96" cy="532" r="5" fill="#10b981"/><text x="112" y="537" fill="#cbd5e1" font-size="14">Falha = grupo inteiro (reprocessa o grupo todo)</text><circle cx="96" cy="562" r="5" fill="#10b981"/><text x="112" y="567" fill="#cbd5e1" font-size="14">WMS bloqueia duplicados (idempotência garantida)</text><circle cx="96" cy="592" r="5" fill="#10b981"/><text x="112" y="597" fill="#cbd5e1" font-size="14">Concluído → Processados · Falha → Erro + alerta e-mail</text><circle cx="96" cy="622" r="5" fill="#10b981"/><text x="112" y="627" fill="#cbd5e1" font-size="14">Processados limpa a cada 10 dias</text></g>
+  <g filter="url(#shadow)"><rect x="680" y="430" width="540" height="210" rx="16" fill="#111c33" stroke="#334155" stroke-width="1.5"/><text x="704" y="466" fill="#f8fafc" font-size="18" font-weight="700">O ganho</text><rect x="704" y="486" width="240" height="130" rx="12" fill="#2a1518" stroke="#7f1d1d"/><text x="824" y="512" fill="#fca5a5" font-size="15" font-weight="700" text-anchor="middle">Antes</text><text x="824" y="542" fill="#fecaca" font-size="13" text-anchor="middle">tela do WMS trava</text><text x="824" y="566" fill="#fecaca" font-size="13" text-anchor="middle">~50 XML / 10 min</text><text x="824" y="590" fill="#fecaca" font-size="13" text-anchor="middle">onda montada à mão</text><rect x="956" y="486" width="240" height="130" rx="12" fill="#0f2a1e" stroke="#065f46"/><text x="1076" y="512" fill="#6ee7b7" font-size="15" font-weight="700" text-anchor="middle">Depois</text><text x="1076" y="542" fill="#a7f3d0" font-size="13" text-anchor="middle">agente automático</text><text x="1076" y="566" fill="#a7f3d0" font-size="13" text-anchor="middle">envio concorrente</text><text x="1076" y="590" fill="#a7f3d0" font-size="13" text-anchor="middle">onda nasce sozinha</text><path d="M948 551 L954 551" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/></g>
+  <text x="60" y="690" fill="#64748b" font-size="12">SolWMS Assist · REST/JSON (GetToken + Post) · I50 PEDIDO · I60 NOTAS_VENDA</text>
+</svg>
+  </section>
+
+  <!-- SLIDE 3 — SEQUENCIA -->
+  <section class="slide" data-i="2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/></linearGradient>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker>
+    <marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
+    <filter id="sh2" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg2)"/>
+  <text x="60" y="60" fill="#f8fafc" font-size="30" font-weight="700">A ordem importa: I50 precisa integrar antes da I60</text>
+  <text x="60" y="90" fill="#94a3b8" font-size="17">A nota (I60) só é enviada depois que o DocCarga (I50) foi confirmado pelo WMS</text>
+  <rect x="60" y="100" width="120" height="4" rx="2" fill="url(#g2)"/>
+  <g font-size="15" font-weight="700" fill="#fff" text-anchor="middle"><rect x="120" y="150" width="150" height="44" rx="10" fill="#2563eb"/><text x="195" y="178">Agente</text><rect x="565" y="150" width="150" height="44" rx="10" fill="#7c3aed"/><text x="640" y="178">API WMS</text><rect x="1010" y="150" width="150" height="44" rx="10" fill="#334155"/><text x="1085" y="178">Store estado</text></g>
+  <line x1="195" y1="194" x2="195" y2="660" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="640" y1="194" x2="640" y2="660" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="1085" y1="194" x2="1085" y2="660" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="195" y1="230" x2="638" y2="230" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#ar2)"/>
+  <text x="200" y="222" fill="#cbd5e1" font-size="14">GetToken (Basic Auth)</text>
+  <line x1="640" y1="262" x2="197" y2="262" stroke="#64748b" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar2)"/>
+  <text x="635" y="254" fill="#94a3b8" font-size="13" text-anchor="end">JWT</text>
+  <rect x="150" y="290" width="1010" height="78" rx="12" fill="#0f2a1e" stroke="#065f46" stroke-width="1.5"/>
+  <text x="170" y="316" fill="#6ee7b7" font-size="14" font-weight="700">ETAPA 1 — DocCarga + onda</text>
+  <line x1="195" y1="338" x2="638" y2="338" stroke="#10b981" stroke-width="2.5" marker-end="url(#arG)"/>
+  <text x="200" y="330" fill="#a7f3d0" font-size="14">POST I50 (nroagrupseparacao = onda)</text>
+  <line x1="640" y1="358" x2="197" y2="358" stroke="#10b981" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arG)"/>
+  <text x="635" y="350" fill="#a7f3d0" font-size="13" text-anchor="end">OK — DocCarga integrado</text>
+  <g filter="url(#sh2)"><rect x="150" y="388" width="1010" height="52" rx="12" fill="#422006" stroke="#b45309" stroke-width="1.5"/></g>
+  <text x="640" y="420" fill="#fcd34d" font-size="16" font-weight="700" text-anchor="middle">⛔ TRAVA: só avança para a I60 se a I50 confirmou a integração</text>
+  <rect x="150" y="462" width="1010" height="120" rx="12" fill="#0f1f3a" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="170" y="488" fill="#93c5fd" font-size="14" font-weight="700">ETAPA 2 — associa cada nota (loop por nota do grupo)</text>
+  <line x1="195" y1="512" x2="638" y2="512" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#ar2)"/>
+  <text x="200" y="504" fill="#bfdbfe" font-size="14">POST I60 (referencia o DocCarga)</text>
+  <line x1="640" y1="534" x2="197" y2="534" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar2)"/>
+  <text x="635" y="526" fill="#bfdbfe" font-size="13" text-anchor="end">OK — nota associada</text>
+  <line x1="195" y1="566" x2="1083" y2="566" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#ar2)"/>
+  <text x="200" y="558" fill="#cbd5e1" font-size="13">grava progresso do grupo</text>
+  <line x1="195" y1="624" x2="1083" y2="624" stroke="#10b981" stroke-width="2.5" marker-end="url(#arG)"/>
+  <text x="200" y="616" fill="#6ee7b7" font-size="14" font-weight="700">Todas as notas OK → grupo = concluído</text>
+</svg>
+  </section>
+
+  <!-- SLIDE 4 — ESTADOS -->
+  <section class="slide" data-i="3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/></linearGradient>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker>
+    <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f87171"/></marker>
+    <filter id="sh3" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg3)"/>
+  <text x="60" y="60" fill="#f8fafc" font-size="30" font-weight="700">Ciclo de vida do grupo (1 DocCarga, N notas)</text>
+  <text x="60" y="90" fill="#94a3b8" font-size="17">Falha é sempre no grupo inteiro · WMS bloqueia duplicados · auditoria por pasta</text>
+  <rect x="60" y="100" width="120" height="4" rx="2" fill="url(#g3)"/>
+  <g filter="url(#sh3)" font-size="16" font-weight="700" text-anchor="middle"><rect x="70" y="190" width="150" height="70" rx="14" fill="#334155"/><text x="145" y="232" fill="#fff">pendente</text><rect x="310" y="190" width="170" height="70" rx="14" fill="#1d4ed8"/><text x="395" y="226" fill="#fff" font-size="15">enviando I50</text><text x="395" y="246" fill="#bfdbfe" font-size="12">DocCarga + onda</text><rect x="570" y="190" width="170" height="70" rx="14" fill="#2563eb"/><text x="655" y="226" fill="#fff" font-size="15">enviando I60</text><text x="655" y="246" fill="#bfdbfe" font-size="12">associa notas</text><rect x="830" y="190" width="170" height="70" rx="14" fill="url(#g3)"/><text x="915" y="232" fill="#fff">concluído</text></g>
+  <line x1="222" y1="225" x2="308" y2="225" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#ar3)"/>
+  <line x1="482" y1="225" x2="568" y2="225" stroke="#10b981" stroke-width="2.5" marker-end="url(#ar3)"/><text x="525" y="214" fill="#6ee7b7" font-size="12" text-anchor="middle">I50 ok</text>
+  <line x1="742" y1="225" x2="828" y2="225" stroke="#10b981" stroke-width="2.5" marker-end="url(#ar3)"/><text x="785" y="214" fill="#6ee7b7" font-size="12" text-anchor="middle">todas ok</text>
+  <g filter="url(#sh3)"><rect x="440" y="360" width="200" height="74" rx="14" fill="#7f1d1d"/></g>
+  <text x="540" y="398" fill="#fff" font-size="16" font-weight="700" text-anchor="middle">falhou</text>
+  <text x="540" y="420" fill="#fecaca" font-size="12" text-anchor="middle">(grupo inteiro)</text>
+  <path d="M395 262 C395 320 470 340 480 358" fill="none" stroke="#f87171" stroke-width="2.5" marker-end="url(#arR)"/>
+  <text x="360" y="320" fill="#fca5a5" font-size="12">I50 erro</text>
+  <path d="M655 262 C655 320 600 340 600 358" fill="none" stroke="#f87171" stroke-width="2.5" marker-end="url(#arR)"/>
+  <text x="675" y="320" fill="#fca5a5" font-size="12">qualquer nota falha</text>
+  <path d="M440 395 C250 395 145 330 145 262" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#ar3)"/>
+  <text x="200" y="360" fill="#fcd34d" font-size="12">reprocesso (grupo todo)</text>
+  <g filter="url(#sh3)"><rect x="70" y="486" width="560" height="170" rx="16" fill="#111c33" stroke="#334155"/><text x="94" y="520" fill="#f8fafc" font-size="17" font-weight="700">Idempotência: o WMS é a trava</text><circle cx="100" cy="552" r="5" fill="#10b981"/><text x="116" y="557" fill="#cbd5e1" font-size="14">I50 "já existe" no reprocesso = OK, segue p/ I60</text><circle cx="100" cy="582" r="5" fill="#f87171"/><text x="116" y="587" fill="#cbd5e1" font-size="14">Onda fora de "editando" = erro definitivo (sem retry)</text><circle cx="100" cy="612" r="5" fill="#10b981"/><text x="116" y="617" fill="#cbd5e1" font-size="14">Nunca duplica DocCarga nem nota</text></g>
+  <g filter="url(#sh3)"><rect x="660" y="486" width="560" height="170" rx="16" fill="#111c33" stroke="#334155"/><text x="684" y="520" fill="#f8fafc" font-size="17" font-weight="700">Auditoria e alertas</text><circle cx="690" cy="552" r="5" fill="#10b981"/><text x="706" y="557" fill="#cbd5e1" font-size="14">Concluído → pasta Processados (limpa em 10 dias)</text><circle cx="690" cy="582" r="5" fill="#f87171"/><text x="706" y="587" fill="#cbd5e1" font-size="14">Falhou → pasta Erro (fica para inspeção)</text><circle cx="690" cy="612" r="5" fill="#fbbf24"/><text x="706" y="617" fill="#cbd5e1" font-size="14">Exceção → alerta por e-mail</text></g>
+</svg>
+  </section>
+
+</div>
+
+<div class="hint">← → navega · F tela cheia</div>
+<div class="nav">
+  <button id="prev">‹ Anterior</button>
+  <span class="counter" id="counter">1 / 4</span>
+  <button id="next">Próximo ›</button>
+</div>
+<div class="dots" id="dots"></div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let cur = 0;
+  const counter = document.getElementById('counter');
+  const dotsWrap = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => go(i);
+    dotsWrap.appendChild(d);
+  });
+  const dots = [...dotsWrap.children];
+  function go(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+    dots.forEach((d, k) => d.classList.toggle('active', k === cur));
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+  }
+  document.getElementById('prev').onclick = () => go(cur - 1);
+  document.getElementById('next').onclick = () => go(cur + 1);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') go(cur + 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(cur - 1);
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+  go(0);
+</script>
+</body>
+</html>
