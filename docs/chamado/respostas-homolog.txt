@@ -1,0 +1,13 @@
+Teste executado em 30/10/2026 18:30:52
+Endpoint: https://friozem.assistsoftware.com.br:8888/wmsapi/api/integracao/Post | REQUISITANTE=01.838.723/0098-50 | DESTINO=14.605.065/0001-75
+
+==== CENARIO 1 - associacao automatica (Tpsit=IMB) (I60-associacao-automatica-IMB.json) ====
+HTTP 200 em 138ms
+Resposta:
+{"transacao":"4020022","tipoEDI":"I60","sucesso":"N","retornos":[{"documento":"15665807","idDocumento":"187161","sucesso":"N","mensagem":"Foi importado e esta pendente na interface. Ressalvas : {Nota [15665807] já existe, TpAcao precisa ser UPD!}"}]}
+
+==== CENARIO 2 - so importa nota / manual (Tpsit=IMP) (I60-associacao-manual-IMP.json) ====
+HTTP 200 em 134ms
+Resposta:
+{"transacao":"4020023","tipoEDI":"I60","sucesso":"N","retornos":[{"documento":"15665807","idDocumento":"187162","sucesso":"N","mensagem":"Foi importado e esta pendente na interface. Ressalvas : {Nota [15665807] já existe, TpAcao precisa ser UPD!}"}]}
+
