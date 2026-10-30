@@ -23,10 +23,8 @@ namespace KitWmsIntegrador.Core.ClienteWms;
 /// </summary>
 public sealed class ClienteWmsHttp : IClienteWms
 {
-    private static readonly JsonSerializerOptions JsonOpcoes = new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    // Política de serialização compartilhada com os construtores de payload (ver JsonWms).
+    private static readonly JsonSerializerOptions JsonOpcoes = JsonWms.Opcoes;
 
     private readonly HttpClient _http;
     private readonly OpcoesWms _opcoes;
