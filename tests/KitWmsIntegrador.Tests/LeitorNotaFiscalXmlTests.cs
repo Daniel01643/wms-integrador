@@ -69,6 +69,17 @@ public class LeitorNotaFiscalXmlTests
     }
 
     [Fact]
+    public void ParseArquivo_Xml1_ExpoeInfoComplementar()
+    {
+        var leitor = new LeitorNotaFiscalXml();
+
+        var nota = leitor.ParseArquivo(Caminho(Xml1));
+
+        Assert.NotNull(nota.InfoComplementar);
+        Assert.Contains("Transporte: 0130693549", nota.InfoComplementar!);
+    }
+
+    [Fact]
     public void ParseArquivo_Xml2_ExtraiNumeroETransporte()
     {
         var leitor = new LeitorNotaFiscalXml();

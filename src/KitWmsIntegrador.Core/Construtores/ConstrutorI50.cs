@@ -48,6 +48,9 @@ public sealed class ConstrutorI50 : IConstrutorI50
         var endereco = nota.Endereco;
         var local = MontarLocalEntrega(endereco);
 
+        // CFOP do 1º item — representa a natureza da operação da nota na I50.
+        var cfop = nota.Itens.Count > 0 ? nota.Itens[0].Cfop : string.Empty;
+
         var itens = new List<ItemPedidoI50>(nota.Itens.Count);
         for (var i = 0; i < nota.Itens.Count; i++)
         {
@@ -100,6 +103,19 @@ public sealed class ConstrutorI50 : IConstrutorI50
             IndicaLocalEntregaCidade = local.Cidade,
             IndicaLocalEntregaCep = FormatoWms.Cep(local.Cep),
             IndicaLocalEntregaUf = local.Uf,
+
+            // Enriquecimento fiscal da I50 (rastreabilidade visual no WMS). Dados da I60
+            // carregados aqui, pois o DocCarga nasce do XML. atributos ≤ 200, Observacao ≤ 255.
+            Atributo1 = FormatoWms.Truncar($"CH:{nota.ChaveNFe} PROT:{nota.Protocolo}", 200),
+            Atributo2 = FormatoWms.Truncar($"NF:{nota.Numero} S:{nota.Serie} CFOP:{cfop}", 200),
+            Atributo3 = FormatoWms.Truncar(
+                FormatoWms.Atributo3(
+                    nota.ValorTotal,
+                    nota.Volumes?.PesoBruto,
+                    nota.Volumes?.PesoLiquido,
+                    nota.Volumes?.QuantidadeVolumes),
+                200),
+            Observacao = FormatoWms.Truncar(nota.InfoComplementar, 255),
 
             ItemPedido = itens,
         };

@@ -146,6 +146,7 @@ public sealed class LeitorNotaFiscalXml
             TransportadoraCnpj = transportadoraCnpj,
             Protocolo = protocolo,
             NumeroTransporte = ExtratorTransporte.Extrair(infCpl),
+            InfoComplementar = infCpl,
             ArquivoOrigem = arquivoOrigem,
         };
     }

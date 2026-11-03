@@ -61,6 +61,13 @@ public record NotaFiscal
     /// </summary>
     public string? NumeroTransporte { get; init; }
 
+    /// <summary>
+    /// Texto bruto das informações complementares —
+    /// <c>infNFe/infAdic/infCpl</c>. Usado para enriquecer a I50 (Observacao).
+    /// <c>null</c> quando o XML não traz o campo.
+    /// </summary>
+    public string? InfoComplementar { get; init; }
+
     /// <summary>Caminho do arquivo XML de origem.</summary>
     public string ArquivoOrigem { get; init; } = string.Empty;
 }

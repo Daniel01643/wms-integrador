@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Enriquecer o DocCarga (I50) com dados fiscais da nota nos campos atributo1/atributo2/atributo3 e Observacao do PedidoI50, para rastreabilidade visual no WMS. Exige expor o texto bruto do infCpl no dominio (hoje so o NumeroTransporte derivado e exposto) e criar helpers de formatacao/truncamento em FormatoWms. Independente de FEAT-002 e FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "Em src/KitWmsIntegrador.Core/Modelos/NotaFiscal.cs adicionar propriedade 'public string? InfoComplementar { get; init; }' com XML-doc (texto bruto de infNFe/infAdic/infCpl).",
+    "Em src/KitWmsIntegrador.Core/Leitura/LeitorNotaFiscalXml.cs, no 'return new NotaFiscal{...}', atribuir 'InfoComplementar = infCpl' reutilizando a variavel local 'infCpl' ja lida em case \"infAdic\" (nao adicionar parsing novo).",
+    "Em src/KitWmsIntegrador.Core/Construtores/FormatoWms.cs adicionar: 'public static string Truncar(string? valor, int max)' que retorna \"\" para null/vazio e corta preservando o inicio quando exceder; e 'public static string Atributo3(decimal? valorTotal, decimal? pesoBruto, decimal? pesoLiquido, string? qtdVolumes)' que monta uma string visual pt-BR com rotulos curtos (ex.: 'Vlr: 12.644,40 | PB: 302,675 | PL: 275,640 | Vol: 36') usando CultureInfo('pt-BR') APENAS neste texto de exibicao, omitindo rotulos cujo valor seja null/vazio.",
+    "Em src/KitWmsIntegrador.Core/Construtores/ConstrutorI50.cs, dentro de Construir, calcular o CFOP do 1o item (nota.Itens.Count > 0 ? nota.Itens[0].Cfop : string.Empty) e preencher no objeto PedidoI50: Atributo1 = FormatoWms.Truncar($\"CH:{nota.ChaveNFe} PROT:{nota.Protocolo}\", 200); Atributo2 = FormatoWms.Truncar($\"NF:{nota.Numero} S:{nota.Serie} CFOP:{cfop}\", 200); Atributo3 = FormatoWms.Truncar(FormatoWms.Atributo3(nota.ValorTotal, nota.Volumes?.PesoBruto, nota.Volumes?.PesoLiquido, nota.Volumes?.QuantidadeVolumes), 200); Observacao = FormatoWms.Truncar(nota.InfoComplementar, 255).",
+    "Adicionar testes: em tests/KitWmsIntegrador.Tests/ConstrutorI50Tests.cs validar que atributo1 contem a chave (44 digitos) e o protocolo, atributo2 contem 'NF:15665807', 'S:6' e 'CFOP:5102', atributo3 contem 'Vlr:' e 'Vol: 36' e usa virgula decimal, e Observacao e nao-vazia e <= 255 chars; adicionar um teste com uma NotaFiscal sintetica de chave/infCpl muito longos confirmando truncamento em 200/255.",
+    "Adicionar em tests/KitWmsIntegrador.Tests/LeitorNotaFiscalXmlTests.cs um teste de que InfoComplementar do XML de referencia contem 'Transporte: 0130693549'.",
+    "Criar tests/KitWmsIntegrador.Tests/FormatoWmsTests.cs cobrindo Truncar (null -> \"\", string curta inalterada, string longa cortada ao limite) e Atributo3 (valores presentes -> rotulos com virgula decimal; valor null -> rotulo omitido)."
+  ],
+  "acceptance_criteria": [
+    "NotaFiscal expoe InfoComplementar e o parser o preenche com o texto do infCpl.",
+    "ConstrutorI50 preenche atributo1 (chave+protocolo), atributo2 (nNF+serie+CFOP), atributo3 (valor+pesos+volumes em pt-BR) e Observacao (infCpl truncado a 255).",
+    "atributo1/2/3 nunca excedem 200 chars; Observacao nunca excede 255 chars.",
+    "Os campos numericos reais do payload I50 continuam com ponto decimal invariante (inalterados).",
+    "Rodar 'dotnet test KitWmsIntegrador.sln -c Debug' passa com 0 falhas, incluindo os 59 testes existentes e os novos deste FEAT."
+  ],
+  "verification": [
+    "dotnet build KitWmsIntegrador.sln -c Debug",
+    "dotnet test KitWmsIntegrador.sln -c Debug"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementado e verde: dotnet build 0 erros/0 avisos; dotnet test = 70 testes (59 baseline + 11 novos), 0 falhas. Assinaturas novas em FormatoWms (estatico, invariante por padrao): 'public static string Truncar(string? valor, int max)' (nulo/vazio -> \"\", corta preservando inicio) e 'public static string Atributo3(decimal? valorTotal, decimal? pesoBruto, decimal? pesoLiquido, string? qtdVolumes)'. NotaFiscal ganhou 'public string? InfoComplementar { get; init; }' (texto bruto do infCpl), preenchido no parser reaproveitando a variavel local infCpl (sem parsing novo). ConstrutorI50.Construir agora preenche Atributo1=CH:{chave} PROT:{protocolo} (<=200), Atributo2=NF:{nNF} S:{serie} CFOP:{cfop do 1o item} (<=200), Atributo3=FormatoWms.Atributo3(...) (<=200) e Observacao=infCpl truncado a 255. DETALHE DE FORMATACAO pt-BR do Atributo3: valorTotal usa 'N2' (sempre 2 casas, ex.: 'Vlr: 12.644,40'); pesos usam ToString(pt-BR) SEM mascara para preservar a escala/zeros a direita do decimal lido do XML (ex.: 'PB: 302,675', 'PL: 275,640') — nao usar '0.###' pois dropa o zero final (275,64) e quebra o criterio visual. A cultura pt-BR (campo privado CulturaVisual) e usada SOMENTE nesse texto visual; decimais reais do payload I50 seguem ponto invariante (inalterados). I60 nao foi tocada. FEAT-002/003 podem reutilizar FormatoWms.Truncar/Atributo3 e NotaFiscal.InfoComplementar."
+}

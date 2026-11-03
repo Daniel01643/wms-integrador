@@ -91,4 +91,60 @@ public static class FormatoWms
         var d = new string(valor.Where(char.IsDigit).ToArray());
         return d.Length == 8 ? $"{d[..5]}-{d[5..]}" : valor;
     }
+
+    /// <summary>
+    /// Cultura pt-BR usada APENAS na formatação visual do <see cref="Atributo3"/>
+    /// (vírgula decimal). Nunca aplicar a decimais reais do payload.
+    /// </summary>
+    private static readonly CultureInfo CulturaVisual = CultureInfo.GetCultureInfo("pt-BR");
+
+    /// <summary>
+    /// Trunca uma string preservando o início quando excede <paramref name="max"/>.
+    /// Retorna <c>""</c> para nulo/vazio. Útil para limitar atributos/observação do WMS.
+    /// </summary>
+    public static string Truncar(string? valor, int max)
+    {
+        if (string.IsNullOrEmpty(valor))
+        {
+            return string.Empty;
+        }
+
+        return valor.Length <= max ? valor : valor[..max];
+    }
+
+    /// <summary>
+    /// Monta uma string VISUAL (pt-BR, vírgula decimal) para o <c>atributo3</c> da I50,
+    /// reunindo valor total, pesos (bruto/líquido) e quantidade de volumes com rótulos
+    /// curtos (ex.: <c>"Vlr: 12.644,40 | PB: 302,675 | PL: 275,640 | Vol: 36"</c>).
+    /// Rótulos cujo valor é nulo/vazio são omitidos. É só texto de exibição — não deve
+    /// ser usado em campos numéricos reais do payload (que seguem ponto invariante).
+    /// </summary>
+    public static string Atributo3(decimal? valorTotal, decimal? pesoBruto, decimal? pesoLiquido, string? qtdVolumes)
+    {
+        var partes = new List<string>(4);
+
+        if (valorTotal.HasValue)
+        {
+            partes.Add($"Vlr: {valorTotal.Value.ToString("N2", CulturaVisual)}");
+        }
+
+        if (pesoBruto.HasValue)
+        {
+            // ToString sem máscara preserva a escala do decimal (ex.: 302.675 → "302,675",
+            // 275.640 → "275,640"), mantendo os zeros à direita que vieram do XML.
+            partes.Add($"PB: {pesoBruto.Value.ToString(CulturaVisual)}");
+        }
+
+        if (pesoLiquido.HasValue)
+        {
+            partes.Add($"PL: {pesoLiquido.Value.ToString(CulturaVisual)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(qtdVolumes))
+        {
+            partes.Add($"Vol: {qtdVolumes}");
+        }
+
+        return string.Join(" | ", partes);
+    }
 }

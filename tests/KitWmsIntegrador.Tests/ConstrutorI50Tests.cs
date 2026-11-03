@@ -206,4 +206,71 @@ public class ConstrutorI50Tests
 
         Assert.DoesNotContain("numeroEmbarque", json);
     }
+
+    [Fact]
+    public void Construir_Atributo1_ContemChaveEProtocolo()
+    {
+        var nota = LerXml1();
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.Equal(44, nota.ChaveNFe.Length);
+        Assert.Contains(nota.ChaveNFe, pedido.Atributo1);
+        Assert.False(string.IsNullOrWhiteSpace(nota.Protocolo));
+        Assert.Contains(nota.Protocolo!, pedido.Atributo1);
+    }
+
+    [Fact]
+    public void Construir_Atributo2_ContemNumeroSerieECfopDoPrimeiroItem()
+    {
+        var nota = LerXml1();
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.Contains("NF:15665807", pedido.Atributo2);
+        Assert.Contains("S:6", pedido.Atributo2);
+        Assert.Contains("CFOP:5102", pedido.Atributo2);
+    }
+
+    [Fact]
+    public void Construir_Atributo3_ContemValorEVolumesComVirgulaDecimal()
+    {
+        var nota = LerXml1();
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.Contains("Vlr:", pedido.Atributo3);
+        Assert.Contains("Vol: 36", pedido.Atributo3);
+        // Texto visual pt-BR: valor total 12.644,40 usa vírgula decimal.
+        Assert.Contains("12.644,40", pedido.Atributo3);
+    }
+
+    [Fact]
+    public void Construir_Observacao_NaoVaziaEDentroDoLimite()
+    {
+        var nota = LerXml1();
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.False(string.IsNullOrWhiteSpace(pedido.Observacao));
+        Assert.True(pedido.Observacao.Length <= 255);
+    }
+
+    [Fact]
+    public void Construir_ChaveEInfCplLongos_TruncamAtributosEObservacao()
+    {
+        var nota = LerXml1() with
+        {
+            ChaveNFe = new string('9', 300),
+            Protocolo = new string('8', 300),
+            InfoComplementar = new string('x', 500),
+        };
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.True(pedido.Atributo1.Length <= 200);
+        Assert.True(pedido.Atributo2.Length <= 200);
+        Assert.True(pedido.Atributo3.Length <= 200);
+        Assert.Equal(255, pedido.Observacao.Length);
+    }
 }
