@@ -38,6 +38,13 @@ builder.Services
     .AddOptions<OpcoesI50>()
     .Bind(builder.Configuration.GetSection(OpcoesI50.Secao));
 
+// Flag da I60 (seção "I60"). Desligada por ora (Habilitada=false): a I50 passou a
+// carregar os dados fiscais. O código da I60 permanece e é reativável; o fluxo de
+// envio da Etapa 5 (Orquestrador) deve respeitar esta flag.
+builder.Services
+    .AddOptions<OpcoesI60>()
+    .Bind(builder.Configuration.GetSection(OpcoesI60.Secao));
+
 // Construtores de payload (I50/I60/I10). Apenas montam objetos/JSON — sem rede.
 builder.Services.AddSingleton<IConstrutorI50, ConstrutorI50>();
 builder.Services.AddSingleton<IConstrutorI60, ConstrutorI60>();

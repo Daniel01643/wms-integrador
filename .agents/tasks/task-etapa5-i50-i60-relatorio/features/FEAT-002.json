@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Criar flag de configuracao para DESLIGAR o envio da I60 por ora, sem remover nenhum codigo da I60. O construtor ConstrutorI60, o DTO PayloadI60 e os testes da I60 permanecem intactos. A flag apenas sinaliza se o envio deve ocorrer (sera respeitada pelo Orquestrador na Etapa 5 de fluxo, ainda inexistente). Independente de FEAT-001 e FEAT-003.",
+  "status": "completed",
+  "steps": [
+    "Criar src/KitWmsIntegrador.Core/Configuracao/OpcoesI60.cs seguindo o padrao de OpcoesI50.cs: 'public const string Secao = \"I60\";' e 'public bool Habilitada { get; set; } = false;' com XML-doc explicando que a I60 esta desligada por ora (a I50 agora carrega os dados fiscais), que o codigo da I60 permanece e e reativavel, e que o fluxo de envio da Etapa 5 deve respeitar esta flag.",
+    "Em src/KitWmsIntegrador.Worker/Program.cs registrar a opcao: builder.Services.AddOptions<OpcoesI60>().Bind(builder.Configuration.GetSection(OpcoesI60.Secao)); (proximo ao registro de OpcoesI50). Adicionar 'using KitWmsIntegrador.Core.Configuracao;' se necessario (ja presente).",
+    "Em src/KitWmsIntegrador.Worker/appsettings.json adicionar a secao \"I60\" com um campo \"_comentario\" explicando que a I60 esta desligada por ora e e reativavel (o Orquestrador da Etapa 5 deve respeitar a flag) e \"Habilitada\": false.",
+    "NAO modificar ConstrutorI60.cs, PayloadI60.cs nem ConstrutorI60Tests.cs.",
+    "Criar tests/KitWmsIntegrador.Tests/OpcoesI60Tests.cs: (a) 'new OpcoesI60().Habilitada' e false por default; (b) bind via ConfigurationBuilder().AddInMemoryCollection(new[]{ new KeyValuePair<string,string?>(\"I60:Habilitada\",\"true\") }).Build().GetSection(OpcoesI60.Secao).Get<OpcoesI60>() resulta Habilitada == true."
+  ],
+  "acceptance_criteria": [
+    "OpcoesI60 existe em Core/Configuracao com Secao = \"I60\" e Habilitada default false.",
+    "OpcoesI60 esta registrada no DI do Worker e documentada no appsettings com comentario explicando o desligamento e a reativabilidade.",
+    "Nenhum arquivo da I60 existente (ConstrutorI60, PayloadI60, ConstrutorI60Tests) foi alterado.",
+    "Rodar 'dotnet test KitWmsIntegrador.sln -c Debug' passa com 0 falhas, incluindo os testes novos de OpcoesI60."
+  ],
+  "verification": [
+    "dotnet build KitWmsIntegrador.sln -c Debug",
+    "dotnet test KitWmsIntegrador.sln -c Debug"
+  ],
+  "blocked_reason": null,
+  "findings": "OpcoesI60 criada em src/KitWmsIntegrador.Core/Configuracao/OpcoesI60.cs (sealed, Secao=\"I60\", Habilitada bool default false) com XML-doc em pt explicando o desligamento temporario e a reativabilidade. Registrada no DI do Worker (Program.cs) via AddOptions<OpcoesI60>().Bind(GetSection(OpcoesI60.Secao)) logo apos OpcoesI50. Secao \"I60\" adicionada ao appsettings.json com _comentario e Habilitada=false. Teste OpcoesI60Tests.cs cobre default false e bind via ConfigurationBuilder.AddInMemoryCollection (I60:Habilitada=true -> true); os pacotes Microsoft.Extensions.Configuration/.Binder resolvem transitivamente pelo Core (Microsoft.Extensions.Http), sem alterar csproj. ConstrutorI60.cs, PayloadI60.cs e ConstrutorI60Tests.cs permaneceram intactos. Build verde (0 avisos/0 erros); dotnet test com 72 aprovados, 0 falhas (os 2 novos de OpcoesI60 inclusos)."
+}
