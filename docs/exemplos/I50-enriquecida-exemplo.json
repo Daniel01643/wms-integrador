@@ -1,0 +1,73 @@
+﻿{
+  "PEDIDO": [
+    {
+      "doca": "",
+      "cnpjProprietario": "01.838.723/0098-50",
+      "cnpjDestinatario": "28.288.914/0001-19",
+      "cnpjTransportadora": "",
+      "numeroPedido": "15665807",
+      "tipoCarga": "CN",
+      "tipoAcondicionamento": "PC",
+      "tpAcao": "I",
+      "tipoSeparacao": "RES;FEF;PLI",
+      "tipoSeparacao2": "AGL;FEF;PLL",
+      "dataEmissao": "15/12/2025 08:29:34",
+      "dataprev": "17/12/2025 08:29:34",
+      "numeroPlanejamento": "0130693549",
+      "nroagrupseparacao": "0130693549",
+      "placaVeiculo": "",
+      "deposito": "JD",
+      "cnpjArmazem": "14.605.065/0001-75",
+      "numeroLacre": "",
+      "indicaLocalEntregaNome": "R ITAPAIUNA 1800,1800",
+      "indicaLocalEntregaBairro": "JARDIM MORUMBI",
+      "indicaLocalEntregaCidade": "SAO PAULO",
+      "indicaLocalEntregaCep": "05705-901",
+      "indicaLocalEntregaUf": "SP",
+      "indicaLocalEntregaTel": "",
+      "atributo1": "CH:35251201838723009850550060156658071604491612 PROT:135253934486164",
+      "atributo2": "NF:15665807 S:6 CFOP:5102",
+      "atributo3": "Vlr: 12.644,40 | PB: 302,675 | PL: 275,640 | Vol: 36",
+      "seqEmbarque": 1,
+      "DhprevEntrega": "",
+      "DhprevEmbarque": "17/12/2025 08:29:34",
+      "DhprevServico": "",
+      "numeroRefPedCliente": "",
+      "Observacao": "VD: 00842983 CL: 0009337942 LD: KITS ORIG: 0453798063 PED CLI: 0774534 Transporte: 0130693549 ** Trib aprox. Trib. Federais R$: 1.700,67 Trib. Estaduais R$: 1.517,33 Trib. Municipais R$: 0,00 Fonte IBPT 1C2537 ** BOLETO ATUALIZADO REIMPRIMA NO SITE WWW.BR",
+      "ITEM_PEDIDO": [
+        {
+          "numeroSequencialItem": 1,
+          "tpAcao": "I",
+          "codigoProduto": "175894",
+          "qtdeEmbalagem": 12.0000,
+          "quantidadeProduto": 12.0000,
+          "qtdMandante": "E",
+          "tipoSeparacao": "RES;FEF;PLI",
+          "tipoSeparacao2": "AGL;FEF;PLL",
+          "valorDetalhe1": "",
+          "valorDetalhe2": "",
+          "valorDetalhe3": "",
+          "valorDetalhe4": "",
+          "tipoEspecificacaoItem": "",
+          "valorEspecificacaoItem": ""
+        },
+        {
+          "numeroSequencialItem": 2,
+          "tpAcao": "I",
+          "codigoProduto": "175886",
+          "qtdeEmbalagem": 24.0000,
+          "quantidadeProduto": 24.0000,
+          "qtdMandante": "E",
+          "tipoSeparacao": "RES;FEF;PLI",
+          "tipoSeparacao2": "AGL;FEF;PLL",
+          "valorDetalhe1": "",
+          "valorDetalhe2": "",
+          "valorDetalhe3": "",
+          "valorDetalhe4": "",
+          "tipoEspecificacaoItem": "",
+          "valorEspecificacaoItem": ""
+        }
+      ]
+    }
+  ]
+}
