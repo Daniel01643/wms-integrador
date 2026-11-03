@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Criar um gerador de relatorio de erros/pendencias de integracao em DOIS formatos, HTML e PDF, consumindo uma lista de linhas de erro (numero da nota, numero do transporte, horario do erro com fuso, mensagem). PDF via PdfSharpCore 1.3.67 (MIT, versao exata). Pasta de saida configuravel. Independente de FEAT-001 e FEAT-002.",
+  "status": "completed",
+  "steps": [
+    "Em src/KitWmsIntegrador.Core/KitWmsIntegrador.Core.csproj adicionar <PackageReference Include=\"PdfSharpCore\" Version=\"1.3.67\" /> no ItemGroup de pacotes. Rodar 'dotnet restore' para confirmar a resolucao (traz SixLabors.ImageSharp transitivo; o relatorio e so texto, nao usar imagens).",
+    "Criar src/KitWmsIntegrador.Core/Relatorio/LinhaRelatorioErro.cs: 'public record LinhaRelatorioErro(string NumeroNota, string NumeroTransporte, DateTimeOffset HorarioErro, string Mensagem);' com XML-doc das colunas.",
+    "Criar src/KitWmsIntegrador.Core/Configuracao/OpcoesRelatorio.cs: 'public const string Secao = \"Relatorio\";' e 'public string PastaSaida { get; set; } = \"relatorios\";' com XML-doc (pasta configuravel; nao hardcode).",
+    "Criar src/KitWmsIntegrador.Core/Relatorio/IGeradorRelatorio.cs com: 'string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);' 'byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);' e '(string CaminhoHtml, string CaminhoPdf) GerarArquivos(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);'.",
+    "Criar src/KitWmsIntegrador.Core/Relatorio/GeradorRelatorio.cs implementando IGeradorRelatorio. HTML: montar via StringBuilder com <html>, titulo, data de geracao, e <table> com cabecalho (Numero da Nota, Numero do Transporte, Horario do Erro, Mensagem) e uma <tr>/<td> por linha; escapar HTML basico (& < >) na Mensagem; formatar o horario com fuso (ex.: 'dd/MM/yyyy HH:mm:ss zzz'). PDF: usar PdfSharpCore (PdfDocument, AddPage, XGraphics.FromPdfPage, XFont) desenhando titulo, data e as 4 colunas com DrawString e espacamento fixo por linha (simples e legivel). GerarArquivos: usa IOptions<OpcoesRelatorio>.PastaSaida (Directory.CreateDirectory), nome 'erros_<yyyy-MM-dd_HHmm>.<ext>' derivado de geradoEm, escreve HTML (File.WriteAllText) e PDF (File.WriteAllBytes) e retorna os caminhos.",
+    "Em src/KitWmsIntegrador.Worker/Program.cs registrar: builder.Services.AddOptions<OpcoesRelatorio>().Bind(builder.Configuration.GetSection(OpcoesRelatorio.Secao)); e builder.Services.AddSingleton<IGeradorRelatorio, GeradorRelatorio>();.",
+    "Em src/KitWmsIntegrador.Worker/appsettings.json adicionar a secao \"Relatorio\" com \"_comentario\" e \"PastaSaida\".",
+    "Criar tests/KitWmsIntegrador.Tests/GeradorRelatorioTests.cs com uma lista de 2-3 LinhaRelatorioErro: (a) GerarHtml contem cada numero de nota, transporte, trecho da mensagem e o horario formatado, e as tags '<table'/'<tr'/'<td'; (b) GerarPdf retorna byte[] nao-vazio cujos primeiros bytes sao o header '%PDF' (checar ASCII dos 4 primeiros bytes); (c) GerarArquivos (com OpcoesRelatorio.PastaSaida apontando para um diretorio temporario via Path.GetTempPath + Guid) cria os dois arquivos com o padrao de nome e nao-vazios, e o teste limpa os arquivos/pasta no final."
+  ],
+  "acceptance_criteria": [
+    "PdfSharpCore 1.3.67 (versao exata) referenciado no Core.csproj e resolvido no restore/build.",
+    "IGeradorRelatorio + GeradorRelatorio geram HTML (tabela com as 4 colunas, titulo e data) e PDF (tabela equivalente) a partir de uma lista de LinhaRelatorioErro.",
+    "Nome dos arquivos segue 'erros_<yyyy-MM-dd_HHmm>.<ext>' e a pasta de saida vem de OpcoesRelatorio.PastaSaida (configuravel, nao hardcode).",
+    "GerarPdf produz bytes iniciando com '%PDF' e nao-vazios; o HTML contem os valores das linhas e as tags de tabela.",
+    "Nenhuma chamada HTTP e feita. Rodar 'dotnet test KitWmsIntegrador.sln -c Debug' passa com 0 falhas, incluindo os testes novos do gerador."
+  ],
+  "verification": [
+    "dotnet restore KitWmsIntegrador.sln",
+    "dotnet build KitWmsIntegrador.sln -c Debug",
+    "dotnet test KitWmsIntegrador.sln -c Debug"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementado conforme os steps. PdfSharpCore 1.3.67 (versao exata) adicionado ao Core.csproj e resolvido no restore/build (traz SixLabors.ImageSharp transitivo com CVEs conhecidas; relatorio e so texto/tabela, sem imagens — ressalva registrada em comentario no csproj, sem acao). Criados Core/Relatorio/LinhaRelatorioErro.cs (record), Configuracao/OpcoesRelatorio.cs (Secao=\"Relatorio\", PastaSaida=\"relatorios\"), Relatorio/IGeradorRelatorio.cs (GerarHtml/GerarPdf/GerarArquivos) e Relatorio/GeradorRelatorio.cs. HTML via StringBuilder com titulo, data de geracao, <table> com 4 colunas (Numero da Nota, Numero do Transporte, Horario do Erro, Mensagem), escape de & < > na mensagem e horario formatado 'dd/MM/yyyy HH:mm:ss zzz'. PDF via PdfSharpCore (PdfDocument/AddPage/XGraphics.FromPdfPage/XFont) desenhando titulo, data e 4 colunas com DrawString e espacamento fixo. Nota tecnica: o build Core da PdfSharpCore exige um FontResolver; registrado PdfSharpCore.Utils.FontResolver em static ctor (idempotente com ??=), nao previsto explicitamente no step mas necessario para gerar PDF sem excecao. GerarArquivos usa IOptions<OpcoesRelatorio>.PastaSaida (Directory.CreateDirectory), nome 'erros_<yyyy-MM-dd_HHmm>.<ext>', grava via File.WriteAllText/WriteAllBytes. Registrado no Worker/Program.cs (AddOptions<OpcoesRelatorio>().Bind + AddSingleton<IGeradorRelatorio, GeradorRelatorio>) e secao \"Relatorio\" com _comentario em appsettings.json. Testes GeradorRelatorioTests.cs (3): HTML contem valores/tags/horario/escape; PDF nao-vazio com header '%PDF'; GerarArquivos cria os dois arquivos em pasta temp (GetTempPath+Guid) com o padrao de nome e limpa no finally. Verificacao: dotnet restore/build (0 avisos, 0 erros) e dotnet test = 75 testes, 0 falhas (os 3 novos inclusos). Nenhuma chamada HTTP."
+}

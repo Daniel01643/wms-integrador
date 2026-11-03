@@ -10,6 +10,10 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <!-- PDF do relatório de erros (MIT, versão exata). Traz SixLabors.ImageSharp
+         transitivo (com CVEs conhecidas); o relatório é só texto/tabela, não usa
+         imagens, portanto a ressalva fica registrada sem ação. -->
+    <PackageReference Include="PdfSharpCore" Version="1.3.67" />
   </ItemGroup>
 
 </Project>

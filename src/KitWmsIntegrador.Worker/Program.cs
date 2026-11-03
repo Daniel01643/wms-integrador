@@ -3,6 +3,7 @@ using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
 using KitWmsIntegrador.Core.Leitura;
+using KitWmsIntegrador.Core.Relatorio;
 using KitWmsIntegrador.Core.Tempo;
 using KitWmsIntegrador.Worker;
 using KitWmsIntegrador.Worker.Configuracao;
@@ -44,6 +45,13 @@ builder.Services
 builder.Services
     .AddOptions<OpcoesI60>()
     .Bind(builder.Configuration.GetSection(OpcoesI60.Secao));
+
+// Relatório de erros/pendências (HTML + PDF). Pasta de saída vem da seção "Relatorio"
+// (override por env Relatorio__PastaSaida). Sem rede — só monta e grava arquivos.
+builder.Services
+    .AddOptions<OpcoesRelatorio>()
+    .Bind(builder.Configuration.GetSection(OpcoesRelatorio.Secao));
+builder.Services.AddSingleton<IGeradorRelatorio, GeradorRelatorio>();
 
 // Construtores de payload (I50/I60/I10). Apenas montam objetos/JSON — sem rede.
 builder.Services.AddSingleton<IConstrutorI50, ConstrutorI50>();
