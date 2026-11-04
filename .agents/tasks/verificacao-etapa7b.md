@@ -36,3 +36,36 @@ Contagem: 206 testes anteriores - 1 (`Debounce_...`, substituido por teste de fo
 |---|---|
 | `dotnet build KitWmsIntegrador.sln -nologo --no-incremental` | **0 Aviso(s), 0 Erro(s)** |
 | `dotnet test KitWmsIntegrador.sln -nologo --no-build` (3 execucoes) | **Aprovado: 242, Falha: 0, Total: 242** em todas |
+
+## Parte B (teste de esforço, 100% local com fakes)
+
+Comandos executados em `c:\wms-integrador` (Windows, .NET 8.0.427, i7-1355U, 15,7 GB). Nenhuma chamada HTTP real ao WMS.
+
+### Build e testes (sem STRESS)
+- `dotnet build KitWmsIntegrador.sln` -> **0 Aviso(s), 0 Erro(s)**.
+- `dotnet build KitWmsIntegrador.sln -c Release` -> 0 Aviso(s), 0 Erro(s).
+- `dotnet test KitWmsIntegrador.sln --no-build` -> Com falha: 0, Aprovado: 242, Ignorado: 9, Total: 251, duração ~2 s.
+  Os 9 ignorados são os `[StressFact]` ("defina STRESS=1"); o `dotnet test` padrão continua rápido.
+
+### Stress (STRESS=1, Release, uma invocação por cenário)
+Comando-modelo: `$env:STRESS='1'; $env:STRESS_SAIDA='c:\wms-integrador\.agents\tasks\stress-resultados-base.jsonl'; dotnet test tests\KitWmsIntegrador.Tests -c Release --no-build --filter "FullyQualifiedName~CenariosStress.<Cenario>"`
+
+| Cenário (filtro) | Resultado | Integridade |
+|---|---|---|
+| Cenario1_500Xmls_25Transportes_1Pacote | Aprovado | OK, 1 pacote, 1 e-mail |
+| Cenario2_2000Xmls | Aprovado | OK, 1 pacote, 1 e-mail |
+| Cenario3_ChegadaContinua | Aprovado | OK, 5 pacotes, 5 e-mails, 600/600 arquivos |
+| Cenario4_Mistura10PorCentoErros | Aprovado | OK, Erro\<Categoria> 4x25, 900 Processados |
+| Cenario5_Relatorio_1000/5000/10000Linhas | Aprovado | PDF 94/432/857 páginas, rodapé Página X de Y |
+| Comparativo_Paralelismo (1, 2, 4) | Aprovado | OK nas 6 execuções, concorrência máx. observada <= paralelismo |
+| Cenario_SemLatencia_2000Notas | Aprovado | OK, 491 notas/s |
+
+Números completos (tempo, notas/s, pico WS, heap, GC, HTML/PDF, tamanho do PDF): `.agents\tasks\relatorio-stress-etapa7.md`
+e `.agents\tasks\stress-resultados-base.jsonl`. Nenhuma correção de código de produção foi necessária (nenhum gargalo simples
+medido; o custo dominante é a latência serial do WMS). Logo, a execução do stress foi feita no código final.
+
+### Confirmações
+- `git diff 0853335 HEAD --stat -- src/KitWmsIntegrador.Core/Orquestrador src/KitWmsIntegrador.Core/Construtores docs/diario docs/controle src/KitWmsIntegrador.Core/Configuracao/OpcoesI60.cs` -> vazio (Orquestrador, construtores, OpcoesI60, docs\diario e docs\controle sem alteração). I60 permanece desligada (`OpcoesI60.Habilitada=false`; o harness usa `Habilitada=false`).
+- `Select-String "ClienteWmsHttp|HttpClient" tests\KitWmsIntegrador.Tests\Stress\*.cs` -> vazio (nenhum HttpClient real no harness).
+- `git check-ignore -v src\KitWmsIntegrador.Worker\email.settings.json` -> ignorado por `.gitignore:30`.
+- Observação: `docs/apresentacao/deck.html` aparece modificado na árvore de trabalho; não foi tocado por esta etapa e não é incluído nos commits.
