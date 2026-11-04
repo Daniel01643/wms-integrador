@@ -132,6 +132,31 @@ public sealed class ArquivoInstavelTests : IDisposable
     }
 
     [Fact]
+    public async Task ArquivoProntoNovo_IgnoraBackoffDeFotoVazia()
+    {
+        _amb.Pacote.TimeoutArquivoSegundos = 1_000_000;
+        var g = _amb.CriarGerenciador(_orq);
+        var gravando = _amb.Caminho("gravando.xml");
+        for (var i = 0; i < 6 && g.ProximaFotoUtc == DateTimeOffset.MinValue; i++)
+        {
+            File.AppendAllText(gravando, "x");
+            _amb.Clock.Avancar(TimeSpan.FromSeconds(10));
+            await g.CicloAsync(CancellationToken.None);
+        }
+
+        Assert.True(g.ProximaFotoUtc > _amb.Clock.UtcNow); // em backoff
+        _amb.EscreverXml("ok.xml", "100", "70001");
+        for (var i = 0; i < 4 && _orq.Chamadas.Count == 0; i++)
+        {
+            File.AppendAllText(gravando, "x");
+            _amb.Clock.Avancar(TimeSpan.FromSeconds(5));
+            await g.CicloAsync(CancellationToken.None);
+        }
+
+        Assert.Single(_orq.Chamadas); // processado antes do fim do backoff
+    }
+
+    [Fact]
     public async Task ArquivoEmGravacao_NaoImpedeOutrosDeFormarPacote()
     {
         var g = _amb.CriarGerenciador(_orq);

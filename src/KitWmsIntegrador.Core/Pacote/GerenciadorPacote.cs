@@ -116,8 +116,10 @@ public sealed class GerenciadorPacote
         if (Estado == EstadoPacote.Ocioso)
         {
             // Instáveis nunca abrem pacote sozinhos; moves pendentes já foram enviados ao WMS.
+            // O backoff vale só para arquivos instáveis: um arquivo pronto novo abre pacote sem esperar.
             var candidatos = deteccao.Prontos.Concat(deteccao.Aguardando).Count(a => !pendentes.Contains(a));
-            if (candidatos == 0 || agora < _proximaFoto)
+            var prontosNovos = deteccao.Prontos.Count(a => !pendentes.Contains(a));
+            if (candidatos == 0 || (prontosNovos == 0 && agora < _proximaFoto))
             {
                 return;
             }
@@ -232,21 +234,26 @@ public sealed class GerenciadorPacote
         }
 
         var registros = ConsolidadorRegistros.Consolidar(lidos);
+        var mantidos = new List<RegistroDiario>();
         foreach (var registro in registros)
         {
-            if (!File.Exists(registro.Arquivo))
+            if (File.Exists(registro.Arquivo))
             {
-                continue;
-            }
+                if (File.GetLastWriteTimeUtc(registro.Arquivo) > registro.Horario.UtcDateTime)
+                {
+                    // Regravado depois do registro: o arquivo será reprocessado como novo e o
+                    // registro antigo sai do pacote para não esconder o resultado novo.
+                    continue;
+                }
 
-            if (File.GetLastWriteTimeUtc(registro.Arquivo) <= registro.Horario.UtcDateTime)
-            {
                 _processador.ReconciliarMove(registro);
             }
+
+            mantidos.Add(registro);
         }
 
-        _registros.AddRange(registros);
-        _inicio = _registros.Min(r => r.Horario);
+        _registros.AddRange(mantidos);
+        _inicio = _registros.Count > 0 ? _registros.Min(r => r.Horario) : agora;
         var restantes = ListarXml();
         if (restantes.Count > 0)
         {

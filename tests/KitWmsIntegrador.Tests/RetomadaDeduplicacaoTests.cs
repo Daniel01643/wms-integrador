@@ -122,6 +122,10 @@ public sealed class RetomadaDeduplicacaoTests : IDisposable
     [Fact]
     public async Task Retomada_ArquivoRegravadoDepoisDoRegistro_ETratadoComoNovo()
     {
+        var espiao = new GeradorEspiao(_amb.Relatorios);
+        _amb.GeradorSubstituto = espiao;
+        _orq.Comportamento = (n, t) =>
+            Task.FromResult(OrquestradorFalso.Falha(n.Numero, t, "WMS recusou a nota regravada"));
         var caminho = _amb.EscreverXml("a.xml", "100", "70001");
         File.SetLastWriteTimeUtc(caminho, DateTime.UtcNow); // mais novo que o registro
         NovoDiario().Registrar(Reg(caminho, true, "antigo", DateTimeOffset.UtcNow.AddHours(-1)));
@@ -131,7 +135,10 @@ public sealed class RetomadaDeduplicacaoTests : IDisposable
 
         Assert.Equal(("100", "70001"), Assert.Single(_orq.Chamadas));
         Assert.False(File.Exists(caminho));
-        Assert.Single(_amb.Arquivos("Processados"));
+        // O resultado novo (falha) aparece no relatório; o registro antigo "integrada" não o esconde.
+        var linhas = Assert.Single(espiao.Pacotes);
+        var linha = Assert.Single(linhas);
+        Assert.False(linha.EstaIntegrada);
     }
 
     [Fact]

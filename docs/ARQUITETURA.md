@@ -94,7 +94,7 @@ stateDiagram-v2
 
 Foto do pacote: ao fim da janela fixa, o conjunto de XMLs prontos é congelado (com a primeira/última gravação, `PeriodoColeta`) e processado por transporte, em sequência; ao terminar, o mesmo ciclo fecha o pacote (relatório + 1 e-mail). Arquivos que chegam durante o processamento formam o próximo pacote. A quietude foi removida (o fechamento é determinístico). Arquivo que não estabiliza nunca abre pacote sozinho: foto vazia volta a Ocioso com backoff.
 
-`ConsolidadorRegistros` mantém um registro por arquivo (primeiro integrado; senão o primeiro). Na retomada, arquivo com registro no diário ainda na entrada é só movido (`ProcessadorLote.ReconciliarMove`, sem WMS); `RepetirMovesPendentes` repete moves falhos a cada ciclo Ocioso.
+`ConsolidadorRegistros` mantém um registro por arquivo (primeiro integrado; senão o primeiro). Na retomada, arquivo com registro no diário ainda na entrada é só movido (`ProcessadorLote.ReconciliarMove`, sem WMS); se foi regravado depois do registro, o registro antigo é descartado e o arquivo é reprocessado como novo; `RepetirMovesPendentes` repete moves falhos a cada ciclo Ocioso.
  e idempotência: cada resultado é gravado no diário **antes** de mover o arquivo e
 o arquivo é movido logo após cada nota, então uma queda reenvia no máximo a nota em voo; o
 WMS barra a duplicata ("já existe", §5) e o processador a trata como processada. No

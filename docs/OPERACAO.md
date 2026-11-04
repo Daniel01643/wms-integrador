@@ -68,7 +68,8 @@ e não trava o pacote. Depois de `TimeoutArquivoSegundos` (padrão 300 s) vira "
 no log, e ele **sozinho nunca abre pacote**. Se a foto não tiver nenhum arquivo pronto (só arquivos ainda
 em gravação), nenhum relatório vazio é gerado; o serviço volta a Ocioso e aplica **backoff exponencial**
 entre fotos (`JanelaColetaSegundos` × 2, ×4, ... até `Pacote:BackoffMaximoSegundos`, padrão 120 s), sem
-consumir CPU nem entrar em loop de foto. Quando o arquivo estabiliza, entra na foto seguinte.
+consumir CPU nem entrar em loop de foto. Quando o arquivo estabiliza, entra na foto seguinte. O backoff
+vale só para arquivos ainda instáveis: um arquivo **pronto** novo abre pacote sem esperar o backoff.
 
 Falhas: exceção em um arquivo ou transporte não derruba os demais (o arquivo vai para `Erro\Outro`).
 Se o relatório não puder ser gravado, o pacote continua em **Fechando** e tenta de novo no ciclo
