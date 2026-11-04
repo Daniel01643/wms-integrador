@@ -2,8 +2,11 @@ using KitWmsIntegrador.Core.Agrupamento;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
+using KitWmsIntegrador.Core.Email;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Orquestrador;
+using KitWmsIntegrador.Core.Pacote;
+using Microsoft.Extensions.Options;
 using KitWmsIntegrador.Core.Relatorio;
 using KitWmsIntegrador.Core.Tempo;
 using KitWmsIntegrador.Worker;
@@ -17,6 +20,9 @@ if (args.Contains(SmokeTestWms.Argumento))
 }
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// Config de e-mail dedicada (opcional, ignorada pelo git): email.settings.json ao lado do exe.
+builder.Configuration.AddJsonFile("email.settings.json", optional: true, reloadOnChange: true);
 
 // Configuração: seção "Entrada" do appsettings + variáveis de ambiente.
 // O host genérico já adiciona env vars; o override segue o padrão
@@ -90,6 +96,39 @@ builder.Services.AddHttpClient<IClienteWms, ClienteWmsHttp>((sp, http) =>
 
     http.Timeout = TimeSpan.FromSeconds(opcoes.TimeoutSegundos);
 });
+
+// Etapa 7: watcher de pasta + pacote + movimentação + limpeza + e-mail.
+// Pastas: "Pastas:Entrada" vazia herda o legado "Entrada:PastaEntrada".
+builder.Services
+    .AddOptions<OpcoesPasta>()
+    .Bind(builder.Configuration.GetSection(OpcoesPasta.Secao))
+    .PostConfigure<IOptions<OpcoesEntrada>>((pastas, legado) =>
+    {
+        if (string.IsNullOrWhiteSpace(pastas.Entrada))
+        {
+            pastas.Entrada = legado.Value.PastaEntrada;
+        }
+    });
+builder.Services
+    .AddOptions<OpcoesPacote>()
+    .Bind(builder.Configuration.GetSection(OpcoesPacote.Secao));
+builder.Services
+    .AddOptions<OpcoesLimpeza>()
+    .Bind(builder.Configuration.GetSection(OpcoesLimpeza.Secao));
+// E-mail: a senha NUNCA vai no appsettings (env Email__Senha ou email.settings.json ignorado pelo git).
+builder.Services
+    .AddOptions<OpcoesEmail>()
+    .Bind(builder.Configuration.GetSection(OpcoesEmail.Secao));
+builder.Services.AddSingleton<IEnviadorEmail, EnviadorEmailSmtp>();
+
+builder.Services.AddSingleton<ClassificadorCategoriaErro>();
+builder.Services.AddSingleton<OrganizadorArquivos>();
+builder.Services.AddSingleton<LimpadorPastas>();
+builder.Services.AddSingleton<DetectorArquivoPronto>();
+builder.Services.AddSingleton<DiarioPacote>();
+builder.Services.AddSingleton<ProcessadorLote>();
+builder.Services.AddSingleton<FechadorPacote>();
+builder.Services.AddSingleton<GerenciadorPacote>();
 
 builder.Services.AddHostedService<Worker>();
 
