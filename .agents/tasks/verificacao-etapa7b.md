@@ -28,3 +28,11 @@ Contagem: 206 testes anteriores - 1 (`Debounce_...`, substituido por teste de fo
 - `OpcoesPastaValidacaoTests`: Estado/Relatorios dentro de Processados/Erro.
 - `RetomadaDeduplicacaoTests`: consolidacao, retomada sem WMS, arquivo regravado = novo, moves pendentes.
 - `ArquivoInstavelTests`: arquivo travado alem do timeout nao abre pacote nem gera loop de foto; alerta unico em log; backoff 20/40/80/120/120 s; arquivo em gravacao nao impede outros.
+
+### Iteracao de revisao (review-etapa7b-a)
+- Achado 1 (confirmed): `GerenciadorPacote.Retomar` descarta o registro antigo do diario quando o arquivo foi regravado depois do registro (`LastWriteTimeUtc > Horario`); o arquivo e reprocessado como novo e o relatorio mostra o resultado novo. Teste `Retomada_ArquivoRegravadoDepoisDoRegistro_ETratadoComoNovo` agora forca falha no WMS e afirma a linha do relatorio (nao integrada).
+- Achado 2 (possible): backoff de foto vazia passa a valer so para instaveis; arquivo PRONTO novo abre pacote sem esperar (`prontosNovos`). Novo teste `ArquivoProntoNovo_IgnoraBackoffDeFotoVazia`; documentado em `docs\OPERACAO.md` e `ARQUITETURA.md`.
+| Comando | Resultado |
+|---|---|
+| `dotnet build KitWmsIntegrador.sln -nologo --no-incremental` | **0 Aviso(s), 0 Erro(s)** |
+| `dotnet test KitWmsIntegrador.sln -nologo --no-build` (3 execucoes) | **Aprovado: 242, Falha: 0, Total: 242** em todas |
