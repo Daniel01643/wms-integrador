@@ -40,30 +40,48 @@ Para mudar a organização, use `Pastas:OrganizacaoErro`:
 O serviço consulta a pasta a cada `Pacote:IntervaloVarreduraSegundos` (polling; o
 `FileSystemWatcher` perde eventos em pasta de rede).
 
-1. **Ocioso**: sem XML. Ao surgir o primeiro, abre o pacote (**Coletando**).
-2. **Coletando**: espera `JanelaColetaSegundos` sem arquivo novo, para que uma cópia em massa chegue inteira.
-3. **Processando**: a cada ciclo envia os arquivos prontos. Um arquivo só é "pronto" quando tamanho e
-   data ficam iguais por `EstabilizacaoSegundos` e o arquivo abre com acesso exclusivo.
-   Arquivos novos entram no mesmo pacote.
-4. **Fechando**: quando a entrada não tem pendentes e passaram `QuietudeSegundos` sem arquivo novo ou
-   processado, o pacote fecha: grava HTML + PDF (sempre), envia o e-mail conforme a política, apaga o
-   diário e volta a **Ocioso**. Chegada de arquivo durante a quietude mantém o pacote aberto.
+O pacote é uma **foto** da pasta de entrada:
+
+1. **Ocioso**: sem pacote aberto. Ao detectar arquivo(s) na entrada (prontos ou ainda estabilizando),
+   abre o pacote (**Coletando**).
+2. **Coletando**: espera a janela de coleta **fixa** `JanelaColetaSegundos` (padrão 10 s), contada da
+   primeira detecção. Chegada de novos arquivos NÃO reinicia nem adia a janela.
+3. **Foto e Processando**: ao fim da janela, tira-se a foto: os XMLs **prontos** naquele instante formam
+   o pacote (lista congelada). Um arquivo só é "pronto" quando tamanho e data ficam iguais por
+   `EstabilizacaoSegundos` e o arquivo abre com acesso exclusivo. Registra-se a **primeira e a última
+   gravação** (`LastWriteTime`) dos arquivos do pacote (log, corpo do e-mail e cabeçalho do relatório).
+   As notas são enviadas **por transporte, em sequência** (todo o transporte A, depois o B). Arquivos que
+   chegarem durante o processamento **não entram** no pacote em andamento: formam o **próximo pacote**.
+4. **Fechando**: ao terminar a foto, no mesmo ciclo, grava HTML + PDF (sempre) **do pacote**, envia **um
+   e-mail só dele** conforme a política, apaga o diário e volta a **Ocioso**. Se houver arquivos na
+   entrada, o ciclo seguinte abre o próximo pacote (nova foto).
+
+A quietude (`QuietudeSegundos`) foi **removida**: o fechamento deixou de depender de tempo e acontece
+quando a foto termina de ser processada. A chave antiga, se existir no `appsettings`, é ignorada.
 
 Envio por transporte: as notas do mesmo transporte são enviadas juntas e em sequência. Transportes
 distintos rodam em paralelo até `Pacote:MaxTransportesConcorrentes` (padrão **1**; **2** é seguro).
 A ordem de chegada é criação do arquivo e depois nome.
 
-Arquivos que não ficam prontos em `TimeoutArquivoSegundos` geram aviso no log, permanecem na entrada
-e **não bloqueiam** o fechamento; entram no próximo pacote quando liberados.
+**Arquivo que nunca estabiliza** (cópia travada, gravação sem fim): fica na entrada, não entra na foto
+e não trava o pacote. Depois de `TimeoutArquivoSegundos` (padrão 300 s) vira "instável": um aviso único
+no log, e ele **sozinho nunca abre pacote**. Se a foto não tiver nenhum arquivo pronto (só arquivos ainda
+em gravação), nenhum relatório vazio é gerado; o serviço volta a Ocioso e aplica **backoff exponencial**
+entre fotos (`JanelaColetaSegundos` × 2, ×4, ... até `Pacote:BackoffMaximoSegundos`, padrão 120 s), sem
+consumir CPU nem entrar em loop de foto. Quando o arquivo estabiliza, entra na foto seguinte.
 
 Falhas: exceção em um arquivo ou transporte não derruba os demais (o arquivo vai para `Erro\Outro`).
 Se o relatório não puder ser gravado, o pacote continua em **Fechando** e tenta de novo no ciclo
 seguinte (o diário só é apagado após o relatório gravado). Falha de e-mail apenas é logada.
 
-Reinício do serviço: o pacote é reaberto a partir do diário. Uma nota em voo na queda pode ser
-reenviada; o WMS responde "já existe" e ela segue para `Processados`, com a mensagem iniciada por
-"Já existia no WMS (reprocesso)".
-
+**Reinício do serviço e deduplicação**: o diário é a fonte de verdade. Na retomada, um arquivo que
+ainda está na entrada, já tem registro no diário e não foi regravado depois dele é apenas **movido**
+(reconciliação, sem reenviar ao WMS); se foi regravado depois do registro, é tratado como novo. Movimentos
+que falharam depois do envio (`MovePendentes`) são repetidos a cada ciclo Ocioso, nunca reenviados.
+Como rede de segurança, o relatório mantém **uma linha por arquivo**: se houver dois registros do mesmo
+arquivo (ex.: um "integrada" e um "já existia"), vale o **primeiro integrado**; se nenhum foi integrado,
+vale o primeiro registrado. Uma nota em voo na queda ainda pode ser reenviada uma vez; o WMS responde "já
+existe", ela segue para `Processados` e a mensagem começa com "Já existia no WMS (reprocesso)".
 ## 3. Limpeza
 
 `Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **10**). Roda na partida e a cada 24 h.
@@ -75,8 +93,8 @@ não inicia com `Pastas` inválida (erro no log).
 ## 4. E-mail
 
 Resumo no corpo (contagens, período e tabela de erros/pendências, no máximo 20 linhas) e PDF detalhado
-anexo. `Email:EnviarQuando`: `ComProblema` (padrão: há não integrada, pendente, produto a revisar ou XML
-inválido), `Sempre` ou `Nunca`. Sem configuração, o serviço só registra no log onde o relatório foi salvo.
+anexo. **Um e-mail por pacote.** `Email:EnviarQuando`: `Sempre` (padrão: todo pacote fechado envia), `ComProblema` (só se há não integrada, pendente, produto a revisar ou XML
+inválido) ou `Nunca`. O envio vem **desligado** (`Habilitado=false`) até o SMTP real ser preenchido em `email.settings.json`. Sem SMTP configurado nada falha: o serviço só registra no log e o relatório fica salvo em disco (`Relatorio:PastaSaida`).
 
 Configuração na seção `Email` (placeholders em `appsettings.json`, **sem senha**):
 
@@ -92,7 +110,7 @@ Configuração na seção `Email` (placeholders em `appsettings.json`, **sem sen
     "RemetenteNome": "KitWms Integrador",
     "Destinatarios": "operacao@suaempresa.com.br;gestor@suaempresa.com.br",
     "AssuntoPrefixo": "[KitWms]",
-    "EnviarQuando": "ComProblema",
+    "EnviarQuando": "Sempre",
     "TimeoutSegundos": 60
   }
 }
@@ -117,7 +135,7 @@ SChannel do sistema (validar no servidor).
   "Pastas": { "Entrada": "C:\\Envia xml", "Processados": "Processados", "Erro": "Erro", "Estado": "Estado", "OrganizacaoErro": "PorCategoria" },
   "Pacote": {
     "IntervaloVarreduraSegundos": 5, "EstabilizacaoSegundos": 3, "JanelaColetaSegundos": 10,
-    "QuietudeSegundos": 30, "TimeoutArquivoSegundos": 300, "MaxTransportesConcorrentes": 1
+    "TimeoutArquivoSegundos": 300, "BackoffMaximoSegundos": 120, "MaxTransportesConcorrentes": 1
   },
   "Limpeza": { "Habilitada": true, "DiasRetencao": 10 }
 }
@@ -131,5 +149,6 @@ SChannel do sistema (validar no servidor).
   a mensagem "Já existia no WMS (reprocesso)".
 - Nota tardia de um transporte já enviado no mesmo pacote vai em lote posterior com o mesmo
   `nroagrupseparacao`; o WMS pode bloquear se a onda já saiu de "editando".
-- Valores padrão de quietude, janela de coleta e timeout são estimativas a validar em operação.
+- `Pastas:Estado` e `Relatorio:PastaSaida` não podem ficar iguais nem dentro de `Processados`/`Erro` (a limpeza apagaria o diário e os relatórios); o serviço não inicia nesse caso (erro no log).
+- Valores padrão de janela de coleta, backoff e timeout são estimativas a validar em operação.
 - Não validado contra WMS ou SMTP reais (somente testes automatizados com fakes).

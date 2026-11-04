@@ -72,7 +72,7 @@ Toda a lógica testável fica no Core (`Core/Pacote`, `Core/Email`); o `Worker` 
 |---|---|
 | `Worker` | Loop contínuo: limpeza na partida e a cada 24 h; `GerenciadorPacote.CicloAsync` a cada `Pacote:IntervaloVarreduraSegundos`. Exceção de ciclo só é logada. |
 | `DetectorArquivoPronto` | Polling (não `FileSystemWatcher`, que perde eventos em pasta de rede). Arquivo pronto = mesmo tamanho/data em 2 ciclos, estável há `EstabilizacaoSegundos` (relógio `IClock`) e abertura com `FileShare.None`. Acima de `TimeoutArquivoSegundos` vira "instável" e não bloqueia o fechamento. |
-| `GerenciadorPacote` | Máquina de estados do pacote (abaixo), debounce e retomada. |
+| `GerenciadorPacote` | Máquina de estados do pacote (abaixo): janela de coleta fixa, foto da pasta, backoff e retomada com reconciliação. |
 | `ProcessadorLote` | Parse → `AgrupadorTransporte` → ondas (transportes) com `SemaphoreSlim(MaxTransportesConcorrentes)`; dentro da onda, uma nota por vez no `IOrquestrador`; classifica o destino, move logo após cada nota e registra no diário. |
 | `ClassificadorCategoriaErro` / `OrganizadorArquivos` | Destino (`Processados`/`Erro\<Categoria>`) e movimentação com sidecar `.motivo.txt`. |
 | `DiarioPacote` | JSONL `Estado\pacote-atual.jsonl` (append + flush) para retomar o pacote após queda. |
@@ -84,15 +84,18 @@ Máquina de estados do pacote:
 ```mermaid
 stateDiagram-v2
     [*] --> Ocioso
-    Ocioso --> Coletando: >=1 XML na entrada
-    Coletando --> Processando: JanelaColetaSegundos sem arquivo novo
-    Processando --> Processando: arquivo novo/processado (reinicia a quietude)
-    Processando --> Fechando: entrada sem pendentes + QuietudeSegundos
+    Ocioso --> Coletando: >=1 XML pronto/aguardando (e agora >= proxima foto)
+    Coletando --> Processando: fim da JanelaColetaSegundos fixa (foto com >=1 pronto)
+    Coletando --> Ocioso: foto sem pronto (backoff exponencial ate BackoffMaximoSegundos)
+    Processando --> Fechando: foto processada (arquivos novos ficam para o proximo pacote)
     Fechando --> Ocioso: relatorio gravado (diario apagado)
     Fechando --> Fechando: falha ao gravar relatorio (tenta no proximo ciclo)
 ```
 
-Retomada e idempotência: cada resultado é gravado no diário **antes** de mover o arquivo e
+Foto do pacote: ao fim da janela fixa, o conjunto de XMLs prontos é congelado (com a primeira/última gravação, `PeriodoColeta`) e processado por transporte, em sequência; ao terminar, o mesmo ciclo fecha o pacote (relatório + 1 e-mail). Arquivos que chegam durante o processamento formam o próximo pacote. A quietude foi removida (o fechamento é determinístico). Arquivo que não estabiliza nunca abre pacote sozinho: foto vazia volta a Ocioso com backoff.
+
+`ConsolidadorRegistros` mantém um registro por arquivo (primeiro integrado; senão o primeiro). Na retomada, arquivo com registro no diário ainda na entrada é só movido (`ProcessadorLote.ReconciliarMove`, sem WMS); `RepetirMovesPendentes` repete moves falhos a cada ciclo Ocioso.
+ e idempotência: cada resultado é gravado no diário **antes** de mover o arquivo e
 o arquivo é movido logo após cada nota, então uma queda reenvia no máximo a nota em voo; o
 WMS barra a duplicata ("já existe", §5) e o processador a trata como processada. No
 reinício, o pacote é reaberto com as linhas do diário e o relatório final contém também o
@@ -229,7 +232,7 @@ Pontos ainda **em aberto** após a Etapa 7:
   não integrada com a mensagem do WMS).
 - **SMTP**: `SmtpClient` não suporta TLS implícito (465) nem OAuth2; se o provedor exigir,
   avaliar MailKit atrás de `IEnviadorEmail`.
-- **Padrões** de quietude (30 s), janela de coleta (10 s) e timeout de arquivo (300 s)
+- **Padrões** de janela de coleta (10 s), backoff máximo (120 s) e timeout de arquivo (300 s)
   são estimativas a validar em operação.
 ```
 
