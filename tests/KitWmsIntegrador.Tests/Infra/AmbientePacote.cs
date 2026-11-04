@@ -112,6 +112,8 @@ public sealed class AmbientePacote : IDisposable
 
     public GravadorEmail Email { get; } = new();
 
+    public OpcoesEmail OpcoesDeEmail { get; } = new();
+
     public IGeradorRelatorio? GeradorSubstituto { get; set; }
 
     public string Caminho(string nome) => Path.Combine(Entrada, nome);
@@ -172,7 +174,7 @@ public sealed class AmbientePacote : IDisposable
         var fechador = new FechadorPacote(
             gerador,
             Email,
-            Options.Create(new OpcoesEmail()),
+            Options.Create(OpcoesDeEmail),
             Options.Create(new OpcoesRelatorio { PastaSaida = Relatorios }),
             NullLogger<FechadorPacote>.Instance);
         return new GerenciadorPacote(

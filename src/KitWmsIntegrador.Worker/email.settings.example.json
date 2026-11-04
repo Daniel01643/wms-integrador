@@ -1,6 +1,6 @@
 {
   "Email": {
-    "_comentario": "Copie para email.settings.json (ignorado pelo git) e preencha. A senha tambem pode vir da env Email__Senha. Nunca versionar segredos.",
+    "_comentario": "Copie para email.settings.json (ignorado pelo git) e preencha: este arquivo e o local do SMTP real (Habilitado=true liga o envio). EnviarQuando: Sempre (1 e-mail por pacote, padrao) | ComProblema | Nunca. A senha tambem pode vir da env Email__Senha. Nunca versionar segredos.",
     "Habilitado": false,
     "Host": "smtp.exemplo.com.br",
     "Porta": 587,
@@ -11,7 +11,7 @@
     "RemetenteNome": "KitWms Integrador",
     "Destinatarios": "destino1@exemplo.com.br;destino2@exemplo.com.br",
     "AssuntoPrefixo": "[KitWms]",
-    "EnviarQuando": "ComProblema",
+    "EnviarQuando": "Sempre",
     "TimeoutSegundos": 60
   }
 }

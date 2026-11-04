@@ -22,6 +22,7 @@ public class Worker : BackgroundService
     private readonly IClock _clock;
     private readonly OpcoesPasta _pastas;
     private readonly OpcoesPacote _pacote;
+    private readonly OpcoesRelatorio _relatorio;
 
     public Worker(
         ILogger<Worker> logger,
@@ -30,8 +31,10 @@ public class Worker : BackgroundService
         LimpadorPastas limpador,
         IClock clock,
         IOptions<OpcoesPasta> pastas,
-        IOptions<OpcoesPacote> pacote)
+        IOptions<OpcoesPacote> pacote,
+        IOptions<OpcoesRelatorio> relatorio)
     {
+        _relatorio = relatorio.Value;
         _logger = logger;
         _lifetime = lifetime;
         _gerenciador = gerenciador;
@@ -43,7 +46,7 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var problemas = _pastas.Validar();
+        var problemas = _pastas.Validar(_relatorio.PastaSaida);
         if (problemas.Count > 0)
         {
             foreach (var problema in problemas)

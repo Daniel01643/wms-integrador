@@ -6,7 +6,7 @@ public enum EnviarQuando
     /// <summary>Somente se houver não integradas, pendentes, revisar produto ou XML inválido.</summary>
     ComProblema,
 
-    /// <summary>Sempre que o pacote fechar.</summary>
+    /// <summary>Sempre que o pacote fechar: um e-mail por pacote (padrão).</summary>
     Sempre,
 
     /// <summary>Nunca envia.</summary>
@@ -53,7 +53,7 @@ public sealed class OpcoesEmail
     public string AssuntoPrefixo { get; set; } = "[KitWms]";
 
     /// <summary>Política de envio.</summary>
-    public EnviarQuando EnviarQuando { get; set; } = EnviarQuando.ComProblema;
+    public EnviarQuando EnviarQuando { get; set; } = EnviarQuando.Sempre;
 
     /// <summary>Timeout do SMTP em segundos.</summary>
     public int TimeoutSegundos { get; set; } = 60;

@@ -50,7 +50,15 @@ public sealed class OpcoesPasta
     public string CaminhoEstado => Resolver(Estado);
 
     /// <summary>Devolve a lista de problemas da configuração (vazia = válida).</summary>
-    public IReadOnlyList<string> Validar()
+    public IReadOnlyList<string> Validar() => Validar(null);
+
+    /// <summary>
+    /// Devolve a lista de problemas da configuração (vazia = válida). Além das regras de
+    /// Entrada/Processados/Erro, recusa Estado e a pasta de relatórios (quando informada) iguais ou
+    /// dentro de Processados/Erro, pois a limpeza periódica apagaria o diário e os relatórios.
+    /// </summary>
+    /// <param name="pastaRelatorios">Pasta de saída dos relatórios (relativa ao diretório atual ou absoluta).</param>
+    public IReadOnlyList<string> Validar(string? pastaRelatorios)
     {
         var problemas = new List<string>();
 
@@ -97,6 +105,29 @@ public sealed class OpcoesPasta
         else if (EstaDentro(processados, erro) || EstaDentro(erro, processados))
         {
             problemas.Add("Pastas:Processados e Pastas:Erro não podem estar uma dentro da outra.");
+        }
+
+        if (string.IsNullOrWhiteSpace(Estado))
+        {
+            problemas.Add("Pastas:Estado deve ser informada.");
+            return problemas;
+        }
+
+        var protegidas = new List<(string Nome, string Caminho)> { ("Pastas:Estado", CaminhoEstado) };
+        if (!string.IsNullOrWhiteSpace(pastaRelatorios))
+        {
+            protegidas.Add(("Relatorio:PastaSaida", Normalizar(Path.GetFullPath(pastaRelatorios))));
+        }
+
+        foreach (var (nome, caminho) in protegidas)
+        {
+            foreach (var (limpa, pasta) in new[] { ("Processados", processados), ("Erro", erro) })
+            {
+                if (Mesmo(caminho, pasta) || EstaDentro(caminho, pasta))
+                {
+                    problemas.Add($"{nome} não pode ficar dentro de Pastas:{limpa} (a limpeza apagaria o conteúdo): {caminho}.");
+                }
+            }
         }
 
         return problemas;

@@ -72,7 +72,7 @@ builder.Services.AddSingleton<ClassificadorRetorno>();
 
 // Orquestrador reativo (FEAT-002): coordena I50 → pré-condições (I10/I30) → reenvio,
 // respeitando a flag da I60 e o limite de 3 tentativas por nota. Sem rede direta —
-// usa o IClienteWms. O acionamento pelo Worker é fase futura (Worker.cs inalterado).
+// usa o IClienteWms. Quem o aciona é o ProcessadorLote, chamado pelo GerenciadorPacote a cada ciclo do Worker.
 builder.Services.AddSingleton<IOrquestrador, Orquestrador>();
 
 // Cliente WMS (comunicação HTTP). Credenciais (Usuario/Senha) vêm de env

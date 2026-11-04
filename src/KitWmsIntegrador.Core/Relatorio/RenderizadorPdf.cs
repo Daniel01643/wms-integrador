@@ -1,4 +1,5 @@
 using System.Globalization;
+using KitWmsIntegrador.Core.Pacote;
 using PdfSharpCore;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
@@ -54,7 +55,7 @@ internal static class RenderizadorPdf
         public Bloco? Cabecalho;
     }
 
-    public static byte[] Renderizar(ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng)
+    public static byte[] Renderizar(ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo = null)
     {
         using var documento = new PdfDocument();
         documento.Info.Title = IdentidadeVisual.Titulo;
@@ -122,7 +123,7 @@ internal static class RenderizadorPdf
             }
 
             using var gfx = XGraphics.FromPdfPage(pagina);
-            DesenharCabecalhoPagina(gfx, larguraPagina, geradoEm, logoPng);
+            DesenharCabecalhoPagina(gfx, larguraPagina, geradoEm, logoPng, periodo);
             foreach (var (bloco, by) in paginas[p])
             {
                 bloco.Desenhar(gfx, by);
@@ -139,7 +140,7 @@ internal static class RenderizadorPdf
     // ---------- Cabeçalho / rodapé de página ----------
 
     private static void DesenharCabecalhoPagina(
-        XGraphics gfx, double larguraPagina, DateTimeOffset geradoEm, byte[]? logoPng)
+        XGraphics gfx, double larguraPagina, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo)
     {
         var xTitulo = Margem;
         var desenhouLogo = false;
@@ -174,7 +175,8 @@ internal static class RenderizadorPdf
 
         gfx.DrawString(IdentidadeVisual.Titulo, FTitulo, new XSolidBrush(CAzul), xTitulo, Margem - 3, XStringFormats.TopLeft);
         gfx.DrawString(
-            "Gerado em: " + geradoEm.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture),
+            "Gerado em: " + geradoEm.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture)
+            + RenderizadorHtml.TextoColeta(periodo),
             FNormal, new XSolidBrush(CTexto), xTitulo, Margem + 18, XStringFormats.TopLeft);
 
         DesenharBarra(gfx, xTitulo, Margem + 32);

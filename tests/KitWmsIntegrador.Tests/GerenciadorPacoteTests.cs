@@ -30,18 +30,18 @@ public sealed class GerenciadorPacoteTests : IDisposable
 
         public bool Quebrar { get; set; }
 
-        public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
-            Quebrar ? throw new IOException("sem espaço") : _real.GerarHtml(linhas, geradoEm);
+        public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
+            Quebrar ? throw new IOException("sem espaço") : _real.GerarHtml(linhas, geradoEm, periodo);
 
-        public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
-            _real.GerarPdf(linhas, geradoEm);
+        public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
+            _real.GerarPdf(linhas, geradoEm, periodo);
 
         public (string CaminhoHtml, string CaminhoPdf) GerarArquivos(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
             _real.GerarArquivos(linhas, geradoEm);
     }
 
     [Fact]
-    public async Task Estados_OciosoColetandoProcessandoFechandoOcioso()
+    public async Task Estados_OciosoColetandoFechaNoMesmoCicloDaFoto()
     {
         var g = _amb.CriarGerenciador(_orq);
         Assert.Equal(EstadoPacote.Ocioso, await Ciclo(g));
@@ -52,43 +52,17 @@ public sealed class GerenciadorPacoteTests : IDisposable
         Assert.Equal(EstadoPacote.Coletando, await Ciclo(g));
         Assert.NotNull(g.PacoteAtual);
         Assert.Equal(EstadoPacote.Coletando, await Ciclo(g, 5)); // janela (10s) ainda aberta
-        Assert.Equal(EstadoPacote.Processando, await Ciclo(g, 10));
-        Assert.Equal(1, g.PacoteAtual!.Notas);
+        Assert.Empty(_orq.Chamadas);
+
+        // Fim da janela: foto, processamento, relatório e e-mail no mesmo ciclo; sem espera de quietude.
+        Assert.Equal(EstadoPacote.Ocioso, await Ciclo(g, 10));
+        Assert.Null(g.PacoteAtual);
         Assert.Empty(Directory.GetFiles(_amb.Entrada, "*.xml", SearchOption.TopDirectoryOnly));
         Assert.Single(_amb.Arquivos("Processados"));
-        Assert.Equal(EstadoPacote.Processando, await Ciclo(g, 10)); // quietude 10s < 30s
-        Assert.Equal(EstadoPacote.Processando, await Ciclo(g, 10));
-        Assert.Equal(EstadoPacote.Ocioso, await Ciclo(g, 10));      // 30s de quietude
-        Assert.Null(g.PacoteAtual);
         Assert.Single(_amb.RelatoriosGerados(".pdf"));
         Assert.Single(_amb.RelatoriosGerados(".html"));
+        Assert.Single(_amb.Email.Enviadas);
     }
-
-    [Fact]
-    public async Task Debounce_ArquivoNovoDuranteQuietude_MantemPacoteAberto()
-    {
-        var g = _amb.CriarGerenciador(_orq);
-        _amb.EscreverXml("a.xml", "100", "70001");
-        await Ciclo(g);
-        await Ciclo(g, 10); // processa a.xml
-        await Ciclo(g, 10);
-        await Ciclo(g, 10); // t=30: quietude em 20s
-
-        _amb.EscreverXml("b.xml", "101", "70001");
-        Assert.Equal(EstadoPacote.Processando, await Ciclo(g, 10)); // t=40, b novo (atividade reinicia)
-        Assert.Equal(EstadoPacote.Processando, await Ciclo(g, 10)); // processa b
-        Assert.Empty(_amb.RelatoriosGerados(".pdf"));
-
-        await _amb.RodarAteOciosoAsync(g);
-
-        Assert.Single(_amb.RelatoriosGerados(".pdf"));
-        Assert.Equal(2, _orq.Chamadas.Count);
-        Assert.Equal(2, _amb.Arquivos("Processados").Length);
-        var html = File.ReadAllText(_amb.RelatoriosGerados(".html").Single());
-        Assert.Contains("100", html);
-        Assert.Contains("101", html);
-    }
-
     [Fact]
     public async Task ArquivoAposFechar_AbreNovoPacote()
     {
@@ -137,12 +111,12 @@ public sealed class GerenciadorPacoteTests : IDisposable
         await _amb.RodarAteOciosoAsync(g);
 
         Assert.Single(_amb.RelatoriosGerados(".pdf"));
-        Assert.Single(_amb.Email.Enviadas); // não integrada => ComProblema
+        Assert.Single(_amb.Email.Enviadas); // padrão Sempre
         Assert.Empty(_orq.Chamadas);
     }
 
     [Fact]
-    public async Task TudoIntegrado_GeraPdfMasNaoEnviaEmailNoPadrao()
+    public async Task TudoIntegrado_GeraPdfEEnviaUmEmailNoPadraoSempre()
     {
         var g = _amb.CriarGerenciador(_orq);
         _amb.EscreverXml("a.xml", "100", "70001");
@@ -150,7 +124,7 @@ public sealed class GerenciadorPacoteTests : IDisposable
         await _amb.RodarAteOciosoAsync(g);
 
         Assert.Single(_amb.RelatoriosGerados(".pdf"));
-        Assert.Empty(_amb.Email.Enviadas);
+        Assert.Single(_amb.Email.Enviadas);
     }
 
     [Theory]

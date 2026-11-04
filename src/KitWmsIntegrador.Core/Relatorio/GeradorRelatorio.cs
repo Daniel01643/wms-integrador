@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Pacote;
 using Microsoft.Extensions.Options;
 using PdfSharpCore.Fonts;
 
@@ -29,14 +30,14 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
     }
 
     /// <inheritdoc />
-    public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
+    public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
         RenderizadorHtml.Renderizar(
-            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath));
+            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath), periodo);
 
     /// <inheritdoc />
-    public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
+    public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
         RenderizadorPdf.Renderizar(
-            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath));
+            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath), periodo);
 
     /// <inheritdoc />
     public (string CaminhoHtml, string CaminhoPdf) GerarArquivos(

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using KitWmsIntegrador.Core.Pacote;
 using KitWmsIntegrador.Core.Relatorio;
 
 namespace KitWmsIntegrador.Core.Email;
@@ -17,7 +18,8 @@ public static class CorpoEmailResumo
         int xmlsInvalidos,
         DateTimeOffset inicio,
         DateTimeOffset fim,
-        int maxLinhas = MaxLinhasPadrao)
+        int maxLinhas = MaxLinhasPadrao,
+        PeriodoColeta? periodo = null)
     {
         ArgumentNullException.ThrowIfNull(linhas);
         var r = ModeloRelatorio.Montar(linhas).Resumo;
@@ -26,11 +28,24 @@ public static class CorpoEmailResumo
         var sb = new StringBuilder();
         sb.Append("<html><body style=\"font-family:Arial,sans-serif;font-size:14px\">");
         sb.Append("<h2>KitWms Integrador - fechamento do pacote</h2>");
-        sb.Append("<p>Período: ")
-          .Append(Enc(inicio.ToString("dd/MM/yyyy HH:mm", ci)))
-          .Append(" a ")
-          .Append(Enc(fim.ToString("dd/MM/yyyy HH:mm", ci)))
-          .Append("</p><ul>");
+        if (periodo is null)
+        {
+            sb.Append("<p>Período: ")
+              .Append(Enc(inicio.ToString("dd/MM/yyyy HH:mm", ci)))
+              .Append(" a ")
+              .Append(Enc(fim.ToString("dd/MM/yyyy HH:mm", ci)))
+              .Append("</p><ul>");
+        }
+        else
+        {
+            sb.Append("<p>Coleta: primeira gravação ")
+              .Append(Enc(periodo.PrimeiraGravacao.ToString("dd/MM/yyyy HH:mm:ss", ci)))
+              .Append(", última gravação ")
+              .Append(Enc(periodo.UltimaGravacao.ToString("dd/MM/yyyy HH:mm:ss", ci)))
+              .Append("; pacote fechado em ")
+              .Append(Enc(fim.ToString("dd/MM/yyyy HH:mm", ci)))
+              .Append("</p><ul>");
+        }
         sb.Append("<li>Total de notas: ").Append(r.Total.ToString(ci)).Append("</li>");
         sb.Append("<li>Integradas: ").Append(r.Integradas.ToString(ci)).Append("</li>");
         sb.Append("<li>Integradas - revisar produto: ").Append(r.IntegradasRevisarProduto.ToString(ci)).Append("</li>");

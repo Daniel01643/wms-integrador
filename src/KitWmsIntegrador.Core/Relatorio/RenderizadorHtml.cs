@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using KitWmsIntegrador.Core.Pacote;
 
 namespace KitWmsIntegrador.Core.Relatorio;
 
@@ -75,7 +76,7 @@ aplicar();
 ";
 
     public static string Renderizar(
-        ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng)
+        ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo = null)
     {
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html>\n");
@@ -99,7 +100,7 @@ aplicar();
         sb.Append("<div><h1>").Append(Esc(IdentidadeVisual.Titulo)).Append("</h1>");
         sb.Append(Barra());
         sb.Append("<p class=\"gerado\">Gerado em: ")
-          .Append(Esc(geradoEm.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture)))
+          .Append(Esc(geradoEm.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture) + TextoColeta(periodo)))
           .Append("</p></div></div>\n");
 
         AppendResumo(sb, modelo.Resumo);
@@ -110,6 +111,13 @@ aplicar();
         sb.Append("</body></html>");
         return sb.ToString();
     }
+
+    /// <summary>Complemento do cabeçalho: ' | Coleta: primeira a última gravação' (vazio sem período).</summary>
+    internal static string TextoColeta(PeriodoColeta? periodo) =>
+        periodo is null
+            ? string.Empty
+            : " | Coleta: " + periodo.PrimeiraGravacao.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture)
+              + " a " + periodo.UltimaGravacao.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture);
 
     private static string Barra() => "<div class=\"barra\"><i></i><i></i><i></i></div>";
 

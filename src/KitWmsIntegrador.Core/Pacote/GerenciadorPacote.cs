@@ -8,26 +8,32 @@ namespace KitWmsIntegrador.Core.Pacote;
 /// <summary>Estado do pacote.</summary>
 public enum EstadoPacote
 {
-    /// <summary>Sem arquivos na entrada e sem pacote aberto.</summary>
+    /// <summary>Sem pacote aberto (pode haver arquivos aguardando a próxima foto).</summary>
     Ocioso,
 
-    /// <summary>Pacote aberto, aguardando a janela de coleta.</summary>
+    /// <summary>Pacote aberto, aguardando a janela de coleta fixa terminar.</summary>
     Coletando,
 
-    /// <summary>Processando lotes; fecha após a quietude com a entrada vazia.</summary>
+    /// <summary>Processando a foto (conjunto fixo de arquivos) do pacote.</summary>
     Processando,
 
-    /// <summary>Gerando relatório/e-mail.</summary>
+    /// <summary>Gerando relatório/e-mail do pacote.</summary>
     Fechando,
 }
 
 /// <summary>Resumo do pacote em andamento.</summary>
-public sealed record InfoPacote(DateTimeOffset InicioUtc, int Notas);
+/// <param name="InicioUtc">Quando o pacote foi aberto.</param>
+/// <param name="Notas">Resultados já registrados no pacote.</param>
+/// <param name="Periodo">Primeira/última gravação dos arquivos da foto (null antes da foto).</param>
+public sealed record InfoPacote(DateTimeOffset InicioUtc, int Notas, PeriodoColeta? Periodo = null);
 
 /// <summary>
 /// Máquina de estados do pacote (Ocioso → Coletando → Processando → Fechando → Ocioso).
-/// <see cref="CicloAsync"/> executa um ciclo determinístico (sem espera interna), para que o
-/// Worker controle o intervalo e os testes controlem o relógio.
+/// Ao detectar arquivos, aguarda a janela de coleta FIXA e tira uma "foto" da pasta: os arquivos
+/// prontos naquele instante formam o pacote (processado por transporte, em sequência). Arquivos que
+/// chegam depois formam o PRÓXIMO pacote. Ao terminar a foto, gera o relatório e envia um e-mail só
+/// daquele pacote; então volta a Ocioso. <see cref="CicloAsync"/> executa um ciclo determinístico
+/// (sem espera interna), para que o Worker controle o intervalo e os testes controlem o relógio.
 /// </summary>
 public sealed class GerenciadorPacote
 {
@@ -41,10 +47,10 @@ public sealed class GerenciadorPacote
     private readonly ILogger<GerenciadorPacote> _logger;
 
     private readonly List<RegistroDiario> _registros = new();
-    private readonly HashSet<string> _conhecidos = new(StringComparer.OrdinalIgnoreCase);
     private DateTimeOffset? _inicio;
-    private DateTimeOffset _ultimoNovo;
-    private DateTimeOffset _ultimaAtividade;
+    private PeriodoColeta? _periodo;
+    private DateTimeOffset _proximaFoto = DateTimeOffset.MinValue;
+    private int _fotosVazias;
     private bool _retomado;
 
     /// <summary>Cria o gerenciador.</summary>
@@ -72,7 +78,13 @@ public sealed class GerenciadorPacote
     public EstadoPacote Estado { get; private set; } = EstadoPacote.Ocioso;
 
     /// <summary>Pacote aberto (null quando Ocioso).</summary>
-    public InfoPacote? PacoteAtual => _inicio is null ? null : new InfoPacote(_inicio.Value, _registros.Count);
+    public InfoPacote? PacoteAtual => _inicio is null ? null : new InfoPacote(_inicio.Value, _registros.Count, _periodo);
+
+    /// <summary>
+    /// Instante a partir do qual uma nova foto pode ser iniciada (backoff após fotos sem nenhum
+    /// arquivo pronto). <see cref="DateTimeOffset.MinValue"/> quando não há backoff.
+    /// </summary>
+    public DateTimeOffset ProximaFotoUtc => _proximaFoto;
 
     /// <summary>Executa um ciclo. Propaga apenas o cancelamento.</summary>
     public async Task CicloAsync(CancellationToken ct)
@@ -86,9 +98,6 @@ public sealed class GerenciadorPacote
             Retomar(agora);
         }
 
-        var arquivos = ListarXml();
-        var deteccao = _detector.Avaliar(arquivos);
-
         if (Estado == EstadoPacote.Fechando)
         {
             await FecharAsync(ct).ConfigureAwait(false);
@@ -97,63 +106,90 @@ public sealed class GerenciadorPacote
 
         if (Estado == EstadoPacote.Ocioso)
         {
-            if (arquivos.Count == 0)
+            _processador.RepetirMovesPendentes();
+        }
+
+        var arquivos = ListarXml();
+        var deteccao = _detector.Avaliar(arquivos);
+        var pendentes = new HashSet<string>(_processador.MovePendentes, StringComparer.OrdinalIgnoreCase);
+
+        if (Estado == EstadoPacote.Ocioso)
+        {
+            // Instáveis nunca abrem pacote sozinhos; moves pendentes já foram enviados ao WMS.
+            var candidatos = deteccao.Prontos.Concat(deteccao.Aguardando).Count(a => !pendentes.Contains(a));
+            if (candidatos == 0 || agora < _proximaFoto)
             {
                 return;
             }
 
             _inicio = agora;
-            _registros.Clear();
-            _conhecidos.Clear();
-            _ultimoNovo = agora;
-            _ultimaAtividade = agora;
+            _periodo = null;
             Estado = EstadoPacote.Coletando;
-            _logger.LogInformation("Pacote aberto: {Arquivos} arquivo(s) na entrada.", arquivos.Count);
-        }
-
-        _conhecidos.IntersectWith(arquivos);
-        var novos = false;
-        foreach (var a in arquivos)
-        {
-            novos |= _conhecidos.Add(a);
-        }
-
-        if (novos)
-        {
-            _ultimoNovo = agora;
-            _ultimaAtividade = agora;
+            _logger.LogInformation(
+                "Pacote aberto: {Arquivos} arquivo(s) na entrada; janela de coleta de {Janela}s.",
+                candidatos, _opcoes.JanelaColetaSegundos);
         }
 
         if (Estado == EstadoPacote.Coletando)
         {
-            if ((agora - _ultimoNovo).TotalSeconds < _opcoes.JanelaColetaSegundos)
+            // Janela FIXA: não é adiada por novos arquivos (eles só entram se já estiverem prontos).
+            if ((agora - _inicio!.Value).TotalSeconds < _opcoes.JanelaColetaSegundos)
             {
                 return;
             }
 
-            Estado = EstadoPacote.Processando;
-            _logger.LogInformation("Janela de coleta encerrada; processando.");
-        }
-
-        if (deteccao.Prontos.Count > 0)
-        {
-            var novosRegistros = await _processador.ProcessarAsync(deteccao.Prontos, ct).ConfigureAwait(false);
-            _registros.AddRange(novosRegistros);
-            if (novosRegistros.Count > 0)
+            // FOTO: lista congelada dos arquivos prontos neste instante.
+            var foto = deteccao.Prontos.Where(a => !pendentes.Contains(a)).ToList();
+            if (foto.Count == 0)
             {
-                _ultimaAtividade = _clock.UtcNow;
+                EncerrarFotoVazia(agora);
+                if (Estado != EstadoPacote.Fechando)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                _fotosVazias = 0;
+                _proximaFoto = DateTimeOffset.MinValue;
+                _periodo = PeriodoColeta.Calcular(foto);
+                Estado = EstadoPacote.Processando;
+                _logger.LogInformation(
+                    "Foto da pasta: {Arquivos} arquivo(s); primeira gravação {Primeira:dd/MM/yyyy HH:mm:ss}, última {Ultima:dd/MM/yyyy HH:mm:ss}.",
+                    foto.Count, _periodo?.PrimeiraGravacao, _periodo?.UltimaGravacao);
+
+                var novos = await _processador.ProcessarAsync(foto, ct).ConfigureAwait(false);
+                _registros.AddRange(novos);
+                Estado = EstadoPacote.Fechando;
             }
         }
 
-        // Fechamento: nada aguardando na entrada (instáveis acima do timeout e moves pendentes não contam).
-        var ignorar = new HashSet<string>(deteccao.Instaveis, StringComparer.OrdinalIgnoreCase);
-        ignorar.UnionWith(_processador.MovePendentes);
-        var aguardando = ListarXml().Count(a => !ignorar.Contains(a));
-
-        if (aguardando == 0 && (_clock.UtcNow - _ultimaAtividade).TotalSeconds >= _opcoes.QuietudeSegundos)
+        if (Estado == EstadoPacote.Fechando)
         {
             await FecharAsync(ct).ConfigureAwait(false);
         }
+    }
+
+    // Foto sem arquivo pronto (só em gravação): não gera relatório vazio; backoff exponencial.
+    private void EncerrarFotoVazia(DateTimeOffset agora)
+    {
+        if (_registros.Count > 0)
+        {
+            // Pacote retomado do diário: fecha com o que já foi tratado.
+            Estado = EstadoPacote.Fechando;
+            return;
+        }
+
+        _fotosVazias++;
+        var espera = Math.Min(
+            Math.Max(1, _opcoes.JanelaColetaSegundos) * Math.Pow(2, Math.Min(_fotosVazias, 20)),
+            Math.Max(1, _opcoes.BackoffMaximoSegundos));
+        _proximaFoto = agora.AddSeconds(espera);
+        _inicio = null;
+        _periodo = null;
+        Estado = EstadoPacote.Ocioso;
+        _logger.LogInformation(
+            "Foto sem arquivos prontos (ainda em gravação); nova tentativa após {Espera:0}s.", espera);
     }
 
     private async Task FecharAsync(CancellationToken ct)
@@ -163,7 +199,8 @@ public sealed class GerenciadorPacote
         bool ok;
         try
         {
-            ok = await _fechador.FecharAsync(_registros.ToList(), inicio, _clock.UtcNow, ct).ConfigureAwait(false);
+            var registros = ConsolidadorRegistros.Consolidar(_registros);
+            ok = await _fechador.FecharAsync(registros, inicio, _clock.UtcNow, ct, _periodo).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -178,12 +215,14 @@ public sealed class GerenciadorPacote
 
         _diario.Apagar();
         _registros.Clear();
-        _conhecidos.Clear();
         _inicio = null;
+        _periodo = null;
         Estado = EstadoPacote.Ocioso;
         _logger.LogInformation("Pacote fechado.");
     }
 
+    // Retomada após queda: a fonte de verdade é o diário. Arquivo ainda na entrada que já tem registro
+    // e não foi regravado depois dele só precisa ser movido (sem reenviar ao WMS).
     private void Retomar(DateTimeOffset agora)
     {
         var lidos = _diario.Ler();
@@ -192,12 +231,33 @@ public sealed class GerenciadorPacote
             return;
         }
 
-        // Uma queda entre registrar e mover pode ter gerado 2 linhas do mesmo arquivo: mantém a primeira.
-        _registros.AddRange(lidos.GroupBy(r => r.Arquivo, StringComparer.OrdinalIgnoreCase).Select(g => g.First()));
+        var registros = ConsolidadorRegistros.Consolidar(lidos);
+        foreach (var registro in registros)
+        {
+            if (!File.Exists(registro.Arquivo))
+            {
+                continue;
+            }
+
+            if (File.GetLastWriteTimeUtc(registro.Arquivo) <= registro.Horario.UtcDateTime)
+            {
+                _processador.ReconciliarMove(registro);
+            }
+        }
+
+        _registros.AddRange(registros);
         _inicio = _registros.Min(r => r.Horario);
-        _ultimoNovo = agora;
-        _ultimaAtividade = agora;
-        Estado = EstadoPacote.Processando;
+        var restantes = ListarXml();
+        if (restantes.Count > 0)
+        {
+            _inicio = agora;
+            Estado = EstadoPacote.Coletando;
+        }
+        else
+        {
+            Estado = EstadoPacote.Fechando;
+        }
+
         _logger.LogInformation("Pacote retomado do diário com {Registros} resultado(s).", _registros.Count);
     }
 

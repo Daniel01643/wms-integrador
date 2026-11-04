@@ -61,6 +61,45 @@ public sealed class ProcessadorLote
     public IReadOnlyCollection<string> MovePendentes => _movePendentes.Keys.ToList();
 
     /// <summary>
+    /// Repete os moves que falharam (arquivo já enviado ao WMS). Nunca chama o WMS. A fonte de
+    /// verdade após reinício é o diário (ver <see cref="ReconciliarMove"/>).
+    /// </summary>
+    public void RepetirMovesPendentes()
+    {
+        foreach (var par in _movePendentes.ToArray())
+        {
+            RepetirMove(par.Key, par.Value);
+        }
+    }
+
+    /// <summary>
+    /// Move um arquivo já tratado (registro do diário) sem reenviar ao WMS. Usado na retomada
+    /// após queda entre registrar e mover. Se o move falhar, fica como pendente.
+    /// </summary>
+    public bool ReconciliarMove(RegistroDiario registro)
+    {
+        ArgumentNullException.ThrowIfNull(registro);
+        var arquivo = registro.Arquivo;
+        if (!File.Exists(arquivo))
+        {
+            return true;
+        }
+
+        var motivo = MotivoSidecar(registro);
+        var mov = _organizador.Mover(arquivo, registro.Destino, registro.Categoria, motivo);
+        if (mov.Sucesso || !File.Exists(arquivo))
+        {
+            return true;
+        }
+
+        _logger.LogWarning(
+            "Arquivo {Arquivo} já tratado antes da queda, mas o move falhou ({Erro}); será repetido sem reenviar ao WMS.",
+            arquivo, mov.Erro);
+        _movePendentes[arquivo] = new MovePendente(registro.Destino, registro.Categoria, motivo);
+        return false;
+    }
+
+    /// <summary>
     /// Processa os arquivos e devolve os registros novos. Respeita a ordem de chegada
     /// (criação, depois nome). Propaga apenas o cancelamento.
     /// </summary>

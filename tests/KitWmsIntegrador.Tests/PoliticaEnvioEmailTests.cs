@@ -16,8 +16,8 @@ public class PoliticaEnvioEmailTests
         Assert.False(PoliticaEnvioEmail.Deve(Resumo(integ: 3), 0, Op(EnviarQuando.ComProblema)));
 
     [Fact]
-    public void PadraoDasOpcoes_E_ComProblema() =>
-        Assert.Equal(EnviarQuando.ComProblema, new OpcoesEmail().EnviarQuando);
+    public void PadraoDasOpcoes_ESempre() =>
+        Assert.Equal(EnviarQuando.Sempre, new OpcoesEmail().EnviarQuando);
 
     [Theory]
     [InlineData(0, 0, 1, 0)]

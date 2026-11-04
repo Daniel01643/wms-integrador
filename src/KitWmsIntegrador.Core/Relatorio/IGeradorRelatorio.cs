@@ -1,3 +1,5 @@
+using KitWmsIntegrador.Core.Pacote;
+
 namespace KitWmsIntegrador.Core.Relatorio;
 
 /// <summary>
@@ -11,13 +13,13 @@ public interface IGeradorRelatorio
     /// linhas agrupadas por transporte, status coloridos, detalhe/histórico em &lt;details&gt; e
     /// filtro opcional em JavaScript puro.
     /// </summary>
-    string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);
+    string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null);
 
     /// <summary>
     /// Monta o relatório como PDF A4 paisagem (bytes), com resumo, agrupamento por transporte,
     /// quebra de linha nas células, cabeçalho da tabela repetido e rodapé "Página X de Y".
     /// </summary>
-    byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);
+    byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null);
 
     /// <summary>
     /// Gera os dois arquivos (HTML e PDF) na pasta de saída configurada
