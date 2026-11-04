@@ -31,19 +31,19 @@ public static class CorpoEmailResumo
         if (periodo is null)
         {
             sb.Append("<p>Período: ")
-              .Append(Enc(inicio.ToString("dd/MM/yyyy HH:mm", ci)))
+              .Append(Enc(inicio.ToLocalTime().ToString("dd/MM/yyyy HH:mm", ci)))
               .Append(" a ")
-              .Append(Enc(fim.ToString("dd/MM/yyyy HH:mm", ci)))
+              .Append(Enc(fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", ci)))
               .Append("</p><ul>");
         }
         else
         {
             sb.Append("<p>Coleta: primeira gravação ")
-              .Append(Enc(periodo.PrimeiraGravacao.ToString("dd/MM/yyyy HH:mm:ss", ci)))
+              .Append(Enc(periodo.PrimeiraGravacao.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", ci)))
               .Append(", última gravação ")
-              .Append(Enc(periodo.UltimaGravacao.ToString("dd/MM/yyyy HH:mm:ss", ci)))
+              .Append(Enc(periodo.UltimaGravacao.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", ci)))
               .Append("; pacote fechado em ")
-              .Append(Enc(fim.ToString("dd/MM/yyyy HH:mm", ci)))
+              .Append(Enc(fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", ci)))
               .Append("</p><ul>");
         }
         sb.Append("<li>Total de notas: ").Append(r.Total.ToString(ci)).Append("</li>");

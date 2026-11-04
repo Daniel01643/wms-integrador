@@ -27,7 +27,7 @@ public class CorpoEmailResumoTests
         Assert.Contains("Pendentes: 1", html);
         Assert.Contains("Não integradas: 1", html);
         Assert.Contains("XMLs inválidos: 4", html);
-        Assert.Contains("02/01/2025 08:30", html);
+        Assert.Contains(T.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture), html);
     }
 
     [Fact]

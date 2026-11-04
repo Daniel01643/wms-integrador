@@ -16,7 +16,17 @@ internal static class IdentidadeVisual
     public const string Vermelho = "#D32F2F";
 
     public const string Titulo = "Relatório de Erros de Integração";
-    public const string FormatoHorario = "dd/MM/yyyy HH:mm:ss zzz";
+
+    /// <summary>
+    /// Formato de data/hora exibido no relatório: horário LOCAL do servidor, sem o sufixo de
+    /// offset (ex.: "04/11/2026 14:56:20"). Valores em <see cref="DateTimeOffset"/> devem ser
+    /// convertidos para local com <see cref="Horario"/> antes de formatar.
+    /// </summary>
+    public const string FormatoHorario = "dd/MM/yyyy HH:mm:ss";
+
+    /// <summary>Formata um instante no horário local do servidor, sem offset UTC.</summary>
+    public static string Horario(DateTimeOffset instante) =>
+        instante.ToLocalTime().ToString(FormatoHorario, System.Globalization.CultureInfo.InvariantCulture);
 
     private static readonly byte[] AssinaturaPng = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 

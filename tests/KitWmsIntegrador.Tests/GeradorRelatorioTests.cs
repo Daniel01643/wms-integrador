@@ -48,9 +48,10 @@ public class GeradorRelatorioTests
         Assert.Contains("0130693549", html);
         Assert.Contains("Nota não encontrada no WMS", html);
 
-        // Horário formatado com fuso.
-        var horarioFormatado = GeradoEm.ToString("dd/MM/yyyy HH:mm:ss zzz", CultureInfo.InvariantCulture);
+        // Horário no fuso local do servidor, sem sufixo de offset UTC.
+        var horarioFormatado = GeradoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
         Assert.Contains(horarioFormatado, html);
+        Assert.DoesNotContain(" +00:00", html);
 
         // Mensagem com caracteres HTML escapados.
         Assert.Contains("&lt;automática&gt; &amp; manual", html);
@@ -108,7 +109,7 @@ public class GeradorRelatorioTests
         {
             var (caminhoHtml, caminhoPdf) = Criar(pastaTemp).GerarArquivos(linhas, GeradoEm);
 
-            var nomeEsperado = "erros_" + GeradoEm.ToString("yyyy-MM-dd_HHmm", CultureInfo.InvariantCulture);
+            var nomeEsperado = "erros_" + GeradoEm.ToLocalTime().ToString("yyyy-MM-dd_HHmm", CultureInfo.InvariantCulture);
 
             Assert.Equal(Path.Combine(pastaTemp, nomeEsperado + ".html"), caminhoHtml);
             Assert.Equal(Path.Combine(pastaTemp, nomeEsperado + ".pdf"), caminhoPdf);

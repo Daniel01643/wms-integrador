@@ -265,7 +265,7 @@ public sealed class ProcessadorLote
 
     private static string MotivoSidecar(RegistroDiario r) =>
         $"Nota: {r.NumeroNota}{Environment.NewLine}Transporte: {r.NumeroTransporte}{Environment.NewLine}" +
-        $"Tentativas: {r.Tentativas}{Environment.NewLine}Data: {r.Horario:yyyy-MM-dd HH:mm:ss zzz}{Environment.NewLine}" +
+        $"Tentativas: {r.Tentativas}{Environment.NewLine}Data: {r.Horario.ToLocalTime():yyyy-MM-dd HH:mm:ss}{Environment.NewLine}" +
         $"Mensagem: {r.Mensagem}";
 
     private RegistroDiario Registro(

@@ -44,7 +44,7 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
         IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm)
     {
         Directory.CreateDirectory(_opcoes.PastaSaida);
-        var baseNome = "erros_" + geradoEm.ToString("yyyy-MM-dd_HHmm", CultureInfo.InvariantCulture);
+        var baseNome = "erros_" + geradoEm.ToLocalTime().ToString("yyyy-MM-dd_HHmm", CultureInfo.InvariantCulture);
         var caminhoHtml = Path.Combine(_opcoes.PastaSaida, baseNome + ".html");
         var caminhoPdf = Path.Combine(_opcoes.PastaSaida, baseNome + ".pdf");
 

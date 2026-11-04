@@ -57,7 +57,8 @@ public sealed class FechadorPacote
             pdf = _gerador.GerarPdf(linhas, fim, periodo);
 
             Directory.CreateDirectory(_opcoesRelatorio.PastaSaida);
-            var baseNome = NomeUnico(_opcoesRelatorio.PastaSaida, "pacote_" + fim.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture));
+            var carimbo = fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var baseNome = NomeUnico(_opcoesRelatorio.PastaSaida, "pacote_" + carimbo);
             var caminhoHtml = Path.Combine(_opcoesRelatorio.PastaSaida, baseNome + ".html");
             var caminhoPdf = Path.Combine(_opcoesRelatorio.PastaSaida, baseNome + ".pdf");
             await File.WriteAllTextAsync(caminhoHtml, html, Encoding.UTF8, CancellationToken.None).ConfigureAwait(false);
@@ -79,10 +80,10 @@ public sealed class FechadorPacote
                 return true;
             }
 
-            var assunto = $"Fechamento do pacote {fim.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
+            var assunto = $"Fechamento do pacote {fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
                           $"{resumo.Total} nota(s), {resumo.NaoIntegradas} não integrada(s), {resumo.Pendentes} pendente(s)";
             var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, periodo: periodo);
-            var nomePdf = "pacote_" + fim.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".pdf";
+            var nomePdf = "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".pdf";
             var resultado = await _email.EnviarAsync(
                 new MensagemEmail(assunto, corpo, new[] { new AnexoEmail(nomePdf, pdf) }), ct).ConfigureAwait(false);
 

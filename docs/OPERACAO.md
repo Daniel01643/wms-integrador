@@ -16,7 +16,7 @@ Configuradas na seção `Pastas` do `appsettings.json` (override por env, ex.: `
 | `<Entrada>\Processados` | Notas integradas, pendentes na interface, integradas com produto a revisar e reprocessos "já existe". |
 | `<Entrada>\Erro\<Categoria>` | Notas não integradas e XMLs inválidos, mais `arquivo.xml.motivo.txt` com o detalhe. |
 | `<Entrada>\Estado` | Diário do pacote em andamento (`pacote-atual.jsonl`). Não apagar com o serviço rodando. |
-| `Relatorio:PastaSaida` (padrão `relatorios`) | `pacote_<yyyyMMdd_HHmmss>.html` e `.pdf`. |
+| `Relatorio:PastaSaida` (padrão `relatorios`) | `pacote_<yyyyMMdd_HHmmss>.html` e `.pdf` (carimbo no horário local do servidor). |
 
 Categorias de `Erro` (uma pasta por tipo de erro):
 

@@ -100,7 +100,7 @@ aplicar();
         sb.Append("<div><h1>").Append(Esc(IdentidadeVisual.Titulo)).Append("</h1>");
         sb.Append(Barra());
         sb.Append("<p class=\"gerado\">Gerado em: ")
-          .Append(Esc(geradoEm.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture) + TextoColeta(periodo)))
+          .Append(Esc(IdentidadeVisual.Horario(geradoEm) + TextoColeta(periodo)))
           .Append("</p></div></div>\n");
 
         AppendResumo(sb, modelo.Resumo);
@@ -116,8 +116,8 @@ aplicar();
     internal static string TextoColeta(PeriodoColeta? periodo) =>
         periodo is null
             ? string.Empty
-            : " | Coleta: " + periodo.PrimeiraGravacao.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture)
-              + " a " + periodo.UltimaGravacao.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture);
+            : " | Coleta: " + IdentidadeVisual.Horario(periodo.PrimeiraGravacao)
+              + " a " + IdentidadeVisual.Horario(periodo.UltimaGravacao);
 
     private static string Barra() => "<div class=\"barra\"><i></i><i></i><i></i></div>";
 
@@ -225,7 +225,7 @@ aplicar();
           .Append("\" data-texto=\"").Append(Attr(texto)).Append("\">");
         sb.Append("<td>").Append(Esc(l.NumeroNota)).Append("</td>");
         sb.Append("<td>").Append(Esc(l.NumeroTransporte)).Append("</td>");
-        sb.Append("<td>").Append(Esc(l.HorarioErro.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture))).Append("</td>");
+        sb.Append("<td>").Append(Esc(IdentidadeVisual.Horario(l.HorarioErro))).Append("</td>");
 
         sb.Append("<td><span class=\"st st-").Append(chave).Append("\">").Append(Esc(l.StatusDescricao)).Append("</span>");
         if (l.RevisaoProdutoPendente)

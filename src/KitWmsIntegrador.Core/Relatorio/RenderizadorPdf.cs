@@ -175,7 +175,7 @@ internal static class RenderizadorPdf
 
         gfx.DrawString(IdentidadeVisual.Titulo, FTitulo, new XSolidBrush(CAzul), xTitulo, Margem - 3, XStringFormats.TopLeft);
         gfx.DrawString(
-            "Gerado em: " + geradoEm.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture)
+            "Gerado em: " + IdentidadeVisual.Horario(geradoEm)
             + RenderizadorHtml.TextoColeta(periodo),
             FNormal, new XSolidBrush(CTexto), xTitulo, Margem + 18, XStringFormats.TopLeft);
 
@@ -199,7 +199,7 @@ internal static class RenderizadorPdf
         var cinza = new XSolidBrush(CTexto);
         gfx.DrawString(
             "Friozem · " + IdentidadeVisual.Titulo + " · " +
-            geradoEm.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+            geradoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
             FPequena, cinza, Margem, yLinha + 4, XStringFormats.TopLeft);
         var texto = $"Página {numero} de {total}";
         var largura = gfx.MeasureString(texto, FPequena).Width;
@@ -357,7 +357,7 @@ internal static class RenderizadorPdf
     private static Bloco LinhaTabela(LinhaRelatorioErro l, XGraphics medidor, double[] colunas, Bloco cabecalho)
     {
         var largura = (int i) => colunas[i] - 2 * PaddingCelula;
-        var horario = l.HorarioErro.ToString(IdentidadeVisual.FormatoHorario, CultureInfo.InvariantCulture);
+        var horario = IdentidadeVisual.Horario(l.HorarioErro);
 
         var cNota = TextoPdf.Quebrar(l.NumeroNota, FNormal, largura(0), medidor);
         var cTransp = TextoPdf.Quebrar(l.NumeroTransporte, FNormal, largura(1), medidor);
