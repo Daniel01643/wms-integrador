@@ -39,7 +39,7 @@ public sealed class FechadorPacote
     /// <summary>Devolve verdadeiro se o pacote pode ser considerado fechado (relatório gravado ou nada a reportar).</summary>
     public async Task<bool> FecharAsync(
         IReadOnlyList<RegistroDiario> registros, DateTimeOffset inicio, DateTimeOffset fim, CancellationToken ct,
-        PeriodoColeta? periodo = null)
+        PeriodoColeta? periodo = null, string? identificadorPacote = null)
     {
         if (registros.Count == 0)
         {
@@ -57,8 +57,11 @@ public sealed class FechadorPacote
             pdf = _gerador.GerarPdf(linhas, fim, periodo);
 
             Directory.CreateDirectory(_opcoesRelatorio.PastaSaida);
+            // O id do pacote (calculado na abertura) é a base do nome; sem ele (chamada legada),
+            // mantém-se o comportamento antigo derivado de 'fim'.
             var carimbo = fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-            var baseNome = NomeUnico(_opcoesRelatorio.PastaSaida, "pacote_" + carimbo);
+            var nomeBase = string.IsNullOrWhiteSpace(identificadorPacote) ? "pacote_" + carimbo : identificadorPacote;
+            var baseNome = NomeUnico(_opcoesRelatorio.PastaSaida, nomeBase);
             var caminhoHtml = Path.Combine(_opcoesRelatorio.PastaSaida, baseNome + ".html");
             var caminhoPdf = Path.Combine(_opcoesRelatorio.PastaSaida, baseNome + ".pdf");
             await File.WriteAllTextAsync(caminhoHtml, html, Encoding.UTF8, CancellationToken.None).ConfigureAwait(false);
@@ -83,7 +86,9 @@ public sealed class FechadorPacote
             var assunto = $"Fechamento do pacote {fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
                           $"{resumo.Total} nota(s), {resumo.NaoIntegradas} não integrada(s), {resumo.Pendentes} pendente(s)";
             var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, periodo: periodo);
-            var nomePdf = "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) + ".pdf";
+            var nomePdf = (string.IsNullOrWhiteSpace(identificadorPacote)
+                ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)
+                : identificadorPacote) + ".pdf";
             var resultado = await _email.EnviarAsync(
                 new MensagemEmail(assunto, corpo, new[] { new AnexoEmail(nomePdf, pdf) }), ct).ConfigureAwait(false);
 

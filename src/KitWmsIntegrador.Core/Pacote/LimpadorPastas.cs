@@ -93,67 +93,88 @@ public sealed class LimpadorPastas
             return;
         }
 
-        LimparPasta(raiz, raiz, limite, erros, ref arquivos, ref pastas);
+        // Subpastas imediatas da raiz = subpastas de pacote: removidas por INTEIRO quando vencidas.
+        foreach (var sub in Directory.EnumerateDirectories(raiz))
+        {
+            LimparSubpastaDePacote(sub, raiz, limite, erros, ref arquivos, ref pastas);
+        }
+
+        // Retrocompatibilidade: arquivos SOLTOS direto na raiz (layout antigo) tratados por arquivo.
+        foreach (var arquivo in Directory.EnumerateFiles(raiz))
+        {
+            RemoverArquivoSeVencido(arquivo, raiz, limite, erros, ref arquivos);
+        }
     }
 
-    private void LimparPasta(string pasta, string raiz, DateTime limite, List<string> erros, ref int arquivos, ref int pastas)
+    private void LimparSubpastaDePacote(string sub, string raiz, DateTime limite, List<string> erros, ref int arquivos, ref int pastas)
     {
-        foreach (var sub in Directory.EnumerateDirectories(pasta))
+        try
         {
-            if (EhReparsePoint(sub))
+            if (EhReparsePoint(sub) || !EstaDentro(sub, raiz))
             {
-                continue;
+                return;
             }
 
-            LimparPasta(sub, raiz, limite, erros, ref arquivos, ref pastas);
-        }
+            // Idade pela MAIOR LastWriteTimeUtc do conteúdo: evita apagar um pacote com qualquer
+            // arquivo ainda dentro do prazo. Subpasta sem arquivos é considerada vazia (removível).
+            var arquivosDaSub = Directory.EnumerateFiles(sub, "*", SearchOption.AllDirectories)
+                .Where(a => !EhReparsePoint(a))
+                .ToList();
 
-        foreach (var arquivo in Directory.EnumerateFiles(pasta))
-        {
-            try
+            if (arquivosDaSub.Count > 0)
             {
-                if (!EstaDentro(arquivo, raiz) || EhReparsePoint(arquivo))
+                var idadeMax = arquivosDaSub.Max(File.GetLastWriteTimeUtc);
+                if (idadeMax >= limite)
                 {
-                    continue;
+                    return;
                 }
 
-                var mtime = File.GetLastWriteTimeUtc(arquivo);
-                if (mtime >= limite)
-                {
-                    continue;
-                }
-
-                File.Delete(arquivo);
-                arquivos++;
+                Directory.Delete(sub, recursive: true);
+                arquivos += arquivosDaSub.Count;
+                pastas++;
                 _logger.LogInformation(
-                    "Limpeza removeu {Arquivo} (idade {Dias:F1} dia(s)).",
-                    arquivo, (_clock.UtcNow.UtcDateTime - mtime).TotalDays);
+                    "Limpeza removeu a subpasta de pacote {Pasta} ({Arquivos} arquivo(s), idade {Dias:F1} dia(s)).",
+                    sub, arquivosDaSub.Count, (_clock.UtcNow.UtcDateTime - idadeMax).TotalDays);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Limpeza não conseguiu remover {Arquivo}.", arquivo);
-                erros.Add($"{arquivo}: {ex.Message}");
+                Directory.Delete(sub, recursive: true);
+                pastas++;
+                _logger.LogInformation("Limpeza removeu a subpasta de pacote vazia {Pasta}.", sub);
             }
         }
-
-        // Remove subpastas vazias, mas nunca a raiz.
-        if (!string.Equals(pasta, raiz, StringComparison.OrdinalIgnoreCase)
-            && EstaDentro(pasta, raiz))
+        catch (Exception ex)
         {
-            try
+            _logger.LogWarning(ex, "Limpeza não conseguiu remover a subpasta {Pasta}.", sub);
+            erros.Add($"{sub}: {ex.Message}");
+        }
+    }
+
+    private void RemoverArquivoSeVencido(string arquivo, string raiz, DateTime limite, List<string> erros, ref int arquivos)
+    {
+        try
+        {
+            if (!EstaDentro(arquivo, raiz) || EhReparsePoint(arquivo))
             {
-                if (!Directory.EnumerateFileSystemEntries(pasta).Any())
-                {
-                    Directory.Delete(pasta);
-                    pastas++;
-                    _logger.LogInformation("Limpeza removeu a pasta vazia {Pasta}.", pasta);
-                }
+                return;
             }
-            catch (Exception ex)
+
+            var mtime = File.GetLastWriteTimeUtc(arquivo);
+            if (mtime >= limite)
             {
-                _logger.LogWarning(ex, "Limpeza não conseguiu remover a pasta {Pasta}.", pasta);
-                erros.Add($"{pasta}: {ex.Message}");
+                return;
             }
+
+            File.Delete(arquivo);
+            arquivos++;
+            _logger.LogInformation(
+                "Limpeza removeu {Arquivo} (idade {Dias:F1} dia(s)).",
+                arquivo, (_clock.UtcNow.UtcDateTime - mtime).TotalDays);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Limpeza não conseguiu remover {Arquivo}.", arquivo);
+            erros.Add($"{arquivo}: {ex.Message}");
         }
     }
 

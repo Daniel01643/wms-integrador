@@ -204,6 +204,21 @@ public sealed class AmbientePacote : IDisposable
             ? Directory.GetFiles(Path.Combine(Entrada, subpasta), "*.xml", SearchOption.AllDirectories)
             : Array.Empty<string>();
 
+    /// <summary>
+    /// XMLs de erro de uma categoria, independentemente da subpasta de pacote intermediária
+    /// (<c>Erro\pacote_&lt;id&gt;\&lt;categoria&gt;\...</c>). Útil após a Etapa 7c.
+    /// </summary>
+    public string[] ArquivosErroCategoria(string categoria)
+    {
+        var erro = Path.Combine(Entrada, "Erro");
+        return Directory.Exists(erro)
+            ? Directory.GetFiles(erro, "*.xml", SearchOption.AllDirectories)
+                .Where(a => string.Equals(
+                    Path.GetFileName(Path.GetDirectoryName(a)), categoria, StringComparison.OrdinalIgnoreCase))
+                .ToArray()
+            : Array.Empty<string>();
+    }
+
     public string[] RelatoriosGerados(string extensao) =>
         Directory.Exists(Relatorios) ? Directory.GetFiles(Relatorios, "*" + extensao) : Array.Empty<string>();
 

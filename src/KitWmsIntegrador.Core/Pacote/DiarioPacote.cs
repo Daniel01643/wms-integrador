@@ -26,7 +26,8 @@ public sealed record RegistroDiario(
     IReadOnlyList<string> ProdutosProvisorios,
     IReadOnlyList<string> Historico,
     CategoriaErro? Categoria,
-    DestinoArquivo Destino)
+    DestinoArquivo Destino,
+    string? IdentificadorPacote = null)
 {
     /// <summary>Rótulo usado no relatório quando a nota/arquivo não tem transporte.</summary>
     public const string RotuloSemTransporte = "(sem transporte)";

@@ -172,7 +172,7 @@ public sealed class RetomadaDeduplicacaoTests : IDisposable
         var trava = new FileStream(caminho, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
         {
-            var registros = await processador.ProcessarAsync(new[] { caminho }, CancellationToken.None);
+            var registros = await processador.ProcessarAsync(new[] { caminho }, "pacote_20250110_120000", CancellationToken.None);
 
             Assert.Single(registros);
             Assert.Single(_orq.Chamadas);

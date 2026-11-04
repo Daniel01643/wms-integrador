@@ -11,8 +11,10 @@ public sealed class ProcessadorLoteTests : IDisposable
 
     public void Dispose() => _amb.Dispose();
 
+    private const string IdPacote = "pacote_20250101_100000";
+
     private Task<IReadOnlyList<RegistroDiario>> Processar(ProcessadorLote p, params string[] arquivos) =>
-        p.ProcessarAsync(arquivos, CancellationToken.None);
+        p.ProcessarAsync(arquivos, IdPacote, CancellationToken.None);
 
     [Fact]
     public async Task Sucesso_VaiParaProcessados()
@@ -51,8 +53,9 @@ public sealed class ProcessadorLoteTests : IDisposable
 
         await Processar(p, _amb.EscreverXml("a.xml", "100", "70001"));
 
-        Assert.Single(_amb.Arquivos(Path.Combine("Erro", "ProdutoNaoCadastrado")));
-        Assert.True(File.Exists(Path.Combine(_amb.Entrada, "Erro", "ProdutoNaoCadastrado", "a.xml.motivo.txt")));
+        var movido = Assert.Single(_amb.ArquivosErroCategoria("ProdutoNaoCadastrado"));
+        Assert.EndsWith(Path.Combine("ProdutoNaoCadastrado", "a.xml"), movido);
+        Assert.True(File.Exists(movido + ".motivo.txt"));
     }
 
     [Fact]
@@ -66,7 +69,7 @@ public sealed class ProcessadorLoteTests : IDisposable
 
         Assert.Equal(2, regs.Count);
         Assert.Single(regs, r => r.XmlInvalido);
-        Assert.Single(_amb.Arquivos(Path.Combine("Erro", "XmlInvalido")));
+        Assert.Single(_amb.ArquivosErroCategoria("XmlInvalido"));
         Assert.Single(_amb.Arquivos("Processados"));
         Assert.Single(_orq.Chamadas);
     }
@@ -94,7 +97,7 @@ public sealed class ProcessadorLoteTests : IDisposable
         await Processar(p, _amb.EscreverXml("a.xml", "100", null));
 
         Assert.Equal(("100", ""), _orq.Chamadas.Single());
-        Assert.Single(_amb.Arquivos(Path.Combine("Erro", "SemTransporte")));
+        Assert.Single(_amb.ArquivosErroCategoria("SemTransporte"));
     }
 
     [Fact]
@@ -112,7 +115,7 @@ public sealed class ProcessadorLoteTests : IDisposable
 
         Assert.Equal(3, regs.Count);
         Assert.Equal(2, _amb.Arquivos("Processados").Length);
-        Assert.Single(_amb.Arquivos(Path.Combine("Erro", "Outro")));
+        Assert.Single(_amb.ArquivosErroCategoria("Outro"));
     }
 
     [Fact]
@@ -194,7 +197,7 @@ public sealed class ProcessadorLoteTests : IDisposable
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => p.ProcessarAsync(new[] { a }, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => p.ProcessarAsync(new[] { a }, IdPacote, cts.Token));
         Assert.True(File.Exists(a));
     }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
@@ -48,6 +49,7 @@ public sealed class GerenciadorPacote
 
     private readonly List<RegistroDiario> _registros = new();
     private DateTimeOffset? _inicio;
+    private string? _idPacote;
     private PeriodoColeta? _periodo;
     private DateTimeOffset _proximaFoto = DateTimeOffset.MinValue;
     private int _fotosVazias;
@@ -125,11 +127,12 @@ public sealed class GerenciadorPacote
             }
 
             _inicio = agora;
+            _idPacote = IdDe(agora);
             _periodo = null;
             Estado = EstadoPacote.Coletando;
             _logger.LogInformation(
-                "Pacote aberto: {Arquivos} arquivo(s) na entrada; janela de coleta de {Janela}s.",
-                candidatos, _opcoes.JanelaColetaSegundos);
+                "Pacote aberto ({Id}): {Arquivos} arquivo(s) na entrada; janela de coleta de {Janela}s.",
+                _idPacote, candidatos, _opcoes.JanelaColetaSegundos);
         }
 
         if (Estado == EstadoPacote.Coletando)
@@ -160,7 +163,8 @@ public sealed class GerenciadorPacote
                     "Foto da pasta: {Arquivos} arquivo(s); primeira gravação {Primeira:dd/MM/yyyy HH:mm:ss}, última {Ultima:dd/MM/yyyy HH:mm:ss}.",
                     foto.Count, _periodo?.PrimeiraGravacao, _periodo?.UltimaGravacao);
 
-                var novos = await _processador.ProcessarAsync(foto, ct).ConfigureAwait(false);
+                _idPacote ??= IdDe(_inicio ?? agora);
+                var novos = await _processador.ProcessarAsync(foto, _idPacote, ct).ConfigureAwait(false);
                 _registros.AddRange(novos);
                 Estado = EstadoPacote.Fechando;
             }
@@ -202,7 +206,8 @@ public sealed class GerenciadorPacote
         try
         {
             var registros = ConsolidadorRegistros.Consolidar(_registros);
-            ok = await _fechador.FecharAsync(registros, inicio, _clock.UtcNow, ct, _periodo).ConfigureAwait(false);
+            var id = _idPacote ?? IdDe(inicio);
+            ok = await _fechador.FecharAsync(registros, inicio, _clock.UtcNow, ct, _periodo, id).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -218,10 +223,15 @@ public sealed class GerenciadorPacote
         _diario.Apagar();
         _registros.Clear();
         _inicio = null;
+        _idPacote = null;
         _periodo = null;
         Estado = EstadoPacote.Ocioso;
         _logger.LogInformation("Pacote fechado.");
     }
+
+    // Identificador único do pacote (horário LOCAL): mesmo carimbo das subpastas e do relatório.
+    private static string IdDe(DateTimeOffset instante) =>
+        "pacote_" + instante.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
 
     // Retomada após queda: a fonte de verdade é o diário. Arquivo ainda na entrada que já tem registro
     // e não foi regravado depois dele só precisa ser movido (sem reenviar ao WMS).
@@ -234,6 +244,14 @@ public sealed class GerenciadorPacote
         }
 
         var registros = ConsolidadorRegistros.Consolidar(lidos);
+
+        // Restaura o id do diário (primeiro registro que o traga) para reconciliar os moves na
+        // MESMA subpasta; se o diário for antigo (sem o campo), recalcula de _inicio como fallback.
+        var inicio = registros.Count > 0 ? registros.Min(r => r.Horario) : agora;
+        _idPacote = registros
+            .Select(r => r.IdentificadorPacote)
+            .FirstOrDefault(id => !string.IsNullOrEmpty(id)) ?? IdDe(inicio);
+
         var mantidos = new List<RegistroDiario>();
         foreach (var registro in registros)
         {
@@ -246,7 +264,7 @@ public sealed class GerenciadorPacote
                     continue;
                 }
 
-                _processador.ReconciliarMove(registro);
+                _processador.ReconciliarMove(registro, _idPacote);
             }
 
             mantidos.Add(registro);

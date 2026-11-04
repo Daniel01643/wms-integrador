@@ -18,6 +18,8 @@ public sealed class OrganizadorArquivosTests : IDisposable
         try { Directory.Delete(_raiz, true); } catch { /* melhor esforço */ }
     }
 
+    private const string IdPacote = "pacote_20250601_120000";
+
     private OrganizadorArquivos Criar(OrganizacaoErro org = OrganizacaoErro.PorCategoria) =>
         new(_clock, Options.Create(new OpcoesPasta { Entrada = _raiz, OrganizacaoErro = org }),
             NullLogger<OrganizadorArquivos>.Instance);
@@ -34,10 +36,10 @@ public sealed class OrganizadorArquivosTests : IDisposable
     public void MoveParaProcessadosECarimbaData()
     {
         var arq = NovoArquivo();
-        var r = Criar().Mover(arq, DestinoArquivo.Processados, null, "ok");
+        var r = Criar().Mover(arq, DestinoArquivo.Processados, null, "ok", IdPacote);
 
         Assert.True(r.Sucesso);
-        Assert.Equal(Path.Combine(_raiz, "Processados", "a.xml"), r.Caminho);
+        Assert.Equal(Path.Combine(_raiz, "Processados", IdPacote, "a.xml"), r.Caminho);
         Assert.False(File.Exists(arq));
         Assert.Equal(_clock.UtcNow.UtcDateTime, File.GetLastWriteTimeUtc(r.Caminho));
     }
@@ -45,34 +47,34 @@ public sealed class OrganizadorArquivosTests : IDisposable
     [Fact]
     public void MoveParaErroPorCategoriaComSidecar()
     {
-        var r = Criar().Mover(NovoArquivo(), DestinoArquivo.Erro, CategoriaErro.ProdutoNaoCadastrado, "motivo X");
+        var r = Criar().Mover(NovoArquivo(), DestinoArquivo.Erro, CategoriaErro.ProdutoNaoCadastrado, "motivo X", IdPacote);
 
         Assert.True(r.Sucesso);
-        Assert.Equal(Path.Combine(_raiz, "Erro", "ProdutoNaoCadastrado", "a.xml"), r.Caminho);
+        Assert.Equal(Path.Combine(_raiz, "Erro", IdPacote, "ProdutoNaoCadastrado", "a.xml"), r.Caminho);
         Assert.Equal("motivo X", File.ReadAllText(r.Caminho + ".motivo.txt"));
     }
 
     [Fact]
     public void MoveParaErroPorArquivo()
     {
-        var r = Criar(OrganizacaoErro.PorArquivo).Mover(NovoArquivo(), DestinoArquivo.Erro, CategoriaErro.Outro, "m");
-        Assert.Equal(Path.Combine(_raiz, "Erro", "a", "a.xml"), r.Caminho);
+        var r = Criar(OrganizacaoErro.PorArquivo).Mover(NovoArquivo(), DestinoArquivo.Erro, CategoriaErro.Outro, "m", IdPacote);
+        Assert.Equal(Path.Combine(_raiz, "Erro", IdPacote, "a", "a.xml"), r.Caminho);
     }
 
     [Fact]
     public void MoveParaErroPlana()
     {
-        var r = Criar(OrganizacaoErro.Plana).Mover(NovoArquivo(), DestinoArquivo.Erro, CategoriaErro.Outro, "m");
-        Assert.Equal(Path.Combine(_raiz, "Erro", "a.xml"), r.Caminho);
+        var r = Criar(OrganizacaoErro.Plana).Mover(NovoArquivo(), DestinoArquivo.Erro, CategoriaErro.Outro, "m", IdPacote);
+        Assert.Equal(Path.Combine(_raiz, "Erro", IdPacote, "a.xml"), r.Caminho);
     }
 
     [Fact]
     public void ColisaoDeNomeGeraSufixo()
     {
         var sut = Criar();
-        var r1 = sut.Mover(NovoArquivo(), DestinoArquivo.Processados, null, "");
-        var r2 = sut.Mover(NovoArquivo(), DestinoArquivo.Processados, null, "");
-        var r3 = sut.Mover(NovoArquivo(), DestinoArquivo.Processados, null, "");
+        var r1 = sut.Mover(NovoArquivo(), DestinoArquivo.Processados, null, "", IdPacote);
+        var r2 = sut.Mover(NovoArquivo(), DestinoArquivo.Processados, null, "", IdPacote);
+        var r3 = sut.Mover(NovoArquivo(), DestinoArquivo.Processados, null, "", IdPacote);
 
         Assert.True(r1.Sucesso && r2.Sucesso && r3.Sucesso);
         Assert.EndsWith("a.xml", r1.Caminho);
@@ -86,7 +88,7 @@ public sealed class OrganizadorArquivosTests : IDisposable
         var arq = NovoArquivo();
         using var trava = new FileStream(arq, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
-        var r = Criar().Mover(arq, DestinoArquivo.Processados, null, "");
+        var r = Criar().Mover(arq, DestinoArquivo.Processados, null, "", IdPacote);
 
         Assert.False(r.Sucesso);
         Assert.NotNull(r.Erro);
@@ -96,7 +98,7 @@ public sealed class OrganizadorArquivosTests : IDisposable
     [Fact]
     public void ArquivoInexistenteDevolveFalha()
     {
-        var r = Criar().Mover(Path.Combine(_raiz, "nao.xml"), DestinoArquivo.Processados, null, "");
+        var r = Criar().Mover(Path.Combine(_raiz, "nao.xml"), DestinoArquivo.Processados, null, "", IdPacote);
         Assert.False(r.Sucesso);
     }
 }

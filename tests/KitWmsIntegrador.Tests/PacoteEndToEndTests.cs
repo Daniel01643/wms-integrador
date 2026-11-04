@@ -105,9 +105,9 @@ public sealed class PacoteEndToEndTests : IDisposable
         var processados = _amb.Arquivos("Processados").Select(Path.GetFileName).OrderBy(n => n).ToArray();
         Assert.Equal(new[] { "a1.xml", "a2.xml", "a3.xml", "b1.xml", "b3.xml" }, processados);
         Assert.Equal(new[] { "b2.xml" },
-            _amb.Arquivos(Path.Combine("Erro", "ProdutoNaoCadastrado")).Select(Path.GetFileName).ToArray());
+            _amb.ArquivosErroCategoria("ProdutoNaoCadastrado").Select(Path.GetFileName).ToArray());
         Assert.Equal(new[] { "quebrado.xml" },
-            _amb.Arquivos(Path.Combine("Erro", "XmlInvalido")).Select(Path.GetFileName).ToArray());
+            _amb.ArquivosErroCategoria("XmlInvalido").Select(Path.GetFileName).ToArray());
 
         // Envios contíguos por transporte: I50 de a1..a3 antes de qualquer I50 de b*.
         // a1(1) a2(2 tentativas) a3(1) = 4 envios de T1; depois 5 de T2 (b1:1, b2:3, b3:1).
@@ -116,6 +116,14 @@ public sealed class PacoteEndToEndTests : IDisposable
         var json = i50.Select(e => System.Text.Json.JsonSerializer.Serialize(e.Payload)).ToList();
         var transportes = json.Select(j => j.Contains("70001") ? "70001" : j.Contains("80002") ? "80002" : "?").ToArray();
         Assert.Equal(new[] { "70001", "70001", "70001", "70001", "80002", "80002", "80002", "80002", "80002" }, transportes);
+
+        // Subpasta de pacote em Processados cujo nome bate com o nome-base do relatório (mesmo id).
+        var subProcessados = Directory.GetDirectories(Path.Combine(_amb.Entrada, "Processados"));
+        var subPacote = Assert.Single(subProcessados);
+        var relatorioHtml = Assert.Single(_amb.RelatoriosGerados(".html"));
+        Assert.Equal(
+            Path.GetFileNameWithoutExtension(relatorioHtml),
+            Path.GetFileName(subPacote));
 
         // Relatório único (HTML + PDF) e e-mail único com PDF anexo.
         Assert.Single(_amb.RelatoriosGerados(".html"));

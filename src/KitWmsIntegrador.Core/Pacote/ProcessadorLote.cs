@@ -18,7 +18,7 @@ namespace KitWmsIntegrador.Core.Pacote;
 /// </summary>
 public sealed class ProcessadorLote
 {
-    private sealed record MovePendente(DestinoArquivo Destino, CategoriaErro? Categoria, string Motivo);
+    private sealed record MovePendente(DestinoArquivo Destino, CategoriaErro? Categoria, string Motivo, string IdentificadorPacote);
 
     private readonly IOrquestrador _orquestrador;
     private readonly LeitorNotaFiscalXml _leitor;
@@ -76,7 +76,7 @@ public sealed class ProcessadorLote
     /// Move um arquivo já tratado (registro do diário) sem reenviar ao WMS. Usado na retomada
     /// após queda entre registrar e mover. Se o move falhar, fica como pendente.
     /// </summary>
-    public bool ReconciliarMove(RegistroDiario registro)
+    public bool ReconciliarMove(RegistroDiario registro, string identificadorPacoteFallback)
     {
         ArgumentNullException.ThrowIfNull(registro);
         var arquivo = registro.Arquivo;
@@ -85,8 +85,12 @@ public sealed class ProcessadorLote
             return true;
         }
 
+        // O id do próprio registro vence; só caímos no fallback quando o diário é antigo (sem o campo).
+        var id = string.IsNullOrEmpty(registro.IdentificadorPacote)
+            ? identificadorPacoteFallback
+            : registro.IdentificadorPacote!;
         var motivo = MotivoSidecar(registro);
-        var mov = _organizador.Mover(arquivo, registro.Destino, registro.Categoria, motivo);
+        var mov = _organizador.Mover(arquivo, registro.Destino, registro.Categoria, motivo, id);
         if (mov.Sucesso || !File.Exists(arquivo))
         {
             return true;
@@ -95,7 +99,7 @@ public sealed class ProcessadorLote
         _logger.LogWarning(
             "Arquivo {Arquivo} já tratado antes da queda, mas o move falhou ({Erro}); será repetido sem reenviar ao WMS.",
             arquivo, mov.Erro);
-        _movePendentes[arquivo] = new MovePendente(registro.Destino, registro.Categoria, motivo);
+        _movePendentes[arquivo] = new MovePendente(registro.Destino, registro.Categoria, motivo, id);
         return false;
     }
 
@@ -104,7 +108,7 @@ public sealed class ProcessadorLote
     /// (criação, depois nome). Propaga apenas o cancelamento.
     /// </summary>
     public async Task<IReadOnlyList<RegistroDiario>> ProcessarAsync(
-        IReadOnlyCollection<string> arquivos, CancellationToken ct)
+        IReadOnlyCollection<string> arquivos, string identificadorPacote, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(arquivos);
         var registros = new ConcurrentQueue<RegistroDiario>();
@@ -136,7 +140,7 @@ public sealed class ProcessadorLote
                 _logger.LogWarning("Arquivo {Arquivo} não pôde ser lido: {Motivo}", arquivo, ex.Message);
                 Finalizar(registros, Registro(arquivo, true, Path.GetFileName(arquivo), string.Empty, motivo, false, 0,
                         StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
-                        new[] { motivo }, CategoriaErro.XmlInvalido, DestinoArquivo.Erro),
+                        new[] { motivo }, CategoriaErro.XmlInvalido, DestinoArquivo.Erro, identificadorPacote),
                     arquivo);
             }
         }
@@ -165,7 +169,7 @@ public sealed class ProcessadorLote
 
         // 3) Ondas em paralelo limitado; notas de cada onda em sequência.
         using var semaforo = new SemaphoreSlim(Math.Max(1, _opcoes.MaxTransportesConcorrentes));
-        var tarefas = ondas.Select(o => ProcessarOndaAsync(o.NumeroTransporte, o.Notas, arquivoDe, semaforo, registros, ct))
+        var tarefas = ondas.Select(o => ProcessarOndaAsync(o.NumeroTransporte, o.Notas, arquivoDe, semaforo, registros, identificadorPacote, ct))
             .ToList();
         await Task.WhenAll(tarefas).ConfigureAwait(false);
 
@@ -178,6 +182,7 @@ public sealed class ProcessadorLote
         Dictionary<NotaFiscal, (string Arquivo, int Ordem)> arquivoDe,
         SemaphoreSlim semaforo,
         ConcurrentQueue<RegistroDiario> registros,
+        string identificadorPacote,
         CancellationToken ct)
     {
         await semaforo.WaitAsync(ct).ConfigureAwait(false);
@@ -194,7 +199,7 @@ public sealed class ProcessadorLote
                     var resultado = resultados.Count > 0
                         ? resultados[0]
                         : throw new InvalidOperationException("O Orquestrador não devolveu resultado para a nota.");
-                    Concluir(registros, arquivo, resultado);
+                    Concluir(registros, arquivo, resultado, identificadorPacote);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -202,7 +207,7 @@ public sealed class ProcessadorLote
                     var motivo = "Exceção ao integrar: " + ex.Message;
                     Finalizar(registros, Registro(arquivo, false, nota.Numero, transporte, motivo, false, 0,
                             StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
-                            new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro),
+                            new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro, identificadorPacote),
                         arquivo);
                 }
             }
@@ -213,7 +218,7 @@ public sealed class ProcessadorLote
         }
     }
 
-    private void Concluir(ConcurrentQueue<RegistroDiario> registros, string arquivo, ResultadoIntegracaoNota r)
+    private void Concluir(ConcurrentQueue<RegistroDiario> registros, string arquivo, ResultadoIntegracaoNota r, string identificadorPacote)
     {
         var destino = _classificador.DestinoDe(r);
         var categoria = destino == DestinoArquivo.Erro ? _classificador.Classificar(r) : (CategoriaErro?)null;
@@ -233,7 +238,7 @@ public sealed class ProcessadorLote
 
         Finalizar(registros, Registro(arquivo, false, r.NumeroNota, r.NumeroTransporte, mensagem, r.Integrada,
                 r.Tentativas, status, r.IdTransacao, r.IdDocumento, r.ProdutosProvisorios, r.Historico,
-                categoria, destino),
+                categoria, destino, identificadorPacote),
             arquivo);
     }
 
@@ -244,19 +249,20 @@ public sealed class ProcessadorLote
         registros.Enqueue(registro);
 
         var motivo = MotivoSidecar(registro);
-        var mov = _organizador.Mover(arquivo, registro.Destino, registro.Categoria, motivo);
+        var id = registro.IdentificadorPacote ?? string.Empty;
+        var mov = _organizador.Mover(arquivo, registro.Destino, registro.Categoria, motivo, id);
         if (!mov.Sucesso && File.Exists(arquivo))
         {
             _logger.LogWarning(
                 "Arquivo {Arquivo} já tratado, mas o move falhou ({Erro}); será repetido sem reenviar ao WMS.",
                 arquivo, mov.Erro);
-            _movePendentes[arquivo] = new MovePendente(registro.Destino, registro.Categoria, motivo);
+            _movePendentes[arquivo] = new MovePendente(registro.Destino, registro.Categoria, motivo, id);
         }
     }
 
     private void RepetirMove(string arquivo, MovePendente p)
     {
-        var mov = _organizador.Mover(arquivo, p.Destino, p.Categoria, p.Motivo);
+        var mov = _organizador.Mover(arquivo, p.Destino, p.Categoria, p.Motivo, p.IdentificadorPacote);
         if (mov.Sucesso || !File.Exists(arquivo))
         {
             _movePendentes.TryRemove(arquivo, out _);
@@ -272,10 +278,11 @@ public sealed class ProcessadorLote
         string arquivo, bool xmlInvalido, string nota, string transporte, string mensagem, bool integrada,
         int tentativas, StatusLinhaRelatorio status, string idTransacao, string idDocumento,
         IReadOnlyList<string>? produtos, IReadOnlyList<string> historico, CategoriaErro? categoria,
-        DestinoArquivo destino) =>
+        DestinoArquivo destino, string identificadorPacote) =>
         new(arquivo, xmlInvalido, nota ?? string.Empty, transporte ?? string.Empty, _clock.UtcNow, mensagem,
             integrada, tentativas, status, idTransacao ?? string.Empty, idDocumento ?? string.Empty,
-            produtos ?? Array.Empty<string>(), historico ?? Array.Empty<string>(), categoria, destino);
+            produtos ?? Array.Empty<string>(), historico ?? Array.Empty<string>(), categoria, destino,
+            identificadorPacote);
 
     private static DateTime ObterCriacao(string caminho)
     {

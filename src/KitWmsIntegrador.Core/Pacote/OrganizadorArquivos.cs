@@ -32,11 +32,14 @@ public sealed class OrganizadorArquivos
     }
 
     /// <summary>
-    /// Move <paramref name="arquivo"/> para o destino. Em Erro, grava o sidecar
-    /// <c>&lt;arquivo&gt;.motivo.txt</c> e usa a organização configurada. Carimba
-    /// <c>LastWriteTimeUtc</c> com o relógio (base da limpeza).
+    /// Move <paramref name="arquivo"/> para o destino, dentro da subpasta do pacote
+    /// <paramref name="identificadorPacote"/> (<c>Processados\&lt;id&gt;\</c> ou
+    /// <c>Erro\&lt;id&gt;\&lt;sufixo&gt;\</c>, onde o sufixo segue a organização configurada).
+    /// Em Erro, grava o sidecar <c>&lt;arquivo&gt;.motivo.txt</c>. Carimba <c>LastWriteTimeUtc</c>
+    /// com o relógio (base da limpeza).
     /// </summary>
-    public ResultadoMovimento Mover(string arquivo, DestinoArquivo destino, CategoriaErro? categoria, string motivo)
+    public ResultadoMovimento Mover(
+        string arquivo, DestinoArquivo destino, CategoriaErro? categoria, string motivo, string identificadorPacote)
     {
         try
         {
@@ -45,7 +48,7 @@ public sealed class OrganizadorArquivos
                 return Falha(arquivo, "Arquivo não encontrado.");
             }
 
-            var pasta = PastaDestino(arquivo, destino, categoria);
+            var pasta = PastaDestino(arquivo, destino, categoria, identificadorPacote);
             Directory.CreateDirectory(pasta);
 
             var final = CaminhoUnico(pasta, Path.GetFileName(arquivo));
@@ -74,20 +77,35 @@ public sealed class OrganizadorArquivos
         }
     }
 
-    private string PastaDestino(string arquivo, DestinoArquivo destino, CategoriaErro? categoria)
+    private string PastaDestino(string arquivo, DestinoArquivo destino, CategoriaErro? categoria, string identificadorPacote)
     {
+        var subpasta = SanitizarId(identificadorPacote);
+
         if (destino == DestinoArquivo.Processados)
         {
-            return _opcoes.CaminhoProcessados;
+            return Path.Combine(_opcoes.CaminhoProcessados, subpasta);
         }
 
-        var erro = _opcoes.CaminhoErro;
+        var erro = Path.Combine(_opcoes.CaminhoErro, subpasta);
         return _opcoes.OrganizacaoErro switch
         {
             OrganizacaoErro.PorCategoria => Path.Combine(erro, (categoria ?? CategoriaErro.Outro).ToString()),
             OrganizacaoErro.PorArquivo => Path.Combine(erro, Path.GetFileNameWithoutExtension(arquivo)),
             _ => erro,
         };
+    }
+
+    // Salvaguarda: o formato esperado é "pacote_<dígitos>_<dígitos>" e nunca contém caracteres
+    // inválidos de nome de pasta; ainda assim removemos defensivamente e caímos num padrão seguro.
+    private static string SanitizarId(string identificadorPacote)
+    {
+        if (string.IsNullOrWhiteSpace(identificadorPacote))
+        {
+            return "pacote";
+        }
+
+        var limpo = string.Concat(identificadorPacote.Where(c => !Path.GetInvalidFileNameChars().Contains(c)));
+        return string.IsNullOrWhiteSpace(limpo) ? "pacote" : limpo;
     }
 
     private static string CaminhoUnico(string pasta, string nome)

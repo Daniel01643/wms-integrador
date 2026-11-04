@@ -38,13 +38,15 @@ public sealed class LimpadorPastasTests : IDisposable
         return p;
     }
 
+    // Após a Etapa 7c a limpeza opera por SUBPASTA de pacote: subpasta vencida é removida por
+    // inteiro; subpasta com qualquer arquivo recente é preservada (idade pelo máximo).
     [Fact]
-    public void ApagaAntigosPreservaRecentes()
+    public void ApagaSubpastasVencidasPreservaRecentes()
     {
-        var velhoP = Arq("Processados/a.xml", 11);
-        var novoP = Arq("Processados/b.xml", 9);
-        var velhoE = Arq("Erro/Outro/c.xml", 11);
-        var novoE = Arq("Erro/Outro/d.xml", 1);
+        var velhoP = Arq("Processados/pacote_velho/a.xml", 11);
+        var novoP = Arq("Processados/pacote_novo/b.xml", 9);
+        var velhoE = Arq("Erro/pacote_velho/Outro/c.xml", 11);
+        var novoE = Arq("Erro/pacote_novo/Outro/d.xml", 1);
 
         var r = Criar().Limpar();
 

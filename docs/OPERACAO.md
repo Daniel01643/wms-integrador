@@ -10,13 +10,17 @@ Configuradas na seção `Pastas` do `appsettings.json` (override por env, ex.: `
 `Pastas:Entrada` vazia herda o legado `Entrada:PastaEntrada` (padrão `C:\Envia xml`).
 `Processados`, `Erro` e `Estado` relativos resolvem contra a Entrada.
 
+Cada pacote tem a sua **própria subpasta** em `Processados` e em `Erro`, nomeada
+`pacote_<yyyyMMdd_HHmmss>` (carimbo no horário **local** do servidor). O identificador da subpasta é o
+**mesmo** do nome do relatório daquele pacote (seção 2), o que liga o conteúdo em disco ao relatório.
+
 | Pasta | Conteúdo |
 |---|---|
 | `<Entrada>` | XMLs a processar (somente `*.xml`, topo da pasta). |
-| `<Entrada>\Processados` | Notas integradas, pendentes na interface, integradas com produto a revisar e reprocessos "já existe". |
-| `<Entrada>\Erro\<Categoria>` | Notas não integradas e XMLs inválidos, mais `arquivo.xml.motivo.txt` com o detalhe. |
+| `<Entrada>\Processados\pacote_<yyyyMMdd_HHmmss>\<arquivo>.xml` | Notas integradas, pendentes na interface, integradas com produto a revisar e reprocessos "já existe" — uma subpasta por pacote. |
+| `<Entrada>\Erro\pacote_<yyyyMMdd_HHmmss>\<Categoria>\<arquivo>.xml` | Notas não integradas e XMLs inválidos, mais `arquivo.xml.motivo.txt` com o detalhe — a categoria fica **aninhada** sob a subpasta do pacote. |
 | `<Entrada>\Estado` | Diário do pacote em andamento (`pacote-atual.jsonl`). Não apagar com o serviço rodando. |
-| `Relatorio:PastaSaida` (padrão `relatorios`) | `pacote_<yyyyMMdd_HHmmss>.html` e `.pdf` (carimbo no horário local do servidor). |
+| `Relatorio:PastaSaida` (padrão `relatorios`) | `pacote_<yyyyMMdd_HHmmss>.html` e `.pdf` (mesmo identificador da subpasta do pacote; carimbo no horário local do servidor). |
 
 Categorias de `Erro` (uma pasta por tipo de erro):
 
@@ -29,11 +33,29 @@ Categorias de `Erro` (uma pasta por tipo de erro):
 
 A mensagem tem prioridade sobre o número de tentativas na classificação.
 
-Para mudar a organização, use `Pastas:OrganizacaoErro`:
+Para mudar a organização, use `Pastas:OrganizacaoErro` (as três modalidades ficam **aninhadas** sob a
+subpasta do pacote):
 
-- `PorCategoria` (padrão): `Erro\<Categoria>\arquivo.xml`.
-- `PorArquivo`: `Erro\<nome-do-arquivo>\arquivo.xml` (uma pasta por nota com erro).
-- `Plana`: `Erro\arquivo.xml`.
+- `PorCategoria` (padrão): `Erro\pacote_<yyyyMMdd_HHmmss>\<Categoria>\arquivo.xml`.
+- `PorArquivo`: `Erro\pacote_<yyyyMMdd_HHmmss>\<nome-do-arquivo>\arquivo.xml` (uma pasta por nota com erro).
+- `Plana`: `Erro\pacote_<yyyyMMdd_HHmmss>\arquivo.xml`.
+
+Exemplo real de árvore gerada por um pacote (dois arquivos; `a` integrada e `b` com produto não
+cadastrado, `OrganizacaoErro=PorCategoria`):
+
+```text
+Processados\
+  pacote_20250110_090000\
+    a.xml
+Erro\
+  pacote_20250110_090000\
+    Outro\
+      b.xml
+      b.xml.motivo.txt
+relatorios\
+  pacote_20250110_090000.html
+  pacote_20250110_090000.pdf
+```
 
 ## 2. Ciclo do pacote
 
@@ -43,7 +65,10 @@ O serviço consulta a pasta a cada `Pacote:IntervaloVarreduraSegundos` (polling;
 O pacote é uma **foto** da pasta de entrada:
 
 1. **Ocioso**: sem pacote aberto. Ao detectar arquivo(s) na entrada (prontos ou ainda estabilizando),
-   abre o pacote (**Coletando**).
+   abre o pacote (**Coletando**). Nesse instante calcula-se **uma única vez** o identificador do pacote
+   (`pacote_<yyyyMMdd_HHmmss>` no horário local), usado tanto para a subpasta em `Processados`/`Erro`
+   (cada arquivo é movido para lá durante o processamento) quanto para o nome do relatório — garantindo
+   que ambos tenham exatamente o mesmo carimbo.
 2. **Coletando**: espera a janela de coleta **fixa** `JanelaColetaSegundos` (padrão 10 s), contada da
    primeira detecção. Chegada de novos arquivos NÃO reinicia nem adia a janela.
 3. **Foto e Processando**: ao fim da janela, tira-se a foto: os XMLs **prontos** naquele instante formam
@@ -75,9 +100,12 @@ Falhas: exceção em um arquivo ou transporte não derruba os demais (o arquivo 
 Se o relatório não puder ser gravado, o pacote continua em **Fechando** e tenta de novo no ciclo
 seguinte (o diário só é apagado após o relatório gravado). Falha de e-mail apenas é logada.
 
-**Reinício do serviço e deduplicação**: o diário é a fonte de verdade. Na retomada, um arquivo que
-ainda está na entrada, já tem registro no diário e não foi regravado depois dele é apenas **movido**
-(reconciliação, sem reenviar ao WMS); se foi regravado depois do registro, é tratado como novo. Movimentos
+**Reinício do serviço e deduplicação**: o diário é a fonte de verdade. O identificador do pacote é
+gravado em cada linha do diário, então a retomada reusa o **mesmo** identificador para reconciliar os
+moves na subpasta correta (diário antigo sem o campo recalcula o identificador a partir do início do
+pacote como fallback). Na retomada, um arquivo que ainda está na entrada, já tem registro no diário e
+não foi regravado depois dele é apenas **movido** (reconciliação, sem reenviar ao WMS); se foi regravado
+depois do registro, é tratado como novo. Movimentos
 que falharam depois do envio (`MovePendentes`) são repetidos a cada ciclo Ocioso, nunca reenviados.
 Como rede de segurança, o relatório mantém **uma linha por arquivo**: se houver dois registros do mesmo
 arquivo (ex.: um "integrada" e um "já existia"), vale o **primeiro integrado**; se nenhum foi integrado,
@@ -86,10 +114,13 @@ existe", ela segue para `Processados` e a mensagem começa com "Já existia no W
 ## 3. Limpeza
 
 `Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **10**). Roda na partida e a cada 24 h.
-A idade é a do `LastWriteTimeUtc`, que a movimentação carimba com a data da movimentação.
-Só apaga dentro de `Processados` e `Erro`; nunca toca a Entrada nem `relatorios`. Recusa configuração
-perigosa (Processados/Erro iguais, dentro um do outro, iguais à Entrada ou raiz de drive) e o serviço
-não inicia com `Pastas` inválida (erro no log).
+A limpeza opera por **subpasta de pacote**: cada subpasta imediata de `Processados`/`Erro` é removida
+**por inteiro** quando toda ela está vencida, usando a **maior** (`LastWriteTimeUtc` mais recente) data
+do seu conteúdo — assim um pacote que ainda tenha qualquer arquivo dentro do prazo é preservado inteiro.
+Arquivos **soltos** direto na raiz (layout antigo, pré-subpasta) continuam sendo apagados por arquivo.
+Só apaga dentro de `Processados` e `Erro`; nunca remove a **raiz** `Processados`/`Erro` nem toca a
+Entrada, o `Estado` ou os `relatorios`. Recusa configuração perigosa (Processados/Erro iguais, dentro um
+do outro, iguais à Entrada ou raiz de drive) e o serviço não inicia com `Pastas` inválida (erro no log).
 
 ## 4. E-mail
 
