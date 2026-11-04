@@ -37,10 +37,11 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-FINAN
 
 **Realizado em novembro até agora:**
 - Etapa 5: I50 enriquecida com dados fiscais, flag para desligar I60, relatório HTML/PDF.
-- Orquestrador reativo (Etapa 6) implementado (até 3 tentativas, I10/I30 reativos,
-  pendências registradas) — em revisão final no workflow.
+- Orquestrador reativo (Etapa 6) implementado e aprovado (até 3 tentativas, I10/I30
+  reativos, pendências registradas).
+- Etapa 8 (04/11): relatório HTML/PDF refinado (paisagem, agrupado por transporte,
+  resumo, filtro, identidade Friozem). 129 testes verdes. Horas de 04/11 a confirmar.
 
 **Metas restantes de novembro:**
 - Fechar a I60 com a resposta do fornecedor.
-- Concluir revisão do Orquestrador.
 - Etapa 7: watcher de pasta + movimentação (Processados/Erro, limpeza 10 dias) + e-mail.

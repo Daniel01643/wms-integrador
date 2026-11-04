@@ -1,0 +1,7 @@
+{
+  "task_id": "task-etapa5-i50-i60-relatorio",
+  "task_description": "Etapa 5 do KitWmsIntegrador (.NET 8): (1) enriquecer a I50 com dados fiscais da nota nos campos atributo1/2/3 e Observacao (inclui expor infCpl no parser e helpers em FormatoWms); (2) criar flag de configuracao OpcoesI60.Habilitada=false para desligar a I60 sem remover codigo; (3) criar gerador de relatorio de erros em HTML e PDF (PdfSharpCore 1.3.67). Sem chamadas HTTP, sem Orquestrador, sem e-mail, sem mover arquivos. Manter os 59 testes existentes passando e adicionar testes para as 3 mudancas.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

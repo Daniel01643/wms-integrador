@@ -1,0 +1,7 @@
+{
+  "task_id": "task-etapa6-orquestrador",
+  "task_description": "Implementar o orquestrador reativo de integracao WMS (Etapa 6, KitWmsIntegrador, .NET 8). Fluxo orientado pelo erro: envia I50; se empresa nao localizada envia I10 e reenvia; se produto nao cadastrado envia I30 de todos os itens e reenvia; pendencia e registrada e segue; ate 3 tentativas por nota; respeita a flag OpcoesI60.Habilitada (hoje false, nao envia I60). Inclui ConstrutorI30 novo, ClassificadorRetorno por texto, ResultadoIntegracaoNota, extensao do relatorio (colunas Integrada/Tentativas) e registro no DI do Worker. Sem e-mail, sem movimentacao de arquivos, sem watcher, sem HTTP real.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

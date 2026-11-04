@@ -1,0 +1,10 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    "Marcacao 'a confirmar' vs TODO (nao-bloqueante): campos de semantica aberta foram marcados com comentarios '// A CONFIRMAR' em vez do literal 'TODO' que a especificacao pediu. Semanticamente equivalente e rastreavel (DTOs + docs/TEMPLATES-INTERFACES.md). Padronizar para '// TODO' se alguma varredura de pendencias esperar essa convencao.",
+    "FormatoWms.Decimal(decimal) e no-op (nao-bloqueante): retorna o argumento sem alteracao e nao e chamado por nenhum construtor. A formatacao decimal correta (ponto, invariante) vem do System.Text.Json serializando o tipo decimal, nao do helper. Remover ou documentar.",
+    "FormatoWms.Decimal(decimal,int casas) nunca usado (nao-bloqueante): helper de string com casas fixas sem ponto de uso. Remover enquanto nenhum campo exige largura fixa, ou cobrir com teste quando passar a ser usado.",
+    "Caminhos de borda sem teste (nao-bloqueante, fora de escopo): ConstrutorI60 com Volumes/ValorTotal nulos (fallback '?? 0m' sem fixture) e ParseDecimalOuZero com QuantidadeVolumes nao-numerico (retorna 0 sem teste do caminho invalido)."
+  ],
+  "reviewDoc": "c:\\wms-integrador\\.agents\\tasks\\review-etapa4.md"
+}

@@ -1,0 +1,24 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "label": "GetToken sem retry transitório",
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "description": "O laço de resiliência cobre só o POST; um 5xx ou blip de rede no GET /Integracao/GetToken (ObterTokenAsync chama EnsureSuccessStatusCode direto) lança imediatamente, sem retry. Correto para 401/credenciais inválidas, mas a política fica assimétrica para transitórios no endpoint de token. Alinhar antes do envio em volume."
+    },
+    {
+      "label": "Teste de 5xx incorre em backoff real",
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "description": "Enviar_500_FazRetryAteMaxTentativas passa por Task.Delay reais (~0,5s+1s), deixando o teste lento à toa. Considerar injetar o atraso (via IClock/função de delay) para zerá-lo em teste."
+    },
+    {
+      "label": "Classificar faz o texto prevalecer sobre sucesso",
+      "severity": "non-blocking",
+      "confidence": "confirmed",
+      "description": "A regra 'pendente na interface' é avaliada antes do flag sucesso, então um retorno com sucesso=S que trouxesse essa frase classificaria como Pendente. Alinhado ao doc (sucesso=N não é falha total), mas deve ser registrado como contrato explícito para a Etapa 5 não reinterpretar."
+    }
+  ],
+  "reviewDoc": "c:\\wms-integrador/.agents/tasks/review-etapa3.md"
+}

@@ -1,0 +1,21 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "label": "Scan runnable is the Worker itself",
+      "severity": "non-blocking",
+      "detail": "The scan-and-summarize is the Worker's ExecuteAsync (single pass), not a separate entry point. Acceptable for this phase; watcher/continuous mode and any separate CLI are deferred to a later phase."
+    },
+    {
+      "label": "No-transport fallback only synthetic",
+      "severity": "non-blocking",
+      "detail": "The pendency path is proven with a synthetic non-BRF XML because real data is 100% BRF with transport. Revisit with a real non-BRF sample before relying on the fallback in production, per the ressalvas in MAPEAMENTO-DADOS.md."
+    },
+    {
+      "label": "Parse errors surfaced only as log warnings",
+      "severity": "non-blocking",
+      "detail": "VarredorPasta collects per-file parse errors and the Worker logs them, but there is no structured error/pendency report yet. Fine for a read-only scan phase; the relatorio de erros requirement lands in a later phase. The VarredorPasta catch branch is not covered by an automated test (real scan reported 0 errors)."
+    }
+  ],
+  "reviewDoc": "c:\\wms-integrador/.agents/tasks/review.md"
+}
