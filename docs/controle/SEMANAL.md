@@ -29,5 +29,5 @@ quantidade da I60 (retomar terça 03/11).
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
 | 2026-11-03 | 3,0 | 1,5 | 4,5 | Etapa 5 (I50 enriquecida, flag I60, relatório HTML/PDF); Orquestrador iniciado |
-| 2026-11-04 | a confirmar | a confirmar | — | Etapa 8 (relatório paisagem, agrupado, identidade Friozem) concluída e aprovada |
-| **Total parcial** | **3,0** | **1,5** | **4,5** | (sem 04/11, horas a confirmar) |
+| 2026-11-04 | 4,5 | 2,5 | 7,0 | Etapas 8, 7, 7b, 7c; e-mail visual; validação REAL no homolog (até 1196 notas) |
+| **Total parcial** | **7,5** | **4,0** | **11,5** | |

@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Pastas Processados/Erro configuraveis, classificacao de categoria de erro (reaproveitando ClassificadorRetorno via overloads string? aditivos), movimentacao de arquivos (OrganizadorArquivos) e limpeza de 10 dias (LimpadorPastas) com salvaguardas. Independente da FEAT-002. Itens 1-5 do plan-etapa7.md (decisoes D1, D2, D8, D12).",
+  "status": "completed",
+  "steps": [
+    "Criar src/KitWmsIntegrador.Core/Configuracao/OpcoesPasta.cs (Secao 'Pastas': Entrada, Processados='Processados', Erro='Erro', Estado='Estado', OrganizacaoErro enum PorCategoria|PorArquivo|Plana; propriedades CaminhoEntrada/CaminhoProcessados/CaminhoErro/CaminhoEstado resolvidas com Path.GetFullPath contra a Entrada; Validar() devolve problemas) e OpcoesLimpeza.cs (Secao 'Limpeza': Habilitada=true, DiasRetencao=10), seguindo o padrao de OpcoesRelatorio.cs.",
+    "Em src/KitWmsIntegrador.Core/Orquestrador/ClassificadorRetorno.cs adicionar overloads aditivos EhEmpresaNaoLocalizada(string?), EhProdutoNaoCadastrado(string?), EhJaExiste(string?) reutilizando as constantes privadas; metodos existentes mantem comportamento (os 109+ testes antigos devem seguir verdes).",
+    "Criar Core/Pacote/CategoriaErro.cs (XmlInvalido, SemTransporte, ProdutoNaoCadastrado, EmpresaNaoLocalizada, TentativasEsgotadas, Outro) e Core/Pacote/ClassificadorCategoriaErro.cs com Classificar(ResultadoIntegracaoNota) na prioridade do plano (D1) e DestinoDe(ResultadoIntegracaoNota) -> Processados|Erro aplicando D2 (Integrada=true ou Pendente -> Processados; NaoIntegrada com 'ja existe' -> Processados).",
+    "Criar Core/Pacote/OrganizadorArquivos.cs (IClock + IOptions<OpcoesPasta> + ILogger): Mover(arquivo, destino, categoria?, motivo) cria pastas, nome unico (_1,_2), sidecar '<arquivo>.motivo.txt' em Erro, carimba LastWriteTimeUtc=clock.UtcNow, nunca lanca por um arquivo (retorna ResultadoMovimento).",
+    "Criar Core/Pacote/LimpadorPastas.cs (Limpar() -> ResultadoLimpeza) conforme D8: so dentro de Processados/Erro, prefixo com separador, recusa config perigosa, nao segue reparse points, remove subpastas vazias de categoria mas nao as raizes, loga cada remocao.",
+    "Criar testes em tests/KitWmsIntegrador.Tests: ClassificadorCategoriaErroTests.cs, OrganizadorArquivosTests.cs, LimpadorPastasTests.cs (diretorio temporario por teste com Dispose, FakeClock, File.SetLastWriteTimeUtc). Casos: ver itens 2-4 do plano.",
+    "dotnet build + dotnet test; commit apenas com os arquivos da feature: 'feat(pacote): pastas Processados/Erro por categoria, movimentacao e limpeza de 10 dias'."
+  ],
+  "acceptance_criteria": [
+    "dotnet test da solucao passa com todos os testes antigos (129) + novos",
+    "Classificacao: produto/empresa/tentativas esgotadas/sem transporte/xml invalido/outro cobertos e prioridade mensagem>tentativas testada",
+    "Mover para Processados e Erro\\<Categoria> (e PorArquivo/Plana) funciona; colisao de nome e arquivo travado nao lancam excecao; mtime carimbado com o relogio",
+    "Limpeza apaga >DiasRetencao em Processados e Erro, preserva recentes, nunca toca a entrada nem pastas irmas com prefixo igual, recusa Processados==Entrada",
+    "Nenhuma decisao do Orquestrador alterada"
+  ],
+  "verification": [
+    "dotnet build c:/wms-integrador/KitWmsIntegrador.sln",
+    "dotnet test c:/wms-integrador/KitWmsIntegrador.sln"
+  ],
+  "blocked_reason": null,
+  "findings": "Build 0 avisos; 157 testes verdes (129 + 28 novos). APIs criadas: Core.Configuracao.OpcoesPasta (Secao 'Pastas'; Entrada, Processados, Erro, Estado, OrganizacaoErro; CaminhoEntrada/CaminhoProcessados/CaminhoErro/CaminhoEstado; IReadOnlyList<string> Validar()), enum OrganizacaoErro{PorCategoria,PorArquivo,Plana}, OpcoesLimpeza (Secao 'Limpeza'; Habilitada, DiasRetencao). Core.Pacote: enum CategoriaErro{XmlInvalido,SemTransporte,ProdutoNaoCadastrado,EmpresaNaoLocalizada,TentativasEsgotadas,Outro}; enum DestinoArquivo{Processados,Erro}; ClassificadorCategoriaErro(ClassificadorRetorno) com Classificar(ResultadoIntegracaoNota), ClassificarXmlInvalido(), DestinoDe(ResultadoIntegracaoNota)->DestinoArquivo; OrganizadorArquivos(IClock, IOptions<OpcoesPasta>, ILogger<OrganizadorArquivos>) com ResultadoMovimento Mover(string arquivo, DestinoArquivo destino, CategoriaErro? categoria, string motivo); record ResultadoMovimento(bool Sucesso, string Caminho, string? Erro); LimpadorPastas(IClock, IOptions<OpcoesPasta>, IOptions<OpcoesLimpeza>, ILogger<LimpadorPastas>) com ResultadoLimpeza Limpar(); record ResultadoLimpeza(int ArquivosRemovidos, int PastasRemovidas, IReadOnlyList<string> Erros). ClassificadorRetorno ganhou EhEmpresaNaoLocalizada(string?), EhProdutoNaoCadastrado(string?), EhJaExiste(string?) (cuidado: chamar com literal null e ambiguo, use cast). Notas: ClassificadorCategoriaErro/Organizador/Limpador ainda NAO estao registrados no DI (FEAT-003 deve registrar como singletons, incl. ClassificadorRetorno ja existente e OpcoesLimpeza/OpcoesPasta bind). Limpador recusa config se OpcoesPasta.Validar() tiver problemas (exige Entrada preenchida) ou DiasRetencao<0. Sidecar so e gravado em Erro; mtime carimbado no arquivo e no sidecar. Organizador nao cria 'Estado'. Arquivos .agents/ sao untracked (nao commitados)."
+}

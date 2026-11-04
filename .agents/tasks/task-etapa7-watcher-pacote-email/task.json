@@ -1,0 +1,7 @@
+{
+  "task_id": "task-etapa7-watcher-pacote-email",
+  "task_description": "Etapa 7 do KitWmsIntegrador: watcher de pasta por pacote (Ocioso->Coletando->Processando->Fechando), movimentacao Processados/Erro por categoria, limpeza de 10 dias e envio de e-mail com resumo + PDF. Plano completo em c:/wms-integrador/.agents/tasks/plan-etapa7.md (decisoes D1-D12, ler primeiro).",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

@@ -32,16 +32,20 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-FINAN
 
 | Semana | Período | Humana | IA | Total |
 |--------|---------|--------|-----|-------|
-| W45 | 03/11–09/11 (parcial) | 3,0 | 1,5 | 4,5 |
-| **Total parcial do mês** | | **3,0** | **1,5** | **4,5** |
+| W45 | 03/11–09/11 (parcial) | 7,5 | 4,0 | 11,5 |
+| **Total parcial do mês** | | **7,5** | **4,0** | **11,5** |
 
 **Realizado em novembro até agora:**
 - Etapa 5: I50 enriquecida com dados fiscais, flag para desligar I60, relatório HTML/PDF.
 - Orquestrador reativo (Etapa 6) implementado e aprovado (até 3 tentativas, I10/I30
   reativos, pendências registradas).
-- Etapa 8 (04/11): relatório HTML/PDF refinado (paisagem, agrupado por transporte,
-  resumo, filtro, identidade Friozem). 129 testes verdes. Horas de 04/11 a confirmar.
+- Etapa 8 (04/11): relatório HTML/PDF refinado (paisagem, agrupado, identidade Friozem).
+- Etapa 7 + 7b + 7c (04/11): watcher contínuo, pacote em "foto", movimentação para
+  subpastas por pacote (Processados/Erro), limpeza de 10 dias, e-mail de fechamento com
+  identidade visual e assinatura do sistema; teste de esforço local (até 2000 notas).
+- Validação REAL no WMS de homolog (04/11): 2, 50, 629 e 1196 notas; 0 erros; webservice
+  ~50–150x mais rápido por chamada que a tela.
 
 **Metas restantes de novembro:**
 - Fechar a I60 com a resposta do fornecedor.
-- Etapa 7: watcher de pasta + movimentação (Processados/Erro, limpeza 10 dias) + e-mail.
+- Etapa 9: pacote de instalação no servidor (SRVAPPALC02 + NSSM), scripts e validação.
