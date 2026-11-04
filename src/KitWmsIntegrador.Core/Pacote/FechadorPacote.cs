@@ -85,12 +85,14 @@ public sealed class FechadorPacote
 
             var assunto = $"Fechamento do pacote {fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
                           $"{resumo.Total} nota(s), {resumo.NaoIntegradas} não integrada(s), {resumo.Pendentes} pendente(s)";
-            var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, periodo: periodo);
+            var logo = IdentidadeVisual.LerLogoPng(_opcoesRelatorio.LogoPath);
+            var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, logo, periodo: periodo);
             var nomePdf = (string.IsNullOrWhiteSpace(identificadorPacote)
                 ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)
                 : identificadorPacote) + ".pdf";
             var resultado = await _email.EnviarAsync(
-                new MensagemEmail(assunto, corpo, new[] { new AnexoEmail(nomePdf, pdf) }), ct).ConfigureAwait(false);
+                new MensagemEmail(assunto, corpo.Html, new[] { new AnexoEmail(nomePdf, pdf) }, corpo.ImagemEmbutida),
+                ct).ConfigureAwait(false);
 
             switch (resultado.Status)
             {

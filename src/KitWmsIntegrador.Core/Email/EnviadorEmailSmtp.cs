@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Text;
 using KitWmsIntegrador.Core.Configuracao;
 using Microsoft.Extensions.Logging;
@@ -64,11 +65,31 @@ public sealed class EnviadorEmailSmtp : IEnviadorEmail
         {
             From = new MailAddress(o.Remetente, o.RemetenteNome),
             Subject = string.IsNullOrWhiteSpace(o.AssuntoPrefixo) ? mensagem.Assunto : $"{o.AssuntoPrefixo} {mensagem.Assunto}",
-            Body = mensagem.CorpoHtml,
-            IsBodyHtml = true,
-            BodyEncoding = Encoding.UTF8,
             SubjectEncoding = Encoding.UTF8
         };
+
+        // Com imagem embutida: corpo vai como AlternateView HTML + LinkedResource (cid:).
+        // Sem imagem: caminho simples por Body/IsBodyHtml.
+        if (mensagem.ImagemEmbutida is { } imagem)
+        {
+            var view = AlternateView.CreateAlternateViewFromString(
+                mensagem.CorpoHtml, Encoding.UTF8, MediaTypeNames.Text.Html);
+            var recurso = new LinkedResource(new MemoryStream(imagem.Conteudo), new ContentType(imagem.ContentType))
+            {
+                ContentId = imagem.ContentId,
+                TransferEncoding = TransferEncoding.Base64
+            };
+            recurso.ContentType.Name = imagem.ContentId;
+            recurso.ContentLink = new Uri("cid:" + imagem.ContentId);
+            view.LinkedResources.Add(recurso);
+            msg.AlternateViews.Add(view);
+        }
+        else
+        {
+            msg.Body = mensagem.CorpoHtml;
+            msg.IsBodyHtml = true;
+            msg.BodyEncoding = Encoding.UTF8;
+        }
 
         foreach (var d in o.ListaDestinatarios)
         {

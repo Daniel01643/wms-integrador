@@ -48,5 +48,26 @@ public class EnviadorEmailSmtpTests
         Assert.Single(m.Attachments);
         Assert.Equal("rel.pdf", m.Attachments[0].Name);
         Assert.True(m.IsBodyHtml);
+        Assert.Empty(m.AlternateViews);
+    }
+
+    [Fact]
+    public void MontarMensagem_ComImagemEmbutida_MontaAlternateViewComLinkedResourceCid()
+    {
+        var msg = new MensagemEmail(
+            "Fechamento",
+            "<p><img src=\"cid:logo-friozem\" /></p>",
+            new[] { new AnexoEmail("rel.pdf", new byte[] { 1, 2, 3 }) },
+            new ImagemInline("logo-friozem", new byte[] { 0x89, 0x50, 0x4E, 0x47 }));
+
+        using var m = EnviadorEmailSmtp.MontarMensagem(msg, Configurada());
+
+        var view = Assert.Single(m.AlternateViews);
+        var recurso = Assert.Single(view.LinkedResources);
+        Assert.Equal("logo-friozem", recurso.ContentId);
+        Assert.Equal("image/png", recurso.ContentType.MediaType);
+        // PDF continua como anexo normal.
+        Assert.Single(m.Attachments);
+        Assert.Equal("rel.pdf", m.Attachments[0].Name);
     }
 }

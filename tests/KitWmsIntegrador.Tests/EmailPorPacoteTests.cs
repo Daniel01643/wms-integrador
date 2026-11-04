@@ -29,7 +29,8 @@ public sealed class EmailPorPacoteTests : IDisposable
         var anexo = Assert.Single(email.Anexos);
         Assert.EndsWith(".pdf", anexo.Nome);
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(anexo.Conteudo, 0, 4));
-        Assert.Contains("Total de notas: 2", email.CorpoHtml);
+        Assert.Contains("fechamento do pacote", email.CorpoHtml);
+        Assert.Contains("KitWms Integrador", email.CorpoHtml);
     }
 
     [Fact]

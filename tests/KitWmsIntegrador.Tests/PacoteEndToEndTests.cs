@@ -132,9 +132,10 @@ public sealed class PacoteEndToEndTests : IDisposable
         var anexo = Assert.Single(email.Anexos);
         Assert.EndsWith(".pdf", anexo.Nome);
         Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(anexo.Conteudo, 0, 4));
-        Assert.Contains("Total de notas: 7", email.CorpoHtml);
-        Assert.Contains("XMLs inválidos: 1", email.CorpoHtml);
-        Assert.Contains("Transportes: ", email.CorpoHtml);
+        Assert.Contains("fechamento do pacote", email.CorpoHtml);
+        Assert.Contains(">7</div>", email.CorpoHtml); // cartão Total
+        Assert.Contains("XMLs inválidos", email.CorpoHtml);
+        Assert.Contains("Transportes", email.CorpoHtml);
 
         // Limpeza posterior com relógio +11 dias remove tudo de Processados/Erro.
         _amb.Clock.Avancar(TimeSpan.FromDays(11));

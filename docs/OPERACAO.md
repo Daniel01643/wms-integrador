@@ -124,8 +124,14 @@ do outro, iguais à Entrada ou raiz de drive) e o serviço não inicia com `Past
 
 ## 4. E-mail
 
-Resumo no corpo (contagens, período e tabela de erros/pendências, no máximo 20 linhas) e PDF detalhado
-anexo. **Um e-mail por pacote.** `Email:EnviarQuando`: `Sempre` (padrão: todo pacote fechado envia), `ComProblema` (só se há não integrada, pendente, produto a revisar ou XML
+Corpo com a identidade visual Friozem: cabeçalho da marca, cartões coloridos por status (Total, Integradas,
+Integradas — revisar produto, Pendentes, Não integradas, XMLs inválidos, Transportes), tabela de
+erros/pendências (no máximo 20 linhas; quando excede, nota "ver todas no PDF anexo") e, quando tudo integra sem
+ressalvas, um bloco verde "sem pendências" no lugar da tabela. No rodapé vai a **assinatura do sistema**
+(KitWms Integrador — integração automática de notas fiscais com o WMS; contato `sac@friozem.com.br`;
+`www.friozem.com.br`), sem telefones nem pessoas. A logo é embutida por **CID** (imagem inline, não `data:` URI,
+para o Outlook não bloquear); vem de `Relatorio:LogoPath` — sem logo válida, o cabeçalho e a assinatura caem
+para o texto "Friozem", sem erro. PDF detalhado segue anexo. **Um e-mail por pacote.** `Email:EnviarQuando`: `Sempre` (padrão: todo pacote fechado envia), `ComProblema` (só se há não integrada, pendente, produto a revisar ou XML
 inválido) ou `Nunca`. O envio vem **desligado** (`Habilitado=false`) até o SMTP real ser preenchido em `email.settings.json`. Sem SMTP configurado nada falha: o serviço só registra no log e o relatório fica salvo em disco (`Relatorio:PastaSaida`).
 
 Configuração na seção `Email` (placeholders em `appsettings.json`, **sem senha**):
