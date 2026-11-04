@@ -63,6 +63,42 @@ flowchart TB
     ORCH --> NOTIFY
 ```
 
+### 2.1 Etapa 7 — watcher, pacote, movimentação, limpeza e e-mail
+
+Toda a lógica testável fica no Core (`Core/Pacote`, `Core/Email`); o `Worker` é fino
+(`BackgroundService` + DI). Componentes:
+
+| Componente | Responsabilidade |
+|---|---|
+| `Worker` | Loop contínuo: limpeza na partida e a cada 24 h; `GerenciadorPacote.CicloAsync` a cada `Pacote:IntervaloVarreduraSegundos`. Exceção de ciclo só é logada. |
+| `DetectorArquivoPronto` | Polling (não `FileSystemWatcher`, que perde eventos em pasta de rede). Arquivo pronto = mesmo tamanho/data em 2 ciclos, estável há `EstabilizacaoSegundos` (relógio `IClock`) e abertura com `FileShare.None`. Acima de `TimeoutArquivoSegundos` vira "instável" e não bloqueia o fechamento. |
+| `GerenciadorPacote` | Máquina de estados do pacote (abaixo), debounce e retomada. |
+| `ProcessadorLote` | Parse → `AgrupadorTransporte` → ondas (transportes) com `SemaphoreSlim(MaxTransportesConcorrentes)`; dentro da onda, uma nota por vez no `IOrquestrador`; classifica o destino, move logo após cada nota e registra no diário. |
+| `ClassificadorCategoriaErro` / `OrganizadorArquivos` | Destino (`Processados`/`Erro\<Categoria>`) e movimentação com sidecar `.motivo.txt`. |
+| `DiarioPacote` | JSONL `Estado\pacote-atual.jsonl` (append + flush) para retomar o pacote após queda. |
+| `FechadorPacote` | Relatório HTML+PDF `pacote_<yyyyMMdd_HHmmss>` em `Relatorio:PastaSaida` (sempre) e e-mail conforme `PoliticaEnvioEmail`. |
+| `LimpadorPastas` | Remove arquivos com mais de `Limpeza:DiasRetencao` dias de `Processados` e `Erro`. |
+
+Máquina de estados do pacote:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Ocioso
+    Ocioso --> Coletando: >=1 XML na entrada
+    Coletando --> Processando: JanelaColetaSegundos sem arquivo novo
+    Processando --> Processando: arquivo novo/processado (reinicia a quietude)
+    Processando --> Fechando: entrada sem pendentes + QuietudeSegundos
+    Fechando --> Ocioso: relatorio gravado (diario apagado)
+    Fechando --> Fechando: falha ao gravar relatorio (tenta no proximo ciclo)
+```
+
+Retomada e idempotência: cada resultado é gravado no diário **antes** de mover o arquivo e
+o arquivo é movido logo após cada nota, então uma queda reenvia no máximo a nota em voo; o
+WMS barra a duplicata ("já existe", §5) e o processador a trata como processada. No
+reinício, o pacote é reaberto com as linhas do diário e o relatório final contém também o
+que foi enviado antes da queda. Se o move falhar após o envio, o arquivo entra num conjunto
+em memória "enviado, mover pendente": o move é repetido, nunca o envio.
+
 ---
 
 ## 3. Sequência — fluxo feliz
@@ -166,6 +202,8 @@ trava real é do WMS. Consequência no reprocesso de um grupo falho:
    real no homolog.
 2. **Fase 2 — alertas**: notificador por e-mail nas exceções definidas.
 3. **Fase 3 — automação total**: watcher contínuo da pasta, concorrência ajustada.
+   *Implementada na Etapa 7* (ver §2.1 e `docs/OPERACAO.md`): watcher por polling,
+   pacote com início/fim, movimentação, limpeza de 10 dias e e-mail com PDF.
 
 ---
 
@@ -178,7 +216,20 @@ trava real é do WMS. Consequência no reprocesso de um grupo falho:
 - **Retry**: nº de tentativas, backoff, o que é erro transitório vs. definitivo.
 - **Amarração I50↔I60**: confirmar `numeroPedido` ↔ `pedidos[]`.
 - **Exceções que geram e-mail**: lista a definir.
-- **Movimentação de arquivos**: após processar, mover XML/planilha para
-  `processados/` ou `erro/`? (evita reprocesso e organiza auditoria)
+- ~~**Movimentação de arquivos**~~ — **fechada na Etapa 7**: `Processados` e
+  `Erro\<Categoria>` (configurável: `Pastas:OrganizacaoErro`), com sidecar `.motivo.txt`.
+- ~~**Concorrência**~~ — **fechada (padrão conservador)**: ondas por transporte em paralelo
+  limitado por `Pacote:MaxTransportesConcorrentes` (padrão 1; 2 é seguro).
+
+Pontos ainda **em aberto** após a Etapa 7:
+
+- **Texto real da duplicata na I50**: assume-se que contém "já existe" (não verificado no WMS).
+- **Nota tardia de transporte já enviado** no mesmo pacote: vai em lote posterior com o mesmo
+  `nroagrupseparacao`; o WMS pode bloquear se a onda saiu de "editando" (cairia como
+  não integrada com a mensagem do WMS).
+- **SMTP**: `SmtpClient` não suporta TLS implícito (465) nem OAuth2; se o provedor exigir,
+  avaliar MailKit atrás de `IEnviadorEmail`.
+- **Padrões** de quietude (30 s), janela de coleta (10 s) e timeout de arquivo (300 s)
+  são estimativas a validar em operação.
 ```
 
