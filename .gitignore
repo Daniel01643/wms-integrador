@@ -25,3 +25,6 @@ x86/
 # NuGet
 *.nupkg
 packages/
+
+# Config de e-mail com segredos
+email.settings.json

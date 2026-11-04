@@ -1,0 +1,25 @@
+using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Relatorio;
+
+namespace KitWmsIntegrador.Core.Email;
+
+/// <summary>Decide se o e-mail de fechamento do pacote deve ser enviado.</summary>
+public static class PoliticaEnvioEmail
+{
+    /// <summary>Aplica <see cref="OpcoesEmail.EnviarQuando"/> ao resumo do pacote.</summary>
+    public static bool Deve(ResumoRelatorio resumo, int xmlsInvalidos, OpcoesEmail opcoes)
+    {
+        ArgumentNullException.ThrowIfNull(resumo);
+        ArgumentNullException.ThrowIfNull(opcoes);
+
+        return opcoes.EnviarQuando switch
+        {
+            EnviarQuando.Sempre => true,
+            EnviarQuando.Nunca => false,
+            _ => resumo.NaoIntegradas > 0
+                 || resumo.Pendentes > 0
+                 || resumo.IntegradasRevisarProduto > 0
+                 || xmlsInvalidos > 0
+        };
+    }
+}

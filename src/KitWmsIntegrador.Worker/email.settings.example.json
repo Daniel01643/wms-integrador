@@ -1,0 +1,17 @@
+{
+  "Email": {
+    "_comentario": "Copie para email.settings.json (ignorado pelo git) e preencha. A senha tambem pode vir da env Email__Senha. Nunca versionar segredos.",
+    "Habilitado": false,
+    "Host": "smtp.exemplo.com.br",
+    "Porta": 587,
+    "UsarTls": true,
+    "Usuario": "usuario@exemplo.com.br",
+    "Senha": "",
+    "Remetente": "kitwms@exemplo.com.br",
+    "RemetenteNome": "KitWms Integrador",
+    "Destinatarios": "destino1@exemplo.com.br;destino2@exemplo.com.br",
+    "AssuntoPrefixo": "[KitWms]",
+    "EnviarQuando": "ComProblema",
+    "TimeoutSegundos": 60
+  }
+}

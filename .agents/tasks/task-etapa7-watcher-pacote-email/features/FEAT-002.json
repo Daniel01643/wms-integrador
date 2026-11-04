@@ -1,0 +1,30 @@
+﻿{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Envio de e-mail do fechamento do pacote: OpcoesEmail, IEnviadorEmail, EnviadorEmailSmtp (System.Net.Mail, sem novo pacote), PoliticaEnvioEmail (ComProblema/Sempre/Nunca), CorpoEmailResumo (HTML simples com contagens e erros/pendencias), config sem segredos (appsettings 'Email', email.settings.example.json, .gitignore). Independente da FEAT-001; precede a FEAT-003. Itens 6-9 do plano (decisao D9).",
+  "status": "completed",
+  "steps": [
+    "Criar Core/Configuracao/OpcoesEmail.cs (Secao 'Email': Habilitado=false, Host, Porta=587, UsarTls=true, Usuario, Senha='', Remetente, RemetenteNome, Destinatarios (string separada por ';'), AssuntoPrefixo='[KitWms]', EnviarQuando enum ComProblema|Sempre|Nunca, TimeoutSegundos=60; EstaConfigurado e ListaDestinatarios).",
+    "Criar Core/Email/IEnviadorEmail.cs (Task<ResultadoEnvioEmail> EnviarAsync(MensagemEmail, CancellationToken)), MensagemEmail (Assunto, CorpoHtml, Anexos nome+bytes), ResultadoEnvioEmail (Enviado|NaoConfigurado|Falhou + Motivo).",
+    "Criar Core/Email/PoliticaEnvioEmail.cs: Deve(ResumoRelatorio, int xmlsInvalidos, OpcoesEmail) -> bool (ComProblema = NaoIntegradas>0 || Pendentes>0 || IntegradasRevisarProduto>0 || xmlsInvalidos>0).",
+    "Criar Core/Email/CorpoEmailResumo.cs: HTML simples (contagens por status, periodo inicio/fim, tabela de erros/pendencias via LinhaRelatorioErro.UltimoErroResumido, limitada a N linhas com 'e mais X, ver PDF'), tudo HTML-encoded (WebUtility.HtmlEncode). Reaproveitar ModeloRelatorio.Montar(linhas).Resumo.",
+    "Criar Core/Email/EnviadorEmailSmtp.cs (IOptions<OpcoesEmail>, ILogger): se !EstaConfigurado devolve NaoConfigurado sem rede e loga; senao monta MailMessage (metodo interno testavel), SmtpClient com EnableSsl=UsarTls, Credentials, Timeout, anexos; captura qualquer excecao -> Falhou; nunca loga senha.",
+    "Config: adicionar secao 'Email' com placeholders (sem segredo, comentario sobre env Email__Senha) em src/KitWmsIntegrador.Worker/appsettings.json; criar src/KitWmsIntegrador.Worker/email.settings.example.json; adicionar 'email.settings.json' ao .gitignore.",
+    "Testes: PoliticaEnvioEmailTests.cs, CorpoEmailResumoTests.cs (contagens, encode de <script>, truncamento), EnviadorEmailSmtpTests.cs (nao configurado nao tenta rede; MailMessage montada com prefixo, multiplos destinatarios, anexo). Sem SMTP real.",
+    "dotnet build + dotnet test; commit apenas com os arquivos da feature: 'feat(email): envio de resumo e PDF por SMTP atras de IEnviadorEmail'."
+  ],
+  "acceptance_criteria": [
+    "dotnet test da solucao passa com todos os testes anteriores + novos",
+    "Habilitado=false ou campos vazios => NaoConfigurado, sem excecao e sem rede",
+    "Politica padrao ComProblema nao envia quando tudo integrado e sem XML invalido",
+    "Corpo escapa HTML da mensagem de erro; nenhum segredo em arquivos versionados; email.settings.json ignorado pelo git",
+    "Nenhum pacote NuGet novo no csproj"
+  ],
+  "verification": [
+    "dotnet build c:/wms-integrador/KitWmsIntegrador.sln",
+    "dotnet test c:/wms-integrador/KitWmsIntegrador.sln"
+  ],
+  "blocked_reason": null,
+  "findings": "Assinaturas: OpcoesEmail{Secao,Habilitado,Host,Porta,UsarTls,Usuario,Senha,Remetente,RemetenteNome,Destinatarios,AssuntoPrefixo,EnviarQuando,TimeoutSegundos,ListaDestinatarios,EstaConfigurado}; enum EnviarQuando{ComProblema,Sempre,Nunca}; IEnviadorEmail.EnviarAsync(MensagemEmail,CancellationToken)->Task<ResultadoEnvioEmail>; MensagemEmail(Assunto,CorpoHtml,IReadOnlyList<AnexoEmail>); AnexoEmail(Nome,byte[] Conteudo); ResultadoEnvioEmail(Status,Motivo) com fabricas Enviado()/NaoConfigurado()/Falhou(motivo), enum StatusEnvioEmail; PoliticaEnvioEmail.Deve(ResumoRelatorio,int xmlsInvalidos,OpcoesEmail); CorpoEmailResumo.Montar(IReadOnlyList<LinhaRelatorioErro>,int xmlsInvalidos,DateTimeOffset inicio,DateTimeOffset fim,int maxLinhas=20)->string; EnviadorEmailSmtp(IOptions<OpcoesEmail>,ILogger<EnviadorEmailSmtp>) : IEnviadorEmail, internal static MontarMensagem. Namespaces KitWmsIntegrador.Core.Email / .Configuracao. Pendente para FEAT-003: registrar AddOptions<OpcoesEmail>().Bind(Secao) e IEnviadorEmail no Program.cs e carregar email.settings.json opcional. 172 testes passando."
+}
+
