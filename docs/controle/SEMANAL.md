@@ -28,5 +28,5 @@ quantidade da I60 (retomar terça 03/11).
 
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
-| 2026-11-03 | - | - | - | (retomada: resposta do fornecedor + Etapa 5) |
-| **Total** | **0,0** | **0,0** | **0,0** | |
+| 2026-11-03 | 3,0 | 1,5 | 4,5 | Etapa 5 (I50 enriquecida, flag I60, relatório HTML/PDF); Orquestrador iniciado |
+| **Total parcial** | **3,0** | **1,5** | **4,5** | |

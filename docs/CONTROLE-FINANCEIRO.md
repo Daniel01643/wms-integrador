@@ -24,14 +24,16 @@ contabilizadas automaticamente pelo agente (tempo de execução da sessão).
 | 2026-10-30 | IA      | 0,5   | Mapeamento dos dados reais, verificação do ambiente, instalação SDK | _a definir_ |
 | 2026-10-30 | Humana  | 5,0   | Decisões de negócio, validações no WMS, testes de comunicação, chamado | _a definir_ |
 | 2026-10-30 | IA      | 1,8   | Etapas 3+4 (cliente WMS, construtores), testes E2E ao vivo, correções, chamado | _a definir_ |
+| 2026-11-03 | Humana  | 3,0   | Decisões (I60/I50 enriquecida, relatório, orquestrador reativo), validações | _a definir_ |
+| 2026-11-03 | IA      | 1,5   | Etapa 5 (I50 enriquecida, flag I60, relatório HTML/PDF), início do Orquestrador | _a definir_ |
 
 ## Totais
 
 | Tipo    | Horas | Custo (R$) |
 |---------|-------|------------|
-| IA      | 2,9   | _a definir_ |
-| Humana  | 7,0   | _a definir_ |
-| **Total** | **9,9** | _a definir_ |
+| IA      | 4,4   | _a definir_ |
+| Humana  | 10,0  | _a definir_ |
+| **Total** | **14,4** | _a definir_ |
 
 ## Notas
 

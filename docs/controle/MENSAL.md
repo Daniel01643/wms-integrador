@@ -32,11 +32,15 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-FINAN
 
 | Semana | Período | Humana | IA | Total |
 |--------|---------|--------|-----|-------|
-| W45 | 03/11–09/11 | - | - | - |
-| **Total do mês** | | **0,0** | **0,0** | **0,0** |
+| W45 | 03/11–09/11 (parcial) | 3,0 | 1,5 | 4,5 |
+| **Total parcial do mês** | | **3,0** | **1,5** | **4,5** |
 
-**Metas de novembro (previstas):**
+**Realizado em novembro até agora:**
+- Etapa 5: I50 enriquecida com dados fiscais, flag para desligar I60, relatório HTML/PDF.
+- Orquestrador reativo (Etapa 6) implementado (até 3 tentativas, I10/I30 reativos,
+  pendências registradas) — em revisão final no workflow.
+
+**Metas restantes de novembro:**
 - Fechar a I60 com a resposta do fornecedor.
-- Etapa 5: Orquestrador + máquina de estados.
-- Etapa 6: Store de estado + relatórios (erros/pendências).
-- Etapa 7: Movimentação de arquivos (Processados/Erro, limpeza 10 dias) + alertas e-mail.
+- Concluir revisão do Orquestrador.
+- Etapa 7: watcher de pasta + movimentação (Processados/Erro, limpeza 10 dias) + e-mail.
