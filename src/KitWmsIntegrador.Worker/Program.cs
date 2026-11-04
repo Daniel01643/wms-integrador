@@ -64,6 +64,11 @@ builder.Services.AddSingleton<IConstrutorI30, ConstrutorI30>();
 // Orquestrador (FEAT-002) para decidir pré-condições e tentativas.
 builder.Services.AddSingleton<ClassificadorRetorno>();
 
+// Orquestrador reativo (FEAT-002): coordena I50 → pré-condições (I10/I30) → reenvio,
+// respeitando a flag da I60 e o limite de 3 tentativas por nota. Sem rede direta —
+// usa o IClienteWms. O acionamento pelo Worker é fase futura (Worker.cs inalterado).
+builder.Services.AddSingleton<IOrquestrador, Orquestrador>();
+
 // Cliente WMS (comunicação HTTP). Credenciais (Usuario/Senha) vêm de env
 // (WMS__Usuario / WMS__Senha) — NUNCA do appsettings. BaseAddress/Timeout saem
 // das opções da seção "Wms".
