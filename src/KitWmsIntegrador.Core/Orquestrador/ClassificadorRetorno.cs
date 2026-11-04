@@ -53,6 +53,15 @@ public sealed class ClassificadorRetorno
     public bool EhProdutoNaoCadastrado(RespostaWms resposta) =>
         AlgumaMensagemContem(resposta, TextoProdutoNaoCadastrado);
 
+    /// <summary>Overload textual de <see cref="EhEmpresaNaoLocalizada(RespostaWms)"/>.</summary>
+    public bool EhEmpresaNaoLocalizada(string? mensagem) => Contem(mensagem, TextoEmpresaNaoLocalizada);
+
+    /// <summary>Overload textual de <see cref="EhProdutoNaoCadastrado(RespostaWms)"/>.</summary>
+    public bool EhProdutoNaoCadastrado(string? mensagem) => Contem(mensagem, TextoProdutoNaoCadastrado);
+
+    /// <summary>Mensagem indica que o registro "já existe" no WMS (idempotência).</summary>
+    public bool EhJaExiste(string? mensagem) => Contem(mensagem, TextoJaExiste);
+
     /// <summary>Importado mas pendente na interface do WMS (não é falha definitiva).</summary>
     public bool EhPendencia(RespostaWms resposta) =>
         AlgumaMensagemContem(resposta, TextoPendencia);
