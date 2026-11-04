@@ -14,4 +14,12 @@ public sealed class OpcoesRelatorio
     /// hardcode no gerador. Default relativo <c>relatorios</c>.
     /// </summary>
     public string PastaSaida { get; set; } = "relatorios";
+
+    /// <summary>
+    /// Caminho de um logo PNG (ex.: <c>docs/identidade/logo-friozem.png</c>) usado no
+    /// cabeçalho do HTML (base64) e do PDF. Vazio por padrão; se vazio ou inexistente, o
+    /// cabeçalho usa o texto "Friozem" na cor da marca, sem erro. Override por
+    /// <c>Relatorio__LogoPath</c>.
+    /// </summary>
+    public string LogoPath { get; set; } = string.Empty;
 }

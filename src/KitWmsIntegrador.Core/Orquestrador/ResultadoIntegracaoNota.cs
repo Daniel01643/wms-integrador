@@ -23,4 +23,22 @@ public sealed record ResultadoIntegracaoNota(
 {
     /// <summary>Histórico vazio por padrão, evitando null nos call-sites.</summary>
     public IReadOnlyList<string> Historico { get; init; } = Historico ?? Array.Empty<string>();
+
+    /// <summary>
+    /// ID da transação (<c>transacao</c>) da ÚLTIMA chamada da I50 (a que originou a
+    /// mensagem exibida). Vazio quando não houve chamada.
+    /// </summary>
+    public string IdTransacao { get; init; } = string.Empty;
+
+    /// <summary>Primeiro <c>retornos[].idDocumento</c> não vazio da última chamada da I50.</summary>
+    public string IdDocumento { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Códigos dos produtos enviados à I30 por contenção (produto provisório). É a lista de
+    /// TODOS os itens enviados: o WMS não informa quais foram de fato criados.
+    /// </summary>
+    public IReadOnlyList<string> ProdutosProvisorios { get; init; } = Array.Empty<string>();
+
+    /// <summary>Verdadeiro quando há produto provisório a revisar no cadastro.</summary>
+    public bool RevisaoProdutoPendente => ProdutosProvisorios.Count > 0;
 }

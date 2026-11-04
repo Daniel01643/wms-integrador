@@ -114,6 +114,10 @@ public sealed class Orquestrador : IOrquestrador
         var pendenteRevisaoProduto = false;
         var tentativas = 0;
         var ultimaMensagem = string.Empty;
+        // Captura para o relatório (não influencia nenhuma decisão do fluxo).
+        var idTransacao = string.Empty;
+        var idDocumento = string.Empty;
+        var produtosProvisorios = new List<string>();
 
         while (tentativas < MaxTentativas)
         {
@@ -124,6 +128,7 @@ public sealed class Orquestrador : IOrquestrador
                 .EnviarAsync(InterfaceWms.I50, _i50.Construir(nota, transporte), cancellationToken)
                 .ConfigureAwait(false);
             ultimaMensagem = _classificador.PrimeiraMensagem(respI50);
+            (idTransacao, idDocumento) = Capturar(respI50);
             historico.Add($"I50 (tentativa {tentativas}): {Descrever(respI50, ultimaMensagem)}");
 
             // (b) Sucesso: integra (e envia I60 só se a flag estiver ligada).
@@ -143,7 +148,12 @@ public sealed class Orquestrador : IOrquestrador
                 var estado = pendenteRevisaoProduto ? EstadoIntegracao.Pendente : EstadoIntegracao.Integrada;
                 return new ResultadoIntegracaoNota(
                     nota.Numero, transporte, Integrada: true, tentativas,
-                    estado, ultimaMensagem, historico);
+                    estado, ultimaMensagem, historico)
+                {
+                    IdTransacao = idTransacao,
+                    IdDocumento = idDocumento,
+                    ProdutosProvisorios = produtosProvisorios,
+                };
             }
 
             // (c) Empresa não localizada: envia I10 e reenvia a I50 (nova tentativa).
@@ -164,6 +174,14 @@ public sealed class Orquestrador : IOrquestrador
                     .EnviarAsync(InterfaceWms.I30, _i30.Construir(nota), cancellationToken)
                     .ConfigureAwait(false);
                 pendenteRevisaoProduto = true;
+                foreach (var item in nota.Itens)
+                {
+                    if (!string.IsNullOrWhiteSpace(item.CodigoProduto)
+                        && !produtosProvisorios.Contains(item.CodigoProduto))
+                    {
+                        produtosProvisorios.Add(item.CodigoProduto);
+                    }
+                }
                 historico.Add($"I30 (produto provisório — requer revisão): {Descrever(respI30, _classificador.PrimeiraMensagem(respI30))}");
                 continue;
             }
@@ -174,7 +192,12 @@ public sealed class Orquestrador : IOrquestrador
                 _logger.LogInformation("Nota {Numero} pendente na interface do WMS.", nota.Numero);
                 return new ResultadoIntegracaoNota(
                     nota.Numero, transporte, Integrada: false, tentativas,
-                    EstadoIntegracao.Pendente, ultimaMensagem, historico);
+                    EstadoIntegracao.Pendente, ultimaMensagem, historico)
+                {
+                    IdTransacao = idTransacao,
+                    IdDocumento = idDocumento,
+                    ProdutosProvisorios = produtosProvisorios,
+                };
             }
 
             // (f) Qualquer outro erro: registra e segue (sem loop).
@@ -182,7 +205,12 @@ public sealed class Orquestrador : IOrquestrador
                 "Nota {Numero} com erro não recuperável: {Mensagem}", nota.Numero, ultimaMensagem);
             return new ResultadoIntegracaoNota(
                 nota.Numero, transporte, Integrada: false, tentativas,
-                EstadoIntegracao.NaoIntegrada, ultimaMensagem, historico);
+                EstadoIntegracao.NaoIntegrada, ultimaMensagem, historico)
+            {
+                IdTransacao = idTransacao,
+                IdDocumento = idDocumento,
+                ProdutosProvisorios = produtosProvisorios,
+            };
         }
 
         // Esgotou as tentativas sem sucesso → não-integrada com motivo e contagem.
@@ -195,7 +223,21 @@ public sealed class Orquestrador : IOrquestrador
             nota.Numero, MaxTentativas, motivoFinal);
         return new ResultadoIntegracaoNota(
             nota.Numero, transporte, Integrada: false, MaxTentativas,
-            EstadoIntegracao.NaoIntegrada, motivoFinal, historico);
+            EstadoIntegracao.NaoIntegrada, motivoFinal, historico)
+        {
+            IdTransacao = idTransacao,
+            IdDocumento = idDocumento,
+            ProdutosProvisorios = produtosProvisorios,
+        };
+    }
+
+    /// <summary>Extrai a transação e o primeiro idDocumento não vazio (apenas para o relatório).</summary>
+    private static (string Transacao, string IdDocumento) Capturar(RespostaWms resposta)
+    {
+        var doc = resposta.Retornos?
+            .Select(r => r.IdDocumento)
+            .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id)) ?? string.Empty;
+        return (resposta.Transacao ?? string.Empty, doc);
     }
 
     private static string Descrever(RespostaWms resposta, string mensagem)

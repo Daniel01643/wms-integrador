@@ -7,14 +7,15 @@ namespace KitWmsIntegrador.Core.Relatorio;
 public interface IGeradorRelatorio
 {
     /// <summary>
-    /// Monta o relatório como HTML (string), com título, data de geração e uma tabela
-    /// com as colunas da linha.
+    /// Monta o relatório como HTML autocontido (CSS inline, sem recursos externos), com resumo,
+    /// linhas agrupadas por transporte, status coloridos, detalhe/histórico em &lt;details&gt; e
+    /// filtro opcional em JavaScript puro.
     /// </summary>
     string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);
 
     /// <summary>
-    /// Monta o relatório como PDF (bytes), com título, data de geração e as colunas
-    /// desenhadas em tabela simples.
+    /// Monta o relatório como PDF A4 paisagem (bytes), com resumo, agrupamento por transporte,
+    /// quebra de linha nas células, cabeçalho da tabela repetido e rodapé "Página X de Y".
     /// </summary>
     byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm);
 
