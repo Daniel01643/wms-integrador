@@ -26,6 +26,12 @@ public record ItemNota
     /// <summary>CFOP — <c>prod/CFOP</c>.</summary>
     public string Cfop { get; init; } = string.Empty;
 
+    /// <summary>NCM — <c>prod/NCM</c>. Alimenta <c>classificacaoncm</c> da I30.</summary>
+    public string Ncm { get; init; } = string.Empty;
+
+    /// <summary>EAN comercial — <c>prod/cEAN</c>. Alimenta <c>eancliente</c> da I30.</summary>
+    public string Ean { get; init; } = string.Empty;
+
     /// <summary>Lote — <c>prod/rastro/nLote</c> (quando existir).</summary>
     public string? Lote { get; init; }
 

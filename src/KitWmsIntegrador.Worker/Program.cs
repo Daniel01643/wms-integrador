@@ -3,6 +3,7 @@ using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
 using KitWmsIntegrador.Core.Leitura;
+using KitWmsIntegrador.Core.Orquestrador;
 using KitWmsIntegrador.Core.Relatorio;
 using KitWmsIntegrador.Core.Tempo;
 using KitWmsIntegrador.Worker;
@@ -57,6 +58,11 @@ builder.Services.AddSingleton<IGeradorRelatorio, GeradorRelatorio>();
 builder.Services.AddSingleton<IConstrutorI50, ConstrutorI50>();
 builder.Services.AddSingleton<IConstrutorI60, ConstrutorI60>();
 builder.Services.AddSingleton<IConstrutorI10, ConstrutorI10>();
+builder.Services.AddSingleton<IConstrutorI30, ConstrutorI30>();
+
+// Classificador de retorno do WMS (por texto). Peça pura, sem rede — consumida pelo
+// Orquestrador (FEAT-002) para decidir pré-condições e tentativas.
+builder.Services.AddSingleton<ClassificadorRetorno>();
 
 // Cliente WMS (comunicação HTTP). Credenciais (Usuario/Senha) vêm de env
 // (WMS__Usuario / WMS__Senha) — NUNCA do appsettings. BaseAddress/Timeout saem

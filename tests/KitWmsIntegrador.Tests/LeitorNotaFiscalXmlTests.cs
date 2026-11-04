@@ -54,6 +54,18 @@ public class LeitorNotaFiscalXmlTests
     }
 
     [Fact]
+    public void Parse_Item_ExtraiNcmEEan()
+    {
+        var leitor = new LeitorNotaFiscalXml();
+
+        var nota = leitor.ParseArquivo(Caminho(Xml1));
+
+        var primeiro = nota.Itens[0];
+        Assert.Equal("19059090", primeiro.Ncm);
+        Assert.Equal("17891515645813", primeiro.Ean);
+    }
+
+    [Fact]
     public void ParseArquivo_Xml1_ExtraiVolumesETransportadora()
     {
         var leitor = new LeitorNotaFiscalXml();

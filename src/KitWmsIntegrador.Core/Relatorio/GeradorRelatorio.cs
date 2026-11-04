@@ -29,6 +29,8 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
         "Número do Transporte",
         "Horário do Erro",
         "Mensagem",
+        "Integrada",
+        "Tentativas",
     };
 
     // O build Core da PdfSharpCore exige um FontResolver para mapear fontes.
@@ -73,6 +75,8 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
             sb.Append("<td>").Append(EscaparHtml(linha.NumeroTransporte)).Append("</td>");
             sb.Append("<td>").Append(EscaparHtml(linha.HorarioErro.ToString(FormatoHorario, CultureInfo.InvariantCulture))).Append("</td>");
             sb.Append("<td>").Append(EscaparHtml(linha.Mensagem)).Append("</td>");
+            sb.Append("<td>").Append(linha.Integrada ? "S" : "N").Append("</td>");
+            sb.Append("<td>").Append(linha.Tentativas.ToString(CultureInfo.InvariantCulture)).Append("</td>");
             sb.Append("</tr>");
         }
 
@@ -103,8 +107,17 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
             fonteLinha, XBrushes.Black, new XPoint(margemX, y));
         y += 24;
 
-        // Espaçamento fixo por coluna (simples e legível).
-        double[] colunasX = { margemX, margemX + 90, margemX + 210, margemX + 350 };
+        // Espaçamento fixo por coluna (simples e legível). A coluna Mensagem é mais
+        // estreita para abrir espaço às colunas Integrada/Tentativas sem estourar a página.
+        double[] colunasX =
+        {
+            margemX,        // Número da Nota
+            margemX + 80,   // Número do Transporte
+            margemX + 190,  // Horário do Erro
+            margemX + 320,  // Mensagem
+            margemX + 440,  // Integrada
+            margemX + 500,  // Tentativas
+        };
         const double alturaLinha = 16;
 
         // Cabeçalho da tabela.
@@ -125,6 +138,8 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
                 linha.NumeroTransporte,
                 linha.HorarioErro.ToString(FormatoHorario, CultureInfo.InvariantCulture),
                 linha.Mensagem,
+                linha.Integrada ? "S" : "N",
+                linha.Tentativas.ToString(CultureInfo.InvariantCulture),
             };
 
             for (var i = 0; i < valores.Length; i++)

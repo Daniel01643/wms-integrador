@@ -9,8 +9,12 @@ namespace KitWmsIntegrador.Core.Relatorio;
 /// <param name="NumeroTransporte">Número do transporte (DocCarga) associado à nota.</param>
 /// <param name="HorarioErro">Horário do erro, com fuso (<see cref="DateTimeOffset"/>).</param>
 /// <param name="Mensagem">Mensagem do erro retornada/registrada na integração.</param>
+/// <param name="Integrada">Se a nota acabou integrada (S/N no relatório). Default <c>false</c>.</param>
+/// <param name="Tentativas">Quantas tentativas de integração foram feitas. Default <c>0</c>.</param>
 public record LinhaRelatorioErro(
     string NumeroNota,
     string NumeroTransporte,
     DateTimeOffset HorarioErro,
-    string Mensagem);
+    string Mensagem,
+    bool Integrada = false,
+    int Tentativas = 0);

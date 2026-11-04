@@ -19,6 +19,14 @@ public class GeradorRelatorioTests
             "Falha de associação <automática> & manual"),
     };
 
+    private static IReadOnlyList<LinhaRelatorioErro> LinhasComStatus() => new[]
+    {
+        new LinhaRelatorioErro("15665807", "0130693549", GeradoEm,
+            "Foi importado e esta pendente na interface.", Integrada: false, Tentativas: 2),
+        new LinhaRelatorioErro("15665808", "0130693550", GeradoEm,
+            "Produto cadastrado via I30", Integrada: true, Tentativas: 3),
+    };
+
     private static GeradorRelatorio Criar(string? pastaSaida = null) =>
         new(Options.Create(new OpcoesRelatorio { PastaSaida = pastaSaida ?? "relatorios" }));
 
@@ -46,6 +54,36 @@ public class GeradorRelatorioTests
 
         // Mensagem com caracteres HTML escapados.
         Assert.Contains("&lt;automática&gt; &amp; manual", html);
+    }
+
+    [Fact]
+    public void GerarHtml_ContemColunasIntegradaETentativas()
+    {
+        var linhas = LinhasComStatus();
+
+        var html = Criar().GerarHtml(linhas, GeradoEm);
+
+        // Cabeçalhos das novas colunas.
+        Assert.Contains("<th>Integrada</th>", html);
+        Assert.Contains("<th>Tentativas</th>", html);
+
+        // Valores: S/N para Integrada e o número de tentativas.
+        Assert.Contains("<td>S</td>", html);
+        Assert.Contains("<td>N</td>", html);
+        Assert.Contains("<td>2</td>", html);
+        Assert.Contains("<td>3</td>", html);
+    }
+
+    [Fact]
+    public void GerarPdf_ComColunasNovas_GeraPdfValido()
+    {
+        var linhas = LinhasComStatus();
+
+        var pdf = Criar().GerarPdf(linhas, GeradoEm);
+
+        Assert.NotEmpty(pdf);
+        var header = Encoding.ASCII.GetString(pdf, 0, 4);
+        Assert.Equal("%PDF", header);
     }
 
     [Fact]

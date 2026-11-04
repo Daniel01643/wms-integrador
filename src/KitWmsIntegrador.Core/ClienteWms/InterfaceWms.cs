@@ -15,6 +15,9 @@ public enum InterfaceWms
 
     /// <summary>Cadastro de empresa — <c>WEBAPI-I10-Json</c>.</summary>
     I10,
+
+    /// <summary>Cadastro de produto (contenção) — <c>WEBAPI-I30-Json</c>.</summary>
+    I30,
 }
 
 /// <summary>
@@ -29,6 +32,7 @@ public static class InterfaceWmsExtensions
         InterfaceWms.I50 => "WEBAPI-I50-Json",
         InterfaceWms.I60 => "WEBAPI-I60-Json",
         InterfaceWms.I10 => "WEBAPI-I10-Json",
+        InterfaceWms.I30 => "WEBAPI-I30-Json",
         _ => throw new ArgumentOutOfRangeException(nameof(interfaceWms), interfaceWms, "Interface WMS desconhecida."),
     };
 }
