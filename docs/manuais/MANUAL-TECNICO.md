@@ -28,6 +28,7 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
 11. [O serviço não sobe — diagnóstico e TLS 1.2](#11-o-serviço-não-sobe--diagnóstico-e-tls-12)
 12. [Tabela: "Quero fazer X → arquivo/comando → reinicia?"](#12-tabela-quero-fazer-x--arquivocomando--reinicia)
 13. [Avisos de segurança](#13-avisos-de-segurança)
+14. [Guia rápido: usar a IA de apoio](#14-guia-rápido-usar-a-ia-de-apoio)
 
 ---
 
@@ -161,29 +162,63 @@ Edite o valor no arquivo, salve e **reinicie o serviço** (`servico.ps1 -Acao Re
 
 ## 7. Destinatários de e-mail (fechamento e resumo semanal)
 
-São **duas listas diferentes**:
+São **duas listas diferentes**, cada uma num **arquivo de texto (TXT) dedicado e editável a
+quente**: **um e-mail por linha**; linhas em branco são ignoradas; linhas que começam com `#` são
+comentários. Os dois arquivos são **relidos a cada envio** — editar e salvar vale no **próximo**
+envio, **sem reiniciar o serviço**. As listas **reais** não são versionadas (ficam em `config\`,
+cobertas pelo `.gitignore`).
 
-- **E-mail de fechamento do pacote:** chave `Email:Destinatarios` (lista separada por `;`) — fica
-  em `email.settings.json` (ou `appsettings.Production.json`). Alterar e reiniciar não é
-  estritamente necessário para o `email.settings.json`, pois ele recarrega ao salvar; na dúvida,
-  reinicie.
-- **Resumo semanal:** arquivo de texto dedicado `destinatarios-resumo.txt`
-  (**um e-mail por linha**; linhas em branco são ignoradas; linhas que começam com `#` são
-  comentários). O arquivo é **relido a cada envio** — a alteração vale no **próximo** envio, sem
-  reiniciar. Exemplo:
+### 7.1. Fechamento do pacote — `Email:CaminhoDestinatarios`
 
-  ```text
-  # Destinatarios do resumo semanal — um e-mail por linha. '#' comenta.
-  ti@friozem.com.br
-  gestor@friozem.com.br
-  ```
+O caminho do TXT de fechamento é a chave `Email:CaminhoDestinatarios`. Se vazia, o padrão do
+sistema é `<telemetria>\destinatarios-fechamento.txt`. Exemplo de arquivo:
 
-  O caminho efetivo do arquivo é definido por `Monitoramento:CaminhoDestinatarios`. Se vazio, o
-  padrão do sistema é `<telemetria>\destinatarios.txt`. **Para usar
-  `C:\Friozem\importacao_notas\config\destinatarios-resumo.txt`, confirme que
-  `Monitoramento:CaminhoDestinatarios` aponta para esse caminho no `appsettings.Production.json`**
-  (ver lacuna no resumo). Se o arquivo estiver ausente, vazio ou ilegível, o resumo vai para o
-  destinatário mínimo `ti@friozem.com.br` e um aviso é registrado no log.
+```text
+# Destinatarios do fechamento do pacote — um e-mail por linha. '#' comenta.
+operacao@friozem.com.br
+gestor@friozem.com.br
+```
+
+**Precedência e fallback do fechamento** (nesta ordem):
+
+1. se o TXT tiver **ao menos um e-mail**, ele é usado (tem **precedência** sobre
+   `Email:Destinatarios`);
+2. se o TXT estiver ausente/vazio, usa-se a lista `Email:Destinatarios` (separada por `;` no JSON)
+   **apenas como fallback**;
+3. se **ambos** estiverem vazios, o e-mail do pacote **não é enviado** e um aviso é registrado no
+   log — mas o **fechamento conclui normalmente** (o relatório HTML + PDF é gerado assim mesmo).
+
+> Editar `Email:Destinatarios` no JSON (`email.settings.json` / `appsettings.Production.json`) é
+> **apenas o fallback** do fechamento, não o mecanismo principal. O mecanismo principal é o TXT
+> apontado por `Email:CaminhoDestinatarios`.
+
+### 7.2. Resumo semanal — `Monitoramento:CaminhoDestinatarios`
+
+O caminho do TXT do resumo semanal é a chave `Monitoramento:CaminhoDestinatarios`. Se vazia, o
+padrão do sistema é `<telemetria>\destinatarios.txt`. Exemplo de arquivo:
+
+```text
+# Destinatarios do resumo semanal — um e-mail por linha. '#' comenta.
+ti@friozem.com.br
+gestor@friozem.com.br
+```
+
+O **fallback é diferente** do fechamento: se o arquivo do resumo estiver ausente, vazio ou
+ilegível, o resumo vai para o destinatário **mínimo** `ti@friozem.com.br` (não cai em não-envio) e
+um aviso é registrado no log.
+
+### 7.3. Nota de servidor — apontar as duas chaves para `config\`
+
+Os **defaults** do código caem em `<telemetria>`, que fica dentro de `data\` — **fora** do share
+`kitbrf`. Para manter as listas num lugar previsível e protegido, recomenda-se apontar **ambas** as
+chaves para `C:\Friozem\importacao_notas\config\` no `appsettings.Production.json`, por exemplo:
+
+- `Email:CaminhoDestinatarios` → `config\destinatarios-fechamento.txt`
+- `Monitoramento:CaminhoDestinatarios` → `config\destinatarios-resumo.txt`
+
+Confirme os valores efetivos em produção antes de supor onde os arquivos estão (ver lacuna no
+resumo). Lembre que `config\` tem ACL restrita (seção 13) e que as listas reais não são
+versionadas.
 
 ## 8. Dia/hora do resumo, janela de coleta e limpeza
 
@@ -285,8 +320,8 @@ Passos na ordem:
 | Trocar usuário/senha do WMS | `configurar-segredos.ps1` (env de máquina) | **Sim** |
 | Trocar SMTP (usuário/senha/remetente) | `configurar-segredos.ps1` ou editar `config\email.settings.json` | Recarrega ao salvar; na dúvida reinicie |
 | Trocar URL do WMS | editar `Wms:BaseUrl` em `appsettings.Production.json` | **Sim** |
-| Destinatários do fechamento | `Email:Destinatarios` em `email.settings.json` | Recarrega ao salvar |
-| Destinatários do resumo semanal | editar `destinatarios-resumo.txt` | Não (vale no próximo envio) |
+| Destinatários do fechamento | editar o TXT `destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
+| Destinatários do resumo semanal | editar o TXT `destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
 | Dia/hora do resumo | `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
 | Janela de coleta / limpeza (10 dias) | `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
 | Publicar nova versão | `publicar-release.ps1` | Automático (o script reinicia) |
@@ -301,3 +336,20 @@ Passos na ordem:
   Os scripts reaplicam essa ACL; não afrouxe as permissões.
 - Os scripts **não** exibem segredos no console nem nos logs — mantenha esse comportamento.
 - Prefira `-WhatIf` em scripts de escrita quando estiver em dúvida, para simular antes de aplicar.
+
+## 14. Guia rápido: usar a IA de apoio
+
+Se você decidir usar um agente de IA para **diagnosticar falhas** ou **propor alterações**, o guia
+completo (fluxo, mapa de arquivos, como diagnosticar e como propor mudanças com segurança) está em
+[`./MANUAL-AGENTE-IA.md`](./MANUAL-AGENTE-IA.md). Usar a IA é **opcional**: você decide.
+
+Antes de aceitar qualquer sugestão da IA, confira estes **guarda-rails**:
+
+- **Não versione nem exponha segredos** do WMS/SMTP (as env `WMS__*` e o `email.settings.json`
+  continuam sensíveis; nada de colar senha em prompt, log ou resposta).
+- **Não ligue a I60** (`I60:Habilitada` deve seguir `false`; os dados fiscais vão na I50).
+- **Valide mudança de código** com build + test **no repositório, fora de produção**, antes de
+  promover.
+- **Não rode teste de carga** em produção ou homologação sem o **OK do responsável**.
+- **Config antes de código**: prefira ajustar configuração (JSON e os TXT de destinatários) a mexer
+  no código; e deixe a **execução no servidor** (restart, publicar, rollback) para o técnico humano.
