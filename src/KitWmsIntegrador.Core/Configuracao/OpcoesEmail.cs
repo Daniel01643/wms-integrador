@@ -46,8 +46,15 @@ public sealed class OpcoesEmail
     /// <summary>Nome exibido do remetente.</summary>
     public string RemetenteNome { get; set; } = string.Empty;
 
-    /// <summary>Destinatários separados por ';'.</summary>
+    /// <summary>Destinatários separados por ';' (fallback quando o txt está ausente/vazio).</summary>
     public string Destinatarios { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Arquivo txt de destinatários do fechamento (um e-mail por linha, '#' comenta, relido a cada
+    /// envio). Tem PRECEDÊNCIA sobre <see cref="Destinatarios"/>. Vazio =
+    /// <c>&lt;telemetria&gt;/destinatarios-fechamento.txt</c>.
+    /// </summary>
+    public string CaminhoDestinatarios { get; set; } = string.Empty;
 
     /// <summary>Prefixo do assunto.</summary>
     public string AssuntoPrefixo { get; set; } = "[KitWms]";
