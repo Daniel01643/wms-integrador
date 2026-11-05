@@ -61,9 +61,8 @@ $pastaReleaseAlvo = Join-Path $pastaReleases $Versao
 [void](Confirm-Directory -Caminho $pastaReleaseAlvo)
 if ($ReleaseZip) {
     if (-not (Test-Path -LiteralPath $ReleaseZip)) { throw ("ReleaseZip nao encontrado: {0}" -f $ReleaseZip) }
-    if ($PSCmdlet.ShouldProcess($pastaReleaseAlvo, 'Expandir nova release')) {
-        Expand-Archive -LiteralPath $ReleaseZip -DestinationPath $pastaReleaseAlvo -Force
-    }
+    # Portavel para PowerShell 4.0 (Server 2012 R2): Expand-Archive so existe no PS 5.0+.
+    Expand-ZipPortavel -ZipPath $ReleaseZip -Destino $pastaReleaseAlvo -WhatIf:$WhatIfPreference
 } else {
     if (-not (Test-Path -LiteralPath $ReleaseDir)) { throw ("ReleaseDir nao encontrado: {0}" -f $ReleaseDir) }
     if ($PSCmdlet.ShouldProcess($pastaReleaseAlvo, 'Copiar nova release')) {
@@ -76,7 +75,9 @@ if (Test-Path -LiteralPath $pastaCurrent) {
     $carimbo = (Get-Date).ToString('yyyyMMdd_HHmmss')
     $backupZip = Join-Path $pastaBackups ("current_{0}.zip" -f $carimbo)
     if ($PSCmdlet.ShouldProcess($backupZip, 'Backup do current anterior')) {
-        Compress-Archive -Path (Join-Path $pastaCurrent '*') -DestinationPath $backupZip -Force
+        # Portavel para PowerShell 4.0 (Server 2012 R2): Compress-Archive so existe no PS 5.0+.
+        # Compacta o CONTEUDO de current\ para a raiz do zip (mesmo layout de antes).
+        Compress-ZipPortavel -Origem $pastaCurrent -ZipPath $backupZip
         Write-Passo ("Backup do current anterior: {0}" -f $backupZip) -Nivel Ok
     }
 }

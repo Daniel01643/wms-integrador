@@ -17,6 +17,11 @@ Os scripts estão em `deploy\` na raiz do repositório. Todos são idempotentes,
 ## 0. Fatos do servidor (verificados)
 
 - Host **SRVAPPALC02** (IP 200.200.200.213), Windows Server **2012 R2** (NT 6.3.9600), PowerShell 4.0/5.1.
+  - **Compatibilidade PS 4.0**: os cmdlets `Expand-Archive`/`Compress-Archive` **só existem no
+    PowerShell 5.0+**. Os scripts que rodam no servidor (`instalar.ps1`, `publicar-release.ps1`)
+    usam os helpers portáveis `Expand-ZipPortavel`/`Compress-ZipPortavel` de `deploy\_comum.ps1`,
+    baseados em `System.IO.Compression` do .NET (presente no Server 2012 R2). O layout do zip é o
+    mesmo (conteúdo na raiz), compatível com os `.zip` gerados por `publicar.ps1`.
 - **.NET 8 já instalado** — mesmo assim o pacote é **self-contained** (runtime embutido) para blindar.
   Framework-dependent também seria viável (ver §9), mas não é o caminho do pacote.
 - **NSSM** já existe em `C:\Friozem\Gestao_Enderecos\tools\nssm.exe` e vários serviços NSSM já rodam.
@@ -282,6 +287,9 @@ pacote seguem o descrito em `docs\OPERACAO.md`.
 - `publicar.ps1 -Versao 0.0.0-test` executado de verdade → publish self-contained win-x64 OK
   (~75 MB em pasta / ~33 MB em zip). Artefato removido depois (git-ignored).
 - Parse de todos os `.ps1` de `deploy\` sem erros; `diagnostico.ps1` rodado de ponta a ponta.
+- Par portável `Compress-ZipPortavel`/`Expand-ZipPortavel` testado localmente (round-trip): conteúdo
+  sai na raiz do destino e a re-extração é idempotente. Também validado expandindo um `.zip` real
+  gerado por `publicar.ps1` (`KitWmsIntegrador.Worker.exe` cai direto na raiz da release).
 
 Detalhes em `.agents\tasks\verificacao-etapa9.md`.
 

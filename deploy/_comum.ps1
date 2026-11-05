@@ -211,6 +211,85 @@ function Set-ConfigAcl {
     Write-Passo ("ACL restrita aplicada em: {0}" -f $Caminho) -Nivel Ok
 }
 
+function Expand-ZipPortavel {
+    <#
+    .SYNOPSIS Expande um .zip de forma portavel (PowerShell 4.0+, sem Expand-Archive).
+    .DESCRIPTION
+        Usa [System.IO.Compression.ZipFile] do .NET (4.5+, presente no Server 2012 R2), pois
+        Expand-Archive so existe no PowerShell 5.0+. IDEMPOTENTE: se o destino ja existir com
+        conteudo, ele e limpo antes de extrair (equivale ao -Force de Expand-Archive), evitando a
+        excecao de ExtractToDirectory quando um arquivo alvo ja existe. Preserva o layout do zip
+        (arquivos na raiz do zip saem direto na raiz do destino). Respeita -WhatIf do chamador.
+    .PARAMETER ZipPath  Caminho do .zip de origem.
+    .PARAMETER Destino  Pasta de destino (criada se faltar; limpa se ja tiver conteudo).
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)] [string] $ZipPath,
+        [Parameter(Mandatory)] [string] $Destino
+    )
+
+    if (-not (Test-Path -LiteralPath $ZipPath -PathType Leaf)) {
+        throw ("Expand-ZipPortavel: zip inexistente: {0}" -f $ZipPath)
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($Destino, ("Expandir zip '{0}'" -f $ZipPath))) {
+        return
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    # Idempotente: recria o destino vazio antes de extrair (equivalente ao -Force).
+    if (Test-Path -LiteralPath $Destino) {
+        Remove-Item -LiteralPath $Destino -Recurse -Force
+    }
+    [void](New-Item -ItemType Directory -Path $Destino -Force)
+
+    $destinoFull = (Resolve-Path -LiteralPath $Destino).ProviderPath
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $destinoFull)
+    Write-Passo ("Zip expandido: {0} -> {1}" -f $ZipPath, $destinoFull) -Nivel Ok
+}
+
+function Compress-ZipPortavel {
+    <#
+    .SYNOPSIS Compacta uma pasta em .zip de forma portavel (PowerShell 4.0+, sem Compress-Archive).
+    .DESCRIPTION
+        Usa [System.IO.Compression.ZipFile] do .NET (4.5+, presente no Server 2012 R2), pois
+        Compress-Archive so existe no PowerShell 5.0+. Mantem o MESMO layout do pacote de hoje:
+        o CONTEUDO de -Origem vai para a RAIZ do zip (nao dentro de uma subpasta), de modo que a
+        expansao coloque os binarios direto em app\releases\<versao>\. Se o zip ja existir, e
+        removido antes (CreateFromDirectory falha se o destino existir). Respeita -WhatIf.
+    .PARAMETER Origem   Pasta cujo conteudo sera compactado (vai para a raiz do zip).
+    .PARAMETER ZipPath  Caminho do .zip a gerar.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)] [string] $Origem,
+        [Parameter(Mandatory)] [string] $ZipPath
+    )
+
+    if (-not (Test-Path -LiteralPath $Origem -PathType Container)) {
+        throw ("Compress-ZipPortavel: pasta de origem inexistente: {0}" -f $Origem)
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($ZipPath, ("Compactar pasta '{0}'" -f $Origem))) {
+        return
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    if (Test-Path -LiteralPath $ZipPath) {
+        Remove-Item -LiteralPath $ZipPath -Force
+    }
+
+    $origemFull = (Resolve-Path -LiteralPath $Origem).ProviderPath
+    # includeBaseDirectory=$false -> o CONTEUDO da pasta vai para a raiz do zip (mesmo layout de
+    # 'Compress-Archive -Path (Join-Path $pasta *)').
+    [System.IO.Compression.ZipFile]::CreateFromDirectory(
+        $origemFull, $ZipPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+    Write-Passo ("Zip gerado: {0}" -f $ZipPath) -Nivel Ok
+}
+
 function Get-VersaoPadrao {
     <#
     .SYNOPSIS Deriva uma versao: yyyy.MM.dd[-<hash git curto>] ou yyyy.MM.dd.HHmm sem git.

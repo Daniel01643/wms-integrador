@@ -121,9 +121,8 @@ $pastaReleaseAlvo = Join-Path $pastaReleases $Versao
 if ($ReleaseZip) {
     if (-not (Test-Path -LiteralPath $ReleaseZip)) { throw ("ReleaseZip nao encontrado: {0}" -f $ReleaseZip) }
     Write-Passo ("Expandindo release {0} -> {1}" -f $ReleaseZip, $pastaReleaseAlvo)
-    if ($PSCmdlet.ShouldProcess($pastaReleaseAlvo, 'Expandir release')) {
-        Expand-Archive -LiteralPath $ReleaseZip -DestinationPath $pastaReleaseAlvo -Force
-    }
+    # Portavel para PowerShell 4.0 (Server 2012 R2): Expand-Archive so existe no PS 5.0+.
+    Expand-ZipPortavel -ZipPath $ReleaseZip -Destino $pastaReleaseAlvo -WhatIf:$WhatIfPreference
 } else {
     if (-not (Test-Path -LiteralPath $ReleaseDir)) { throw ("ReleaseDir nao encontrado: {0}" -f $ReleaseDir) }
     Write-Passo ("Copiando release {0} -> {1}" -f $ReleaseDir, $pastaReleaseAlvo)

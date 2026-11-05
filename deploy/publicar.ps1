@@ -110,7 +110,9 @@ if ($PSCmdlet.ShouldProcess($pastaApp, 'dotnet publish')) {
         $zipPath = Join-Path $pastaVersao ("KitWmsIntegrador-{0}-{1}.zip" -f $Versao, $Runtime)
         if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
         Write-Passo ("Compactando release -> {0}" -f $zipPath)
-        Compress-Archive -Path (Join-Path $pastaApp '*') -DestinationPath $zipPath -Force
+        # Helper portavel (System.IO.Compression): mesmo layout de Compress-Archive -Path *,
+        # i.e. conteudo de app\ na raiz do zip. Casa com Expand-ZipPortavel no servidor (PS 4.0).
+        Compress-ZipPortavel -Origem $pastaApp -ZipPath $zipPath
         $tamZip = (Get-Item -LiteralPath $zipPath).Length
         Write-Passo ("Zip gerado: {0} ({1:N1} MB)" -f $zipPath, ($tamZip / 1MB)) -Nivel Ok
     }
