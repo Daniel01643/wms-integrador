@@ -170,6 +170,29 @@ Onde colocar o que é local e secreto:
 - **Senha**: variável de ambiente `Email__Senha` (preferível) ou `email.settings.json`. Nunca no
   `appsettings.json` versionado, nem no log.
 
+### 4.1. Destinatários do fechamento (arquivo txt editável a quente)
+
+O sistema usa **dois** arquivos txt de destinatários, independentes e editáveis a quente (um e-mail
+por linha, `#` comenta, linhas em branco ignoradas, **relidos a cada envio** — editar e salvar tem
+efeito no próximo envio, sem reiniciar o serviço):
+
+- **Fechamento do pacote** (novo): `Email:CaminhoDestinatarios`, padrão
+  `<telemetria>\destinatarios-fechamento.txt`. Modelo em
+  `deploy/config-exemplo/destinatarios-fechamento.exemplo.txt`.
+- **Resumo semanal** (já existente): `Monitoramento:CaminhoDestinatarios` (ver seção 6.5).
+
+Para o **fechamento**, a **precedência** e o **fallback** são:
+
+1. se o txt tiver ao menos um e-mail, ele é usado (tem **precedência** sobre `Email:Destinatarios`);
+2. se o txt estiver ausente/vazio, usa-se a lista `Email:Destinatarios` (separada por `;`), o
+   comportamento atual;
+3. se **ambos** estiverem vazios, o e-mail do pacote **não é enviado** e um aviso é registrado no log
+   — o fechamento **conclui normalmente** (relatório HTML + PDF é gerado assim mesmo).
+
+Esse fallback é **diferente** do resumo semanal, que cai no padrão mínimo `ti@friozem.com.br` (seção
+6.5) em vez de não enviar. A lista REAL de fechamento não é versionada (fica em `config\`, coberta
+pelo `.gitignore`).
+
 Limitações do `SmtpClient`: suporta STARTTLS (587) e SMTP interno, mas **não** TLS implícito (465)
 nem OAuth2 (Microsoft 365/Gmail modernos). Se o provedor exigir, o envio pode ser trocado por MailKit
 implementando `IEnviadorEmail`, sem mexer no resto. Em Windows Server 2012 R2 o TLS 1.2 depende do
