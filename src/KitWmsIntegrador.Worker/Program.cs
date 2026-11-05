@@ -122,6 +122,10 @@ builder.Services
     .AddOptions<OpcoesEmail>()
     .Bind(builder.Configuration.GetSection(OpcoesEmail.Secao));
 builder.Services.AddSingleton<IEnviadorEmail, EnviadorEmailSmtp>();
+// Destinatários do FECHAMENTO vêm de um txt editável a quente (Email:CaminhoDestinatarios, um
+// e-mail por linha, relido a cada envio). Precedência sobre Email:Destinatarios; se ambos vazios,
+// o e-mail do pacote não é enviado (só loga). Consumida pelo FechadorPacote.
+builder.Services.AddSingleton<FonteDestinatariosFechamento>();
 
 // Monitoramento/telemetria (seção "Monitoramento"). A LISTA de destinatários do resumo NÃO
 // fica aqui (vive em CaminhoDestinatarios, um txt fora do git). SMTP é reaproveitado do bloco Email.
