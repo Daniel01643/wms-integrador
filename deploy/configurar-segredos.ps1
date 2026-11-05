@@ -58,6 +58,7 @@ param(
     [securestring] $SmtpUsuario,
     [securestring] $SmtpSenha,
     [string] $SmtpRemetente,
+    [string] $SmtpRemetenteNome,
     [string] $SmtpDestinatarios
 )
 
@@ -84,6 +85,7 @@ if (-not $WmsSenha)   { $WmsSenha   = Read-Host -AsSecureString -Prompt 'WMS Sen
 if (-not $SmtpUsuario){ $SmtpUsuario= Read-Host -AsSecureString -Prompt 'SMTP Usuario (vazio = pular)' }
 if (-not $SmtpSenha)  { $SmtpSenha  = Read-Host -AsSecureString -Prompt 'SMTP Senha   (vazio = pular)' }
 if (-not $SmtpRemetente)     { $SmtpRemetente     = Read-Host -Prompt 'SMTP Remetente (ex. kitwms@friozem.com.br; vazio = pular)' }
+if (-not $SmtpRemetenteNome) { $SmtpRemetenteNome = Read-Host -Prompt 'SMTP Nome do remetente (ex. NFS KIT - WMS; vazio = padrao)' }
 if (-not $SmtpDestinatarios) { $SmtpDestinatarios = Read-Host -Prompt 'Destinatarios do fechamento, separados por ; (vazio = pular)' }
 
 $wmsUserTxt  = ConvertFrom-Secure $WmsUsuario
@@ -125,6 +127,7 @@ if ($smtpUserTxt -and $smtpSenhaTxt) {
     if ($PSCmdlet.ShouldProcess($emailJson, 'Gravar bloco Email (SMTP 587 sem TLS)')) {
         $remetenteFinal = if ($SmtpRemetente) { $SmtpRemetente } else { $smtpUserTxt }
         $destinatariosFinal = if ($SmtpDestinatarios) { $SmtpDestinatarios } else { '' }
+        $remetenteNomeFinal = if ($SmtpRemetenteNome) { $SmtpRemetenteNome } else { 'KitWms Integrador' }
         $email = [ordered]@{
             Habilitado      = $true
             Host            = 'smtp.friozem.com.br'
@@ -133,7 +136,7 @@ if ($smtpUserTxt -and $smtpSenhaTxt) {
             Usuario         = $smtpUserTxt
             Senha           = $smtpSenhaTxt
             Remetente       = $remetenteFinal
-            RemetenteNome   = 'KitWms Integrador'
+            RemetenteNome   = $remetenteNomeFinal
             Destinatarios   = $destinatariosFinal
             AssuntoPrefixo  = '[KitWms]'
             EnviarQuando    = 'Sempre'
