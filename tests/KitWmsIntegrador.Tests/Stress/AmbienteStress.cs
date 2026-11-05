@@ -96,9 +96,14 @@ public sealed class AmbienteStress : IDisposable
         var telemetria = new RegistradorTelemetria(
             Options.Create(Pastas), Options.Create(new OpcoesMonitoramento()),
             NullLogger<RegistradorTelemetria>.Instance);
+        // Fallback de destinatários (Email:Destinatarios) para que o e-mail do pacote seja sempre
+        // emitido no stress (a integridade compara e-mails == pacotes).
+        var opcoesEmail = Options.Create(new OpcoesEmail { Destinatarios = "stress@exemplo.com" });
+        var destinatarios = new FonteDestinatariosFechamento(
+            opcoesEmail, telemetria, NullLogger<FonteDestinatariosFechamento>.Instance);
         var fechador = new FechadorPacote(
-            Gerador, Email, Options.Create(new OpcoesEmail()), opcoesRelatorio, telemetria,
-            Options.Create(new OpcoesMonitoramento()), NullLogger<FechadorPacote>.Instance);
+            Gerador, Email, opcoesEmail, opcoesRelatorio, telemetria,
+            Options.Create(new OpcoesMonitoramento()), destinatarios, NullLogger<FechadorPacote>.Instance);
         Gerenciador = new GerenciadorPacote(
             clock, Options.Create(Pastas), Options.Create(Pacote), detector, processador, diario, fechador,
             NullLogger<GerenciadorPacote>.Instance);
