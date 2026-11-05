@@ -1,0 +1,7 @@
+{
+  "task_id": "task-monitoramento",
+  "task_description": "Implementar monitoramento/telemetria do agente integrador: coleta por pacote em JSONL + saude do servico (uptime/reinicios), agendador semanal idempotente (segunda 12:00 local, slot perdido recuperavel), agregacao do periodo (frequencia por dia da semana e faixa Manha/Tarde/Noite, performance, chamadas WMS best-effort, erros por categoria), e envio de um resumo semanal com corpo HTML estilo Friozem + PDF anexo (PdfSharpCore) reaproveitando IEnviadorEmail/SMTP, com destinatarios em arquivo txt dedicado (fora do git, recarregado a cada envio) e fallback para disco quando SMTP desabilitado. Aditivo: nao altera Orquestrador/construtores/cliente WMS; I60 permanece desligada; nao toca docs/diario nem docs/controle.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}
