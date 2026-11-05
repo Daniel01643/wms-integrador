@@ -1,0 +1,17 @@
+{
+  "Email": {
+    "_comentario": "MOLDE do email.settings.json de PRODUCAO/VALIDACAO. Copie para C:\\Friozem\\importacao_notas\\config\\email.settings.json (fora do git, ACL restrita) e preencha Usuario/Senha. SMTP validado no servidor: smtp.friozem.com.br:587, SEM TLS implicito (UsarTls=false; STARTTLS do SmtpClient). A senha tambem pode vir da env Email__Senha. Preferir gerar este arquivo via configurar-segredos.ps1 (nunca digitar segredo em arquivo versionado).",
+    "Habilitado": true,
+    "Host": "smtp.friozem.com.br",
+    "Porta": 587,
+    "UsarTls": false,
+    "Usuario": "kitwms@friozem.com.br",
+    "Senha": "",
+    "Remetente": "kitwms@friozem.com.br",
+    "RemetenteNome": "KitWms Integrador",
+    "Destinatarios": "ti@friozem.com.br",
+    "AssuntoPrefixo": "[KitWms]",
+    "EnviarQuando": "Sempre",
+    "TimeoutSegundos": 60
+  }
+}

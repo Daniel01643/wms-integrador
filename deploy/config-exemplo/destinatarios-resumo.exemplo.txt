@@ -1,0 +1,17 @@
+# Modelo do arquivo de destinatarios do RESUMO SEMANAL (monitoramento).
+#
+# Copie para C:\Friozem\importacao_notas\config\destinatarios-resumo.txt no servidor (fora do git).
+# O caminho e apontado por Monitoramento:CaminhoDestinatarios no appsettings.Production.json.
+#
+# Regras:
+#   - um e-mail por linha;
+#   - linhas em branco sao ignoradas;
+#   - linhas iniciadas por '#' sao comentarios;
+#   - o arquivo e relido a cada envio (edite e salve; efeito no proximo envio, sem reiniciar).
+#
+# Se ausente, vazio ou ilegivel, o resumo vai para ti@friozem.com.br (padrao) e um aviso vai ao log.
+#
+# DECISAO EM ABERTO (d): confirmar a lista final de destinatarios do resumo em producao.
+
+ti@friozem.com.br
+# gestor@friozem.com.br
