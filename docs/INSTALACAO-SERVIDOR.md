@@ -45,7 +45,8 @@ C:\Friozem\importacao_notas\          (APP — binários, config, logs)
 ├── config\                  (FORA do git, ACL restrita — segredos e overrides)
 │   ├── appsettings.Production.json
 │   ├── email.settings.json
-│   └── destinatarios-resumo.txt
+│   ├── destinatarios-resumo.txt
+│   └── destinatarios-fechamento.txt
 ├── data\                    (conveniência; a Entrada real fica em C:\Friozem\kitbrf)
 ├── logs\                    (worker.out.log / worker.err.log, rotação pelo NSSM)
 ├── backups\                 (zips do current anterior antes de cada virada)
@@ -170,7 +171,11 @@ para herdá-la.
 > default local `C:\Friozem\kitbrf` (não muda na virada); ajuste `Wms:BaseUrl` (homolog na
 > validação), destinatários etc. O molde marca os pontos de virada com `_VIRADA` (apenas
 > WMS/credenciais/destinatários — a pasta de entrada **não** é um deles). Copie também
-> `destinatarios-resumo.exemplo.txt` para `config\destinatarios-resumo.txt`.
+> `destinatarios-resumo.exemplo.txt` para `config\destinatarios-resumo.txt` **e**
+> `destinatarios-fechamento.exemplo.txt` para `config\destinatarios-fechamento.txt`, apontando
+> `Monitoramento:CaminhoDestinatarios` e `Email:CaminhoDestinatarios` para eles (o molde de
+> `appsettings.Production.json` já traz os dois caminhos). O txt de fechamento tem **precedência**
+> sobre `Email:Destinatarios` (que vira fallback; se ambos vazios, o e-mail do pacote não é enviado).
 
 ### 3.6 (Opcional) habilitar TLS 1.2 se o handshake com o WMS falhar
 Só se o diagnóstico/validação indicar falha de TLS no handshake com o WMS. É **reversível** e exige
@@ -204,7 +209,8 @@ A virada é só troca de valores de config + restart:
    ```powershell
    .\deploy\configurar-segredos.ps1 -Fase Producao
    ```
-3. Confirme destinatários de produção (`Email:Destinatarios` e `config\destinatarios-resumo.txt`).
+3. Confirme destinatários de produção (fechamento em `config\destinatarios-fechamento.txt`, com
+   `Email:Destinatarios` como fallback; resumo em `config\destinatarios-resumo.txt`).
 4. Reinicie:
    ```powershell
    .\deploy\servico.ps1 -Acao Restart
