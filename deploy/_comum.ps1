@@ -98,10 +98,10 @@ function Test-NssmServico {
         [Parameter(Mandatory)] [string] $NssmPath,
         [Parameter(Mandatory)] [string] $NomeServico
     )
-    $saida = & $NssmPath 'status' $NomeServico 2>&1
-    $code = $LASTEXITCODE
-    # nssm status de servico inexistente retorna code != 0 com mensagem de erro.
-    return ($code -eq 0)
+# Detecta pelo Gerenciador de Servicos do Windows (confiavel), nao pelo exit code do nssm
+    # (que, sob WinRM/PS 4.0, nem sempre e capturado e levava a "Can't open service!").
+    $svc = Get-Service -Name $NomeServico -ErrorAction SilentlyContinue
+    return ($null -ne $svc)
 }
 
 function Set-NssmParam {
