@@ -33,6 +33,9 @@ email.settings.json
 # nunca versionada). O modelo versionado e docs/exemplos/destinatarios-resumo.exemplo.txt.
 destinatarios.txt
 ultimo-resumo.txt
+# Lista REAL de destinatarios do e-mail de FECHAMENTO do pacote (fica em config\, nunca
+# versionada). O modelo versionado e deploy/config-exemplo/destinatarios-fechamento.exemplo.txt.
+destinatarios-fechamento.txt
 # Dados de telemetria (gerados em runtime ao lado do Estado; nunca no repo).
 telemetria.jsonl
 servico.jsonl
