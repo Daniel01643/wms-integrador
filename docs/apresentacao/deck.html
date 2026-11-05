@@ -229,7 +229,7 @@
             <li>Valor total, pesos e volumes</li>
             <li>Dados adicionais da nota</li>
           </ul>
-          <p class="foot-note">Enviados nos campos de atributo e observação do documento de carga, para consulta no WMS. A exibição em tela ainda será confirmada em homologação.</p>
+          <p class="foot-note">Carregados na própria nota de entrada (I50) para rastreabilidade visual no WMS. A I60 foi descontinuada do fluxo (decisão fechada).</p>
         </div>
         <div class="box b">
           <span class="tag b">RELATÓRIO DO PACOTE</span>
@@ -321,28 +321,29 @@
           <ul>
             <li>Leitura e agrupamento dos XMLs</li>
             <li>Comunicação com o WMS, testada ao vivo em homologação</li>
-            <li>Tratamento automático de empresa e produto (testado com simulações)</li>
+            <li>Tratamento automático de empresa e produto (pré-condição reativa)</li>
             <li>Relatório HTML e PDF</li>
-            <li>Pasta monitorada, organização de arquivos e e-mail, em ajustes finais</li>
-            <li>Mais de 200 testes automatizados</li>
+            <li>Pasta monitorada, organização de arquivos em subpastas por pacote e e-mail — concluídos</li>
+            <li>Operação completa com lote real (validada em homologação)</li>
+            <li>Envio de e-mail de fechamento (SMTP configurado e testado)</li>
+            <li>Dados fiscais na I50 (I60 descontinuada)</li>
+            <li>Mais de 260 testes automatizados</li>
           </ul>
         </div>
         <div class="box a">
           <span class="tag a">AINDA NÃO VALIDADO</span>
           <ul>
-            <li>Operação completa com um lote real</li>
-            <li>Envio real de e-mail (servidor SMTP ainda não configurado)</li>
             <li>Execução como serviço no servidor de produção</li>
-            <li>Exibição dos dados fiscais no documento de carga; chamado aberto com o fornecedor do WMS</li>
+            <li>Piloto em produção com lote real</li>
           </ul>
         </div>
         <div class="box b">
           <span class="tag b">PRÓXIMOS PASSOS</span>
           <ul>
-            <li>Piloto em homologação com um lote real</li>
-            <li>Configurar SMTP e destinatários</li>
-            <li>Instalar como serviço no servidor</li>
-            <li>Acompanhar os primeiros pacotes e ajustar tempos</li>
+            <li>Gerar pacote de instalação e instalar como serviço (NSSM) no servidor</li>
+            <li>Configurar credenciais de produção (WMS e SMTP)</li>
+            <li>Piloto em produção e ajuste de tempos</li>
+            <li>Planejar atualização do SO do servidor</li>
           </ul>
         </div>
       </div>
