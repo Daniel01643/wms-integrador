@@ -113,7 +113,9 @@ public sealed class AmbientePacote : IDisposable
 
     public GravadorEmail Email { get; } = new();
 
-    public OpcoesEmail OpcoesDeEmail { get; } = new();
+    // Fallback de destinatários (Email:Destinatarios) para que o e-mail do pacote seja emitido por
+    // padrão nos testes que não exercitam explicitamente a fonte de destinatários do fechamento.
+    public OpcoesEmail OpcoesDeEmail { get; } = new() { Destinatarios = "fechamento@exemplo.com" };
 
     public IGeradorRelatorio? GeradorSubstituto { get; set; }
 
@@ -176,6 +178,8 @@ public sealed class AmbientePacote : IDisposable
             Options.Create(Pastas),
             Options.Create(new OpcoesMonitoramento()),
             NullLogger<RegistradorTelemetria>.Instance);
+        var destinatarios = new FonteDestinatariosFechamento(
+            Options.Create(OpcoesDeEmail), telemetria, NullLogger<FonteDestinatariosFechamento>.Instance);
         var fechador = new FechadorPacote(
             gerador,
             Email,
@@ -183,6 +187,7 @@ public sealed class AmbientePacote : IDisposable
             Options.Create(new OpcoesRelatorio { PastaSaida = Relatorios }),
             telemetria,
             Options.Create(new OpcoesMonitoramento()),
+            destinatarios,
             NullLogger<FechadorPacote>.Instance);
         return new GerenciadorPacote(
             Clock, Options.Create(Pastas), Options.Create(Pacote), detector, processador, diario, fechador,
