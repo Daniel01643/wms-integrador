@@ -36,3 +36,10 @@ ultimo-resumo.txt
 # Dados de telemetria (gerados em runtime ao lado do Estado; nunca no repo).
 telemetria.jsonl
 servico.jsonl
+
+# Etapa 9 — artefatos de publish/deploy (gerados localmente, nunca versionados)
+artifacts/
+deploy/tools/nssm.exe
+# config REAL com segredos, se alguem copiar para o repo por engano (o molde SEM segredos
+# fica em deploy/config-exemplo/ e E versionado)
+deploy/config/
