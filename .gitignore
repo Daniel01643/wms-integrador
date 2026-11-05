@@ -28,3 +28,11 @@ packages/
 
 # Config de e-mail com segredos
 email.settings.json
+
+# Monitoramento: lista REAL de destinatarios do resumo semanal (fica ao lado do Estado,
+# nunca versionada). O modelo versionado e docs/exemplos/destinatarios-resumo.exemplo.txt.
+destinatarios.txt
+ultimo-resumo.txt
+# Dados de telemetria (gerados em runtime ao lado do Estado; nunca no repo).
+telemetria.jsonl
+servico.jsonl

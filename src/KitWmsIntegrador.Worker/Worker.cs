@@ -23,6 +23,7 @@ public class Worker : BackgroundService
     private readonly LimpadorPastas _limpador;
     private readonly IClock _clock;
     private readonly RegistradorTelemetria _telemetria;
+    private readonly ServicoResumoSemanal _servicoResumo;
     private readonly OpcoesPasta _pastas;
     private readonly OpcoesPacote _pacote;
     private readonly OpcoesRelatorio _relatorio;
@@ -35,6 +36,7 @@ public class Worker : BackgroundService
         LimpadorPastas limpador,
         IClock clock,
         RegistradorTelemetria telemetria,
+        ServicoResumoSemanal servicoResumo,
         IOptions<OpcoesPasta> pastas,
         IOptions<OpcoesPacote> pacote,
         IOptions<OpcoesRelatorio> relatorio,
@@ -47,6 +49,7 @@ public class Worker : BackgroundService
         _limpador = limpador;
         _clock = clock;
         _telemetria = telemetria;
+        _servicoResumo = servicoResumo;
         _pastas = pastas.Value;
         _pacote = pacote.Value;
         _monitoramento = monitoramento.Value;
@@ -106,6 +109,10 @@ public class Worker : BackgroundService
                 }
 
                 await _gerenciador.CicloAsync(stoppingToken).ConfigureAwait(false);
+
+                // Resumo semanal (aditivo): agendador idempotente dentro do Worker. Exceção
+                // é apenas logada pelo próprio serviço; não atrapalha a cadência do pacote.
+                await _servicoResumo.VerificarEEnviarAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

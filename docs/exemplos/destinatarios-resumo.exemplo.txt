@@ -1,0 +1,16 @@
+# Modelo do arquivo de destinatarios do RESUMO SEMANAL de monitoramento.
+#
+# Copie este arquivo para <Estado>\telemetria\destinatarios.txt (ou para o caminho definido em
+# Monitoramento:CaminhoDestinatarios) no servidor. O arquivo REAL NAO vai para o git.
+#
+# Regras:
+#   - um e-mail por linha;
+#   - linhas em branco sao ignoradas;
+#   - linhas iniciadas por '#' sao comentarios;
+#   - o arquivo e relido a cada envio (edite e salve; efeito no proximo envio, sem reiniciar).
+#
+# Se o arquivo estiver ausente, vazio ou ilegivel, o resumo vai para ti@friozem.com.br (padrao)
+# e um aviso e registrado no log.
+
+ti@friozem.com.br
+# gestor@friozem.com.br

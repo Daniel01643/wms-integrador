@@ -179,7 +179,90 @@ SChannel do sistema (validar no servidor).
 }
 ```
 
-## 6. Suposições e pontos em aberto
+## 6. Monitoramento / Resumo semanal
+
+O agente coleta telemetria de uso e saúde e envia, por e-mail, um **resumo semanal** do uso do
+sistema (frequência, performance, chamadas ao WMS, erros e disponibilidade). Tudo roda **dentro do
+Worker** (sem Task Scheduler), em horário **local** do servidor. A seção de configuração é
+`Monitoramento` no `appsettings.json`.
+
+### 6.1. O que é coletado e onde fica
+
+- **`telemetria.jsonl`** — uma linha por **pacote fechado** (totais por status, média de notas por
+  pacote, tempos médios, tentativas, chamadas ao WMS e erros por categoria).
+- **`servico.jsonl`** — eventos de **saúde** do serviço (ex.: `servico-iniciado` na partida, com a
+  versão do assembly).
+
+Os arquivos ficam **ao lado do `Estado`**, na pasta `telemetria` (`<Estado>\telemetria`), **fora** de
+`Processados`/`Erro`. A pasta é criada sob demanda e nunca é tocada pela limpeza. A escrita é append +
+flush (padrão do diário do pacote) e a leitura é tolerante a uma linha truncada no fim.
+
+> As **chamadas ao WMS** são contadas de forma **aproximada** (estimadas pelo histórico textual de cada
+> nota, por interface I50/I10/I30); o resumo sinaliza quando a contagem é aproximada.
+
+### 6.2. Agendamento, idempotência e slot perdido
+
+- Envio **fixo**: toda **segunda-feira às 12:00** (horário local). Configurável em
+  `Monitoramento:DiaDaSemana` e `Monitoramento:Hora`.
+- A cada ciclo do Worker o agendador calcula o **slot** da semana corrente (o instante dia+hora
+  configurados). Envia quando `agora >= slot` e aquele slot ainda não foi enviado.
+- **Idempotência**: o último slot enviado é gravado em `<telemetria>\ultimo-resumo.txt`; o mesmo slot
+  **não** é reenviado. Na semana seguinte um novo slot reabre o envio.
+- **Slot perdido**: se o serviço estava parado no horário do slot e voltou **depois** (ainda na mesma
+  semana), o resumo é enviado com atraso no primeiro ciclo após a volta — nenhuma semana é pulada por
+  uma parada curta.
+
+### 6.3. Faixas do dia
+
+A frequência de uso é distribuída por dia da semana e por **faixa do dia** (horário local, bordas
+fixas):
+
+- **Manhã**: 06:00–11:59
+- **Tarde**: 12:00–17:59
+- **Noite**: 18:00–05:59 (atravessa a meia-noite)
+
+### 6.4. Configuração (seção `Monitoramento`)
+
+A seção guarda **apenas** parâmetros e **o caminho** do arquivo de destinatários — **nunca** a lista de
+e-mails. O SMTP é **reaproveitado** do bloco `Email` (mesmo servidor/credenciais do e-mail de
+fechamento). Campos:
+
+- `Habilitado` (padrão `true`): liga a coleta e o resumo.
+- `DiaDaSemana` (padrão `Monday`) e `Hora` (`"HH:mm"`, padrão `"12:00"`): quando enviar.
+- `PeriodoDias` (padrão `7`): janela do resumo.
+- `AssuntoPrefixo` (padrão `"[KitWms]"`): prefixo do assunto.
+- `CaminhoTelemetria` (vazio = `<Estado>\telemetria`): onde a telemetria é gravada.
+- `CaminhoDestinatarios` (vazio = `<telemetria>\destinatarios.txt`): o arquivo da lista de
+  destinatários (fora do git).
+
+### 6.5. Destinatários (arquivo txt editável a quente)
+
+A lista de destinatários **não** fica no `appsettings.json`: vive num arquivo txt dedicado
+(`<telemetria>\destinatarios.txt` por padrão, ou o caminho em `CaminhoDestinatarios`), que **não** é
+versionado. Use `docs/exemplos/destinatarios-resumo.exemplo.txt` como modelo. O arquivo é **relido a
+cada envio**, então editá-lo tem efeito **no próximo envio**, sem recompilar nem reiniciar o serviço.
+
+Formato: **um e-mail por linha**; linhas em branco são ignoradas; linhas iniciadas por `#` são
+comentários. Exemplo:
+
+```text
+# Destinatarios do resumo semanal — um e-mail por linha. '#' comenta.
+ti@friozem.com.br
+gestor@friozem.com.br
+```
+
+**Incluir** um destinatário: acrescente uma linha com o e-mail e salve. **Excluir**: apague a linha (ou
+comente-a com `#`) e salve. Se o arquivo estiver **ausente, vazio ou ilegível**, o resumo é enviado ao
+padrão mínimo `ti@friozem.com.br` e um aviso é registrado no log. Não há subcomando de gerência: o txt é
+o único mecanismo.
+
+### 6.6. Fallback em disco (SMTP desligado)
+
+Se o SMTP não estiver configurado (bloco `Email` desabilitado ou sem `Host`/`Remetente`) ou o envio
+falhar, o resumo **não falha**: o HTML e o PDF são gravados em `<telemetria>\resumos\` como
+`resumo_<yyyyMMdd_HHmm>.html` e `.pdf`, e o fato é registrado no log.
+
+## 7. Suposições e pontos em aberto
 
 - O texto da resposta da I50 para duplicata contém "já existe" (não verificado no WMS). Se for outro,
   ajuste só `ClassificadorRetorno.EhJaExiste`.

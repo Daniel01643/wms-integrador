@@ -130,6 +130,14 @@ builder.Services
     .Bind(builder.Configuration.GetSection(OpcoesMonitoramento.Secao));
 builder.Services.AddSingleton<RegistradorTelemetria>();
 
+// Resumo semanal (FEAT-003): agendador idempotente dentro do Worker, destinatários lidos de um
+// txt dedicado (fora do git, recarregado a cada envio) e fallback em disco quando o SMTP está
+// desligado. AgendadorResumoSemanal é estático (sem registro).
+builder.Services.AddSingleton<MarcaUltimoResumo>();
+builder.Services.AddSingleton<FonteDestinatariosResumo>();
+builder.Services.AddSingleton<EnviadorResumoSemanal>();
+builder.Services.AddSingleton<ServicoResumoSemanal>();
+
 builder.Services.AddSingleton<ClassificadorCategoriaErro>();
 builder.Services.AddSingleton<OrganizadorArquivos>();
 builder.Services.AddSingleton<LimpadorPastas>();
