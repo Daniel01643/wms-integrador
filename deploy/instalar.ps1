@@ -162,7 +162,6 @@ $params = [ordered]@{
     'AppStdoutCreationDisposition' = '4'   # OPEN_ALWAYS (append)
     'AppStderrCreationDisposition' = '4'
     'Start'                = 'SERVICE_DELAYED_AUTO_START'
-    'AppExit Default'      = 'Restart'
     'AppRestartDelay'      = '15000'       # 15 s entre reinicios
     'DisplayName'          = $NomeServico
     'Description'          = 'KitWmsIntegrador - importacao automatica de NF-e para o WMS (Friozem).'
@@ -176,6 +175,11 @@ foreach ($k in $params.Keys) {
     }
     Set-NssmParam -NssmPath $nssm -NomeServico $NomeServico -Parametro $k -Valor ([string]$params[$k])
 }
+
+# Recuperacao apos falha: 'AppExit Default Restart' exige 'AppExit' e 'Default' como tokens
+# SEPARADOS (sintaxe do NSSM). Aplicado fora do laco via -SubParametro para nao virar um unico
+# argumento com espaco. Confirmar depois com: nssm get <servico> AppExit Default -> 'Restart'.
+Set-NssmParam -NssmPath $nssm -NomeServico $NomeServico -Parametro 'AppExit' -SubParametro 'Default' -Valor 'Restart'
 
 # --- 6. ACL restrita de config\ ---
 Write-Passo 'Aplicando ACL restrita em config\...'

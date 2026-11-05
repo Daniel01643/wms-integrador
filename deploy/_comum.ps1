@@ -108,30 +108,46 @@ function Set-NssmParam {
     <#
     .SYNOPSIS Define um parametro do servico via "nssm set" de forma IDEMPOTENTE
               (le o valor atual e so grava se diferente). Respeita -WhatIf do chamador.
+    .PARAMETER SubParametro
+        Sub-token opcional de parametros NSSM com multiplos argumentos (ex. 'AppExit Default' vira
+        -Parametro 'AppExit' -SubParametro 'Default'). Quando informado, o get/set usa
+        'nssm (get|set) <svc> <Parametro> <SubParametro> [<Valor>]' com tokens SEPARADOS, como a
+        sintaxe do NSSM exige.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)] [string] $NssmPath,
         [Parameter(Mandatory)] [string] $NomeServico,
         [Parameter(Mandatory)] [string] $Parametro,
-        [Parameter(Mandatory)] [AllowEmptyString()] [string] $Valor
+        [Parameter(Mandatory)] [AllowEmptyString()] [string] $Valor,
+        [string] $SubParametro
     )
+
+    $argsGet = @('get', $NomeServico, $Parametro)
+    $argsSet = @('set', $NomeServico, $Parametro)
+    $rotulo  = $Parametro
+    if ($SubParametro) {
+        $argsGet += $SubParametro
+        $argsSet += $SubParametro
+        $rotulo   = "$Parametro $SubParametro"
+    }
+    $argsSet += $Valor
 
     $atual = ''
     try {
-        $atual = (Invoke-Nssm -NssmPath $NssmPath -Argumentos @('get', $NomeServico, $Parametro) -TolerarFalha)
+        $atual = (Invoke-Nssm -NssmPath $NssmPath -Argumentos $argsGet -TolerarFalha)
     } catch {
         $atual = ''
     }
 
     if ($atual -eq $Valor) {
-        Write-Passo ("NSSM {0} ja = '{1}' (sem alteracao)" -f $Parametro, $Valor) -Nivel Info
+        Write-Passo ("NSSM {0} ja = '{1}' (sem alteracao)" -f $rotulo, $Valor) -Nivel Info
         return
     }
 
-    if ($PSCmdlet.ShouldProcess("$NomeServico/$Parametro", "nssm set -> '$Valor'")) {
-        [void](Invoke-Nssm -NssmPath $NssmPath -Argumentos @('set', $NomeServico, $Parametro, $Valor))
-        Write-Passo ("NSSM {0} definido = '{1}'" -f $Parametro, $Valor) -Nivel Ok
+    if ($PSCmdlet.ShouldProcess("$NomeServico/$rotulo", "nssm set -> '$Valor'")) {
+        [void](Invoke-Nssm -NssmPath $NssmPath -Argumentos $argsSet)
+        Write-Passo ("NSSM {0} definido = '{1}'" -f $rotulo, $Valor) -Nivel Ok
     }
 }
 
