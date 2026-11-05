@@ -5,6 +5,9 @@
 > raiz do app). Os scripts de deploy ficam em `deploy\`; o passo a passo completo (RDP e WinRM,
 > publicar/instalar/segredos/TLS/validar/rollback/remover) está em
 > [`docs\INSTALACAO-SERVIDOR.md`](INSTALACAO-SERVIDOR.md).
+>
+> **Manuais (Etapa 10):** guias por público (usuário, técnico nível 1 e agente de IA) estão em
+> [`docs\manuais\`](manuais/README.md).
 
 O serviço (hospedado por NSSM) observa a pasta de entrada continuamente, integra os XMLs de NF-e
 ao WMS por transporte, move cada arquivo e, ao terminar o pacote, gera o relatório (HTML + PDF) e
