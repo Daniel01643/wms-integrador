@@ -30,8 +30,18 @@
     Nome da release (subpasta de app\releases). Default derivado da origem/data.
 
 .PARAMETER ContaServico
-    Conta sob a qual o servico roda (default 'NT AUTHORITY\SYSTEM'). Para alcancar share UNC pode
-    ser necessaria uma conta de dominio (ver docs\INSTALACAO-SERVIDOR.md).
+    Conta sob a qual o servico roda (default 'NT AUTHORITY\SYSTEM'). Como a pasta de entrada e
+    LOCAL (default C:\Friozem\kitbrf), LocalSystem basta. So seria necessaria conta de dominio se,
+    hipoteticamente, a entrada passasse a ser um share em OUTRA maquina (ver docs\INSTALACAO-SERVIDOR.md).
+
+.PARAMETER PastaEntrada
+    Pasta LOCAL de entrada de XMLs (default C:\Friozem\kitbrf). Criada por este script; e o valor
+    default de Pastas:Entrada. Para expor na rede, rode compartilhar-pasta.ps1 (ou use
+    -CompartilharEntrada).
+
+.PARAMETER CompartilharEntrada
+    Se presente, chama compartilhar-pasta.ps1 para expor a PastaEntrada na rede via SMB (share
+    'kitbrf', gravacao para 'Authenticated Users' por padrao).
 
 .PARAMETER HabilitarTls12
     Se presente, habilita o TLS 1.2 Client no registro (COM confirmacao ShouldProcess). Reversivel.
@@ -60,6 +70,8 @@ param(
     [string] $ReleaseDir,
     [string] $Versao,
     [string] $ContaServico = 'NT AUTHORITY\SYSTEM',
+    [string] $PastaEntrada = 'C:\Friozem\kitbrf',
+    [switch] $CompartilharEntrada,
     [switch] $HabilitarTls12,
     [switch] $IniciarServico
 )
@@ -97,6 +109,11 @@ $pastaTools     = Join-Path $RaizInstalacao 'tools'
 foreach ($p in @($RaizInstalacao, $pastaApp, $pastaReleases, $pastaConfig, $pastaData, $pastaLogs, $pastaBackups, $pastaTools)) {
     [void](Confirm-Directory -Caminho $p)
 }
+
+# Pasta LOCAL de entrada de XMLs (fora da raiz do app). As subpastas Processados/Erro/Estado/
+# telemetria sao criadas pelo proprio servico sob demanda. Esta e a Pastas:Entrada default.
+Write-Passo ("Pasta de entrada (local): {0}" -f $PastaEntrada)
+[void](Confirm-Directory -Caminho $PastaEntrada)
 
 # --- 2. Expandir/copiar a release ---
 $pastaReleaseAlvo = Join-Path $pastaReleases $Versao
@@ -184,6 +201,19 @@ Set-NssmParam -NssmPath $nssm -NomeServico $NomeServico -Parametro 'AppExit' -Su
 # --- 6. ACL restrita de config\ ---
 Write-Passo 'Aplicando ACL restrita em config\...'
 Set-ConfigAcl -Caminho $pastaConfig -ContaServico $ContaServico
+
+# --- 6b. Compartilhar a pasta de entrada na rede (opcional) ---
+if ($CompartilharEntrada) {
+    Write-Passo 'Compartilhamento da pasta de entrada solicitado (-CompartilharEntrada).' -Nivel Info
+    $scriptShare = Join-Path $PSScriptRoot 'compartilhar-pasta.ps1'
+    if (-not (Test-Path -LiteralPath $scriptShare)) {
+        Write-Passo ("compartilhar-pasta.ps1 nao encontrado em {0}; pule ou rode-o manualmente." -f $PSScriptRoot) -Nivel Alerta
+    } else {
+        & $scriptShare -CaminhoLocal $PastaEntrada -WhatIf:$WhatIfPreference
+    }
+} else {
+    Write-Passo 'Pasta de entrada NAO compartilhada (rode compartilhar-pasta.ps1 como passo separado, ou use -CompartilharEntrada).' -Nivel Info
+}
 
 # --- 7. TLS 1.2 (opcional, com confirmacao) ---
 if ($HabilitarTls12) {

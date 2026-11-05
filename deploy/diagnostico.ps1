@@ -21,8 +21,12 @@
 .PARAMETER SmtpHost / SmtpPort
     Host/porta do SMTP a testar. Default smtp.friozem.com.br:587.
 
-.PARAMETER ShareEntrada
-    Caminho UNC da pasta de entrada (opcional). Se informado, testa leitura/escrita.
+.PARAMETER PastaEntrada
+    Pasta LOCAL de entrada de XMLs (default C:\Friozem\kitbrf). Testa existencia e escrita e, se
+    possivel, se o compartilhamento SMB 'kitbrf' existe.
+
+.PARAMETER NomeShareEntrada
+    Nome do compartilhamento SMB da pasta de entrada a verificar (default 'kitbrf').
 
 .EXAMPLE
     # LOCAL (RDP no servidor):
@@ -42,7 +46,8 @@ param(
     [int]    $WmsPort = 8888,
     [string] $SmtpHost = 'smtp.friozem.com.br',
     [int]    $SmtpPort = 587,
-    [string] $ShareEntrada = ''
+    [string] $PastaEntrada = 'C:\Friozem\kitbrf',
+    [string] $NomeShareEntrada = 'kitbrf'
 )
 
 Set-StrictMode -Version Latest
@@ -176,24 +181,37 @@ if (Test-Path -LiteralPath $pastaConfig) {
     Write-Host '  config\ ainda nao existe.' -ForegroundColor Gray
 }
 
-# --- Share de entrada (opcional) ---
-if ($ShareEntrada) {
-    Secao 'Share de entrada (UNC)'
-    $podeLer = Test-Path -LiteralPath $ShareEntrada
-    $corShare = if ($podeLer) { 'Green' } else { 'Yellow' }
-    Write-Host ("  Leitura {0} : {1}" -f $ShareEntrada, $podeLer) -ForegroundColor $corShare
-    if ($podeLer) {
-        $marcador = Join-Path $ShareEntrada ('.diag_write_test_{0}.tmp' -f ([guid]::NewGuid().ToString('N')))
-        try {
-            Set-Content -LiteralPath $marcador -Value 'diag' -ErrorAction Stop
-            Remove-Item -LiteralPath $marcador -Force -ErrorAction SilentlyContinue
-            Write-Host '  Escrita no share : OK' -ForegroundColor Green
-        } catch {
-            Add-Alerta ("Sem permissao de ESCRITA no share {0} (a conta do servico precisa de RW)." -f $ShareEntrada)
+# --- Pasta de entrada (LOCAL) e compartilhamento SMB ---
+Secao 'Pasta de entrada (local) e compartilhamento SMB'
+$entradaExiste = Test-Path -LiteralPath $PastaEntrada
+$corEntrada = if ($entradaExiste) { 'Green' } else { 'Yellow' }
+Write-Host ("  Pasta local {0} : {1}" -f $PastaEntrada, $entradaExiste) -ForegroundColor $corEntrada
+if ($entradaExiste) {
+    $marcador = Join-Path $PastaEntrada ('.diag_write_test_{0}.tmp' -f ([guid]::NewGuid().ToString('N')))
+    try {
+        Set-Content -LiteralPath $marcador -Value 'diag' -ErrorAction Stop
+        Remove-Item -LiteralPath $marcador -Force -ErrorAction SilentlyContinue
+        Write-Host '  Escrita na pasta : OK' -ForegroundColor Green
+    } catch {
+        Add-Alerta ("Sem permissao de ESCRITA na pasta de entrada {0} (o servico, LocalSystem, precisa gravar)." -f $PastaEntrada)
+    }
+} else {
+    Write-Host '  (A pasta de entrada ainda nao existe — sera criada por instalar.ps1.)' -ForegroundColor Gray
+}
+
+# Compartilhamento SMB (opcional; so verifica se os cmdlets existem).
+if (Get-Command 'Get-SmbShare' -ErrorAction SilentlyContinue) {
+    $share = Get-SmbShare -Name $NomeShareEntrada -ErrorAction SilentlyContinue
+    if ($share) {
+        Write-Host ("  Share SMB '{0}' : presente -> {1}" -f $NomeShareEntrada, $share.Path) -ForegroundColor Green
+        if ($share.Path -ne $PastaEntrada) {
+            Add-Alerta ("Share '{0}' aponta para '{1}', diferente da pasta de entrada '{2}'." -f $NomeShareEntrada, $share.Path, $PastaEntrada)
         }
     } else {
-        Add-Alerta ("Share {0} inalcancavel/sem leitura." -f $ShareEntrada)
+        Write-Host ("  Share SMB '{0}' : ausente (rode compartilhar-pasta.ps1 para expor na rede)." -f $NomeShareEntrada) -ForegroundColor Gray
     }
+} else {
+    Write-Host '  (Cmdlets SmbShare indisponiveis — verificacao do share pulada.)' -ForegroundColor Gray
 }
 
 # --- Resumo ---

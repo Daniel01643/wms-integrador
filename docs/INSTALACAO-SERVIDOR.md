@@ -33,7 +33,7 @@ Os scripts estão em `deploy\` na raiz do repositório. Todos são idempotentes,
 ## 1. Estrutura de diretórios criada no servidor
 
 ```
-C:\Friozem\importacao_notas\
+C:\Friozem\importacao_notas\          (APP — binários, config, logs)
 ├── app\
 │   ├── releases\<versao>\   (binários self-contained por release)
 │   └── current\             (cópia da release ativa; o NSSM aponta aqui)
@@ -41,14 +41,24 @@ C:\Friozem\importacao_notas\
 │   ├── appsettings.Production.json
 │   ├── email.settings.json
 │   └── destinatarios-resumo.txt
-├── data\                    (conveniência; a Entrada real é share de rede)
+├── data\                    (conveniência; a Entrada real fica em C:\Friozem\kitbrf)
 ├── logs\                    (worker.out.log / worker.err.log, rotação pelo NSSM)
 ├── backups\                 (zips do current anterior antes de cada virada)
 └── tools\
+
+C:\Friozem\kitbrf\                     (ENTRADA — dados; pasta LOCAL compartilhada na rede)
+├── (XMLs a processar, no topo)
+├── Processados\pacote_<...>\
+├── Erro\pacote_<...>\
+└── Estado\  (diário + telemetria\)
 ```
 
-A **pasta de entrada** (`Pastas:Entrada`) é um **share de rede (UNC)**, FORA desta raiz.
-`Processados`, `Erro`, `Estado` e a telemetria resolvem **dentro** do share (ver `docs\OPERACAO.md`).
+A **pasta de entrada** (`Pastas:Entrada`) é uma **pasta LOCAL do próprio servidor**, default
+`C:\Friozem\kitbrf` — separada da raiz do app. O serviço a acessa por caminho **local**, então
+**LocalSystem basta** (não é UNC, não exige conta de domínio). Essa pasta é **compartilhada na
+rede via SMB** (share `kitbrf`) para que os usuários depositem os XMLs de fora — rode
+`deploy\compartilhar-pasta.ps1` (ver §3.4b). `Processados`, `Erro`, `Estado` e a telemetria
+resolvem **dentro** dessa pasta (ver `docs\OPERACAO.md`).
 
 ---
 
@@ -119,10 +129,25 @@ ver §2).
 ```powershell
 .\deploy\instalar.ps1 -ReleaseZip C:\temp\KitWmsIntegrador-2026.01.15-1-win-x64.zip -Versao 2026.01.15-1
 ```
-Cria a estrutura de pastas, expande a release em `app\releases\<versao>`, aponta `app\current`, cria/
-atualiza o serviço NSSM (AppDirectory, executável, stdout/stderr em `logs\` com rotação, start
-auto-delayed, reinício após falha), e aplica ACL restrita em `config\`. **Não inicia** o serviço
-enquanto os segredos não existirem.
+Cria a estrutura de pastas (inclusive a pasta LOCAL de entrada `C:\Friozem\kitbrf`; as subpastas
+`Processados`/`Erro`/`Estado`/`telemetria` o próprio serviço cria), expande a release em
+`app\releases\<versao>`, aponta `app\current`, cria/atualiza o serviço NSSM (AppDirectory,
+executável, stdout/stderr em `logs\` com rotação, start auto-delayed, reinício após falha), e
+aplica ACL restrita em `config\`. **Não inicia** o serviço enquanto os segredos não existirem.
+A pasta de entrada tem default `-PastaEntrada C:\Friozem\kitbrf`; passe `-CompartilharEntrada`
+para já expô-la na rede (equivale a rodar o §3.4b).
+
+### 3.4b Compartilhar a pasta de entrada na rede (SMB)
+```powershell
+# Validação (gravação para Authenticated Users):
+.\deploy\compartilhar-pasta.ps1
+# Produção (recomendado restringir a um grupo de domínio — DECISÃO EM ABERTO (a)):
+.\deploy\compartilhar-pasta.ps1 -GravadoresShare 'FRIOPART\<grupo>'
+```
+Cria a pasta local (se faltar), cria/atualiza o compartilhamento SMB `kitbrf` (Full para
+Administradores, Change/escrita para o principal gravador) e concede `Modify` NTFS ao mesmo
+principal, mantendo a herança de Administradores/SYSTEM. Idempotente, suporta `-WhatIf`. No
+Server 2012 R2 usa os cmdlets `SmbShare`; se indisponíveis, cai para `net share`.
 
 ### 3.5 Configurar os segredos de HOMOLOGAÇÃO (no servidor)
 ```powershell
@@ -136,10 +161,11 @@ Reaplica a ACL de `config\`. Depois de gravar env de máquina, o serviço precis
 para herdá-la.
 
 > Também copie o molde `deploy\config-exemplo\appsettings.Production.json` para
-> `C:\Friozem\importacao_notas\config\appsettings.Production.json` e ajuste `Pastas:Entrada`
-> (share UNC), `Wms:BaseUrl` (homolog na validação), destinatários etc. O molde marca os pontos de
-> virada com `_VIRADA`. Copie também `destinatarios-resumo.exemplo.txt` para
-> `config\destinatarios-resumo.txt`.
+> `C:\Friozem\importacao_notas\config\appsettings.Production.json`. `Pastas:Entrada` já vem com o
+> default local `C:\Friozem\kitbrf` (não muda na virada); ajuste `Wms:BaseUrl` (homolog na
+> validação), destinatários etc. O molde marca os pontos de virada com `_VIRADA` (apenas
+> WMS/credenciais/destinatários — a pasta de entrada **não** é um deles). Copie também
+> `destinatarios-resumo.exemplo.txt` para `config\destinatarios-resumo.txt`.
 
 ### 3.6 (Opcional) habilitar TLS 1.2 se o handshake com o WMS falhar
 Só se o diagnóstico/validação indicar falha de TLS no handshake com o WMS. É **reversível** e exige
@@ -161,7 +187,8 @@ Remove-ItemProperty -Path $k -Name Enabled,DisabledByDefault -ErrorAction Silent
 .\deploy\servico.ps1 -Acao Start
 .\deploy\servico.ps1 -Acao Status
 ```
-Coloque **poucos** XMLs no share de entrada de homologação, acompanhe `logs\worker.out.log` e
+Coloque **poucos** XMLs na pasta de entrada (`C:\Friozem\kitbrf`, local ou via o share `kitbrf`),
+acompanhe `logs\worker.out.log` e
 `worker.err.log`, confira a subpasta `Processados\pacote_*`, o relatório e o e-mail de fechamento.
 
 ### 3.8 VIRAR para PRODUÇÃO (sem reinstalar)
@@ -198,20 +225,23 @@ A virada é só troca de valores de config + restart:
 
 ---
 
-## 4. Conta do serviço e acesso ao share de rede
+## 4. Conta do serviço
 
-Por padrão o serviço roda como **LocalSystem** (`NT AUTHORITY\SYSTEM`). LocalSystem **pode não
-alcançar um share UNC** de rede. Se a entrada for um share que exige credencial de domínio, rode o
-serviço sob uma **conta de domínio** com permissão RW no share:
+Por padrão o serviço roda como **LocalSystem** (`NT AUTHORITY\SYSTEM`). Como a pasta de entrada é
+**LOCAL** do próprio servidor (`C:\Friozem\kitbrf`, acessada por caminho local), **LocalSystem
+basta** — não é preciso conta de domínio. Quem precisa de credencial de rede são os **usuários que
+depositam os XMLs** pelo share SMB `kitbrf`, não o serviço (ver §3.4b).
 
-```powershell
-# Defina a conta do serviço (exige senha):
-& C:\Friozem\Gestao_Enderecos\tools\nssm.exe set Friozem-ImportacaoNotas ObjectName FRIOPART\<conta> <senha>
-.\deploy\servico.ps1 -Acao Restart
-```
-
-`instalar.ps1 -ContaServico 'FRIOPART\<conta>'` inclui a conta na ACL de `config\`, mas **não** grava
-a senha do `ObjectName` (segredo) — defina-a com o comando acima. Ver **DECISÃO EM ABERTO (e)**.
+> **Ressalva hipotética:** se um dia a entrada deixar de ser local e passar a ser um share em
+> **outra máquina** (UNC), aí sim LocalSystem pode não alcançá-la e seria preciso rodar o serviço
+> sob uma conta de domínio com permissão RW nesse share:
+> ```powershell
+> & C:\Friozem\Gestao_Enderecos\tools\nssm.exe set Friozem-ImportacaoNotas ObjectName FRIOPART\<conta> <senha>
+> .\deploy\servico.ps1 -Acao Restart
+> ```
+> `instalar.ps1 -ContaServico 'FRIOPART\<conta>'` inclui a conta na ACL de `config\`, mas **não**
+> grava a senha do `ObjectName` (segredo) — defina-a com o comando acima. No cenário atual (entrada
+> local) isso **não** é necessário.
 
 ---
 
@@ -270,13 +300,13 @@ fluxo (NSSM, config, ACL) é idêntico.
 
 ## 10. DECISÕES EM ABERTO (para o usuário confirmar)
 
-- **(a) Caminho UNC exato do share de entrada** de validação/produção
-  (placeholder `\\SERVIDOR\share\importacao_notas_homolog` em `Pastas:Entrada`).
+- **(a) Nome do share e grupo de domínio com escrita na PRODUÇÃO.** A pasta de entrada é local e
+  fixa (`C:\Friozem\kitbrf`, share `kitbrf`). Na **validação** a escrita é liberada para
+  `Authenticated Users`; em **produção** recomenda-se restringir a um grupo de domínio
+  `FRIOPART\<grupo>` (`compartilhar-pasta.ps1 -GravadoresShare 'FRIOPART\<grupo>'`) — grupo a
+  confirmar.
 - **(b) URL exata do WMS de PRODUÇÃO** (sem `:8888`) — se difere da de homologação
   (hipótese `https://friozem.assistsoftware.com.br/wmsapi/api`, a confirmar).
 - **(c) Credenciais de PRODUÇÃO do WMS** (hoje usamos `BLUEFOOD` de homologação; produção pode diferir).
 - **(d) Lista final de destinatários** do relatório de fechamento e do resumo semanal em produção
   (hoje `ti@friozem.com.br`).
-- **(e) Conta do serviço NSSM** com permissão RW no share (possível necessidade de conta de domínio
-  via `nssm set Friozem-ImportacaoNotas ObjectName FRIOPART\<conta> <senha>`), caso LocalSystem não
-  alcance o share UNC.
