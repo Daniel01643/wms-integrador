@@ -3,6 +3,7 @@ using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Email;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Modelos;
+using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Orquestrador;
 using KitWmsIntegrador.Core.Pacote;
 using KitWmsIntegrador.Core.Relatorio;
@@ -171,11 +172,17 @@ public sealed class AmbientePacote : IDisposable
         var detector = new DetectorArquivoPronto(Clock, Options.Create(Pacote), NullLogger<DetectorArquivoPronto>.Instance);
         var gerador = GeradorSubstituto
             ?? new GeradorRelatorio(Options.Create(new OpcoesRelatorio { PastaSaida = Relatorios }));
+        var telemetria = new RegistradorTelemetria(
+            Options.Create(Pastas),
+            Options.Create(new OpcoesMonitoramento()),
+            NullLogger<RegistradorTelemetria>.Instance);
         var fechador = new FechadorPacote(
             gerador,
             Email,
             Options.Create(OpcoesDeEmail),
             Options.Create(new OpcoesRelatorio { PastaSaida = Relatorios }),
+            telemetria,
+            Options.Create(new OpcoesMonitoramento()),
             NullLogger<FechadorPacote>.Instance);
         return new GerenciadorPacote(
             Clock, Options.Create(Pastas), Options.Create(Pacote), detector, processador, diario, fechador,

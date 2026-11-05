@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Email;
+using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Relatorio;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,8 @@ public sealed class FechadorPacote
     private readonly IEnviadorEmail _email;
     private readonly OpcoesEmail _opcoesEmail;
     private readonly OpcoesRelatorio _opcoesRelatorio;
+    private readonly RegistradorTelemetria _telemetria;
+    private readonly OpcoesMonitoramento _opcoesMonitoramento;
     private readonly ILogger<FechadorPacote> _logger;
 
     /// <summary>Cria o fechador.</summary>
@@ -27,12 +30,16 @@ public sealed class FechadorPacote
         IEnviadorEmail email,
         IOptions<OpcoesEmail> opcoesEmail,
         IOptions<OpcoesRelatorio> opcoesRelatorio,
+        RegistradorTelemetria telemetria,
+        IOptions<OpcoesMonitoramento> opcoesMonitoramento,
         ILogger<FechadorPacote> logger)
     {
         _gerador = gerador ?? throw new ArgumentNullException(nameof(gerador));
         _email = email ?? throw new ArgumentNullException(nameof(email));
         _opcoesEmail = opcoesEmail?.Value ?? throw new ArgumentNullException(nameof(opcoesEmail));
         _opcoesRelatorio = opcoesRelatorio?.Value ?? throw new ArgumentNullException(nameof(opcoesRelatorio));
+        _telemetria = telemetria ?? throw new ArgumentNullException(nameof(telemetria));
+        _opcoesMonitoramento = opcoesMonitoramento?.Value ?? throw new ArgumentNullException(nameof(opcoesMonitoramento));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -72,6 +79,22 @@ public sealed class FechadorPacote
         {
             _logger.LogError(ex, "Falha ao gerar/gravar o relatório do pacote; será tentado novamente.");
             return false;
+        }
+
+        // Telemetria (aditiva): nunca derruba o fechamento.
+        if (_opcoesMonitoramento.Habilitado)
+        {
+            try
+            {
+                var idPacote = string.IsNullOrWhiteSpace(identificadorPacote)
+                    ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)
+                    : identificadorPacote;
+                _telemetria.RegistrarPacote(MapeadorTelemetria.De(registros, inicio, fim, idPacote));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Falha ao registrar a telemetria do pacote (ignorada).");
+            }
         }
 
         try

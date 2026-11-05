@@ -48,7 +48,10 @@ public sealed class EnviadorEmailSmtp : IEnviadorEmail
             }
 
             await smtp.SendMailAsync(msg, ct).ConfigureAwait(false);
-            _logger.LogInformation("E-mail enviado para {Destinatarios}.", string.Join(";", o.ListaDestinatarios));
+            var destinatarios = mensagem.DestinatariosOverride is { Count: > 0 }
+                ? mensagem.DestinatariosOverride
+                : o.ListaDestinatarios;
+            _logger.LogInformation("E-mail enviado para {Destinatarios}.", string.Join(";", destinatarios));
             return ResultadoEnvioEmail.Enviado();
         }
         catch (Exception ex)
@@ -91,7 +94,10 @@ public sealed class EnviadorEmailSmtp : IEnviadorEmail
             msg.BodyEncoding = Encoding.UTF8;
         }
 
-        foreach (var d in o.ListaDestinatarios)
+        var destinatarios = mensagem.DestinatariosOverride is { Count: > 0 }
+            ? mensagem.DestinatariosOverride
+            : o.ListaDestinatarios;
+        foreach (var d in destinatarios)
         {
             msg.To.Add(d);
         }

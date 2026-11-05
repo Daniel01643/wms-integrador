@@ -4,6 +4,7 @@ using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
 using KitWmsIntegrador.Core.Email;
 using KitWmsIntegrador.Core.Leitura;
+using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Orquestrador;
 using KitWmsIntegrador.Core.Pacote;
 using Microsoft.Extensions.Options;
@@ -120,6 +121,13 @@ builder.Services
     .AddOptions<OpcoesEmail>()
     .Bind(builder.Configuration.GetSection(OpcoesEmail.Secao));
 builder.Services.AddSingleton<IEnviadorEmail, EnviadorEmailSmtp>();
+
+// Monitoramento/telemetria (seção "Monitoramento"). A LISTA de destinatários do resumo NÃO
+// fica aqui (vive em CaminhoDestinatarios, um txt fora do git). SMTP é reaproveitado do bloco Email.
+builder.Services
+    .AddOptions<OpcoesMonitoramento>()
+    .Bind(builder.Configuration.GetSection(OpcoesMonitoramento.Secao));
+builder.Services.AddSingleton<RegistradorTelemetria>();
 
 builder.Services.AddSingleton<ClassificadorCategoriaErro>();
 builder.Services.AddSingleton<OrganizadorArquivos>();

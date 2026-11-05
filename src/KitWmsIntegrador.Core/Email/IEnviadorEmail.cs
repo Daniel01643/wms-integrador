@@ -18,8 +18,10 @@ public sealed record ImagemInline(string ContentId, byte[] Conteudo, string Cont
 /// <param name="CorpoHtml">Corpo HTML.</param>
 /// <param name="Anexos">Anexos (ex.: PDF).</param>
 /// <param name="ImagemEmbutida">Imagem opcional embutida por <c>cid:</c> no corpo (ex.: logo).</param>
+/// <param name="DestinatariosOverride">Quando não nulo, substitui os destinatários de <c>OpcoesEmail</c> (ex.: resumo semanal).</param>
 public sealed record MensagemEmail(
-    string Assunto, string CorpoHtml, IReadOnlyList<AnexoEmail> Anexos, ImagemInline? ImagemEmbutida = null);
+    string Assunto, string CorpoHtml, IReadOnlyList<AnexoEmail> Anexos, ImagemInline? ImagemEmbutida = null,
+    IReadOnlyList<string>? DestinatariosOverride = null);
 
 /// <summary>Situação do envio.</summary>
 public enum StatusEnvioEmail

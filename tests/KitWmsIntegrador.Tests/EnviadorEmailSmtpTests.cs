@@ -52,6 +52,29 @@ public class EnviadorEmailSmtpTests
     }
 
     [Fact]
+    public void MontarMensagem_ComDestinatariosOverride_UsaListaDoOverride()
+    {
+        var msg = new MensagemEmail(
+            "Resumo", "<p>oi</p>", Array.Empty<AnexoEmail>(), ImagemEmbutida: null,
+            DestinatariosOverride: new[] { "resumo@exemplo.com" });
+
+        using var m = EnviadorEmailSmtp.MontarMensagem(msg, Configurada());
+
+        Assert.Single(m.To);
+        Assert.Equal("resumo@exemplo.com", m.To[0].Address);
+    }
+
+    [Fact]
+    public void MontarMensagem_SemOverride_MantemDestinatariosDeOpcoesEmail()
+    {
+        using var m = EnviadorEmailSmtp.MontarMensagem(Msg(), Configurada());
+
+        Assert.Equal(2, m.To.Count);
+        Assert.Equal("a@exemplo.com", m.To[0].Address);
+        Assert.Equal("b@exemplo.com", m.To[1].Address);
+    }
+
+    [Fact]
     public void MontarMensagem_ComImagemEmbutida_MontaAlternateViewComLinkedResourceCid()
     {
         var msg = new MensagemEmail(

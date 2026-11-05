@@ -4,6 +4,7 @@ using KitWmsIntegrador.Core.Agrupamento;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
 using KitWmsIntegrador.Core.Leitura;
+using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Orquestrador;
 using KitWmsIntegrador.Core.Pacote;
 using KitWmsIntegrador.Core.Relatorio;
@@ -92,8 +93,12 @@ public sealed class AmbienteStress : IDisposable
         var detector = new DetectorArquivoPronto(clock, Options.Create(Pacote), NullLogger<DetectorArquivoPronto>.Instance);
         var opcoesRelatorio = Options.Create(new OpcoesRelatorio { PastaSaida = Relatorios });
         Gerador = new GeradorMedido(new GeradorRelatorio(opcoesRelatorio));
+        var telemetria = new RegistradorTelemetria(
+            Options.Create(Pastas), Options.Create(new OpcoesMonitoramento()),
+            NullLogger<RegistradorTelemetria>.Instance);
         var fechador = new FechadorPacote(
-            Gerador, Email, Options.Create(new OpcoesEmail()), opcoesRelatorio, NullLogger<FechadorPacote>.Instance);
+            Gerador, Email, Options.Create(new OpcoesEmail()), opcoesRelatorio, telemetria,
+            Options.Create(new OpcoesMonitoramento()), NullLogger<FechadorPacote>.Instance);
         Gerenciador = new GerenciadorPacote(
             clock, Options.Create(Pastas), Options.Create(Pacote), detector, processador, diario, fechador,
             NullLogger<GerenciadorPacote>.Instance);

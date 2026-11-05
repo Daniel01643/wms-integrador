@@ -1,4 +1,6 @@
+using System.Reflection;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Pacote;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Options;
@@ -20,9 +22,11 @@ public class Worker : BackgroundService
     private readonly GerenciadorPacote _gerenciador;
     private readonly LimpadorPastas _limpador;
     private readonly IClock _clock;
+    private readonly RegistradorTelemetria _telemetria;
     private readonly OpcoesPasta _pastas;
     private readonly OpcoesPacote _pacote;
     private readonly OpcoesRelatorio _relatorio;
+    private readonly OpcoesMonitoramento _monitoramento;
 
     public Worker(
         ILogger<Worker> logger,
@@ -30,9 +34,11 @@ public class Worker : BackgroundService
         GerenciadorPacote gerenciador,
         LimpadorPastas limpador,
         IClock clock,
+        RegistradorTelemetria telemetria,
         IOptions<OpcoesPasta> pastas,
         IOptions<OpcoesPacote> pacote,
-        IOptions<OpcoesRelatorio> relatorio)
+        IOptions<OpcoesRelatorio> relatorio,
+        IOptions<OpcoesMonitoramento> monitoramento)
     {
         _relatorio = relatorio.Value;
         _logger = logger;
@@ -40,8 +46,10 @@ public class Worker : BackgroundService
         _gerenciador = gerenciador;
         _limpador = limpador;
         _clock = clock;
+        _telemetria = telemetria;
         _pastas = pastas.Value;
         _pacote = pacote.Value;
+        _monitoramento = monitoramento.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -62,6 +70,24 @@ public class Worker : BackgroundService
         _logger.LogInformation(
             "Watcher iniciado. Entrada={Entrada} Processados={Processados} Erro={Erro}",
             _pastas.CaminhoEntrada, _pastas.CaminhoProcessados, _pastas.CaminhoErro);
+
+        // Telemetria de saúde (aditiva): registra a partida do serviço; nunca derruba o Worker.
+        if (_monitoramento.Habilitado)
+        {
+            try
+            {
+                var versao = typeof(Worker).Assembly
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                    ?? typeof(Worker).Assembly.GetName().Version?.ToString()
+                    ?? "desconhecida";
+                _telemetria.RegistrarEventoServico(
+                    new EventoServico("servico-iniciado", _clock.UtcNow.ToLocalTime(), versao));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Falha ao registrar o evento de partida do serviço (ignorada).");
+            }
+        }
 
         var intervalo = TimeSpan.FromSeconds(Math.Max(1, _pacote.IntervaloVarreduraSegundos));
         var ultimaLimpeza = DateTimeOffset.MinValue;
