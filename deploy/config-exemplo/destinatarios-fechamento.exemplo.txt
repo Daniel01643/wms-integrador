@@ -1,0 +1,19 @@
+# Modelo do arquivo de destinatarios do E-MAIL DE FECHAMENTO do pacote.
+#
+# Copie para C:\Friozem\importacao_notas\config\destinatarios-fechamento.txt no servidor (fora do git).
+# O caminho e apontado por Email:CaminhoDestinatarios no appsettings.Production.json.
+#
+# Regras:
+#   - um e-mail por linha;
+#   - linhas em branco sao ignoradas;
+#   - linhas iniciadas por '#' sao comentarios;
+#   - o arquivo e relido a cada envio (edite e salve; efeito no proximo pacote, sem reiniciar).
+#
+# Precedencia e fallback (DIFERENTE do resumo semanal):
+#   1. este txt (se tiver ao menos um e-mail) tem PRECEDENCIA;
+#   2. se ausente/vazio, usa Email:Destinatarios (lista separada por ';' no appsettings);
+#   3. se tambem vazio, o e-mail do pacote NAO e enviado e um aviso vai ao log (o fechamento
+#      continua normal: relatorio HTML+PDF segue sendo gerado).
+
+ti@friozem.com.br
+# gestor@friozem.com.br
