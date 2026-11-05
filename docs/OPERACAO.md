@@ -1,5 +1,11 @@
 # Operação — watcher de pasta, pacote, erros e e-mail (Etapa 7)
 
+> **Instalação no servidor (Etapa 9):** o serviço é instalado como `Friozem-ImportacaoNotas` sob
+> NSSM, com raiz `C:\Friozem\importacao_notas` e a **pasta de entrada em um share de rede** (fora da
+> raiz do app). Os scripts de deploy ficam em `deploy\`; o passo a passo completo (RDP e WinRM,
+> publicar/instalar/segredos/TLS/validar/rollback/remover) está em
+> [`docs\INSTALACAO-SERVIDOR.md`](INSTALACAO-SERVIDOR.md).
+
 O serviço (hospedado por NSSM) observa a pasta de entrada continuamente, integra os XMLs de NF-e
 ao WMS por transporte, move cada arquivo e, ao terminar o pacote, gera o relatório (HTML + PDF) e
 envia o resumo por e-mail. A I60 permanece **desligada** (`I60:Habilitada=false`).
