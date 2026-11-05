@@ -88,3 +88,36 @@ diagnóstico. A instalação real será conduzida depois pelo operador (ver `doc
 
 (a) share UNC de entrada; (b) URL do WMS de produção (sem :8888); (c) credenciais de produção do WMS;
 (d) destinatários de produção; (e) conta do serviço NSSM com RW no share.
+
+---
+
+## Iteração de revisão — correção do blocker 1 (AppExit Default)
+
+Finding (review-etapa9.json #1, blocker): em `instalar.ps1` o parâmetro de recuperação do NSSM
+estava no hashtable `$params` com a chave única `'AppExit Default'`. Ao splatar via
+`& $NssmPath @Argumentos`, o NSSM recebia `AppExit Default` como UM argumento com espaço; a sintaxe
+exige `AppExit` e `Default` como tokens SEPARADOS (`nssm set <svc> AppExit Default Restart`). O `set`
+roda por `Invoke-Nssm` sem `-TolerarFalha` → poderia abortar a instalação ou deixar a recuperação
+após falha não aplicada; e o `get` nunca casava, quebrando a idempotência.
+
+Correção aplicada:
+- `deploy\_comum.ps1` → `Set-NssmParam` ganhou o parâmetro opcional `-SubParametro`. Quando
+  informado, o get/set monta `@('get'|'set', $svc, $Parametro, $SubParametro[, $Valor])` com tokens
+  separados (o par `AppExit Default` deixa de virar um único argumento com espaço). Mantém a
+  idempotência (get com os mesmos tokens) e o `-WhatIf`.
+- `deploy\instalar.ps1` → removida a chave `'AppExit Default'` do hashtable `$params`; a recuperação
+  passou a ser aplicada fora do laço com
+  `Set-NssmParam ... -Parametro 'AppExit' -SubParametro 'Default' -Valor 'Restart'`.
+
+Re-verificação (execução local real, nada contra o servidor):
+1. Parse de todos os `deploy\*.ps1` (`Parser::ParseFile`) → **0 erros** nos 9 scripts.
+2. `dotnet build KitWmsIntegrador.sln -c Release` → **0 Aviso(s), 0 Erro(s)**, exit 0.
+3. `dotnet test KitWmsIntegrador.sln -c Release` → **Com falha: 0, Aprovado: 313, Ignorado: 9**, exit 0.
+4. `powershell -File deploy\publicar.ps1 -Versao 0.0.0-test` → exit 0; exe e zip gerados
+   (`...\app\KitWmsIntegrador.Worker.exe` e `KitWmsIntegrador-0.0.0-test-win-x64.zip` confirmados por
+   `Test-Path = True`); pasta **~75,5 MB (228 arquivos)**, zip **~33,4 MB**; `artifacts\` removido
+   após a conferência (`Test-Path artifacts = False`).
+
+Validação no servidor (documentada, não executada aqui): após `instalar.ps1`, conferir com
+`nssm get Friozem-ImportacaoNotas AppExit Default` → deve retornar `Restart`. O `.csproj` do Worker
+continua intocado; nenhum código de negócio alterado.
