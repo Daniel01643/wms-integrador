@@ -60,6 +60,7 @@ builder.Services
     .AddOptions<OpcoesRelatorio>()
     .Bind(builder.Configuration.GetSection(OpcoesRelatorio.Secao));
 builder.Services.AddSingleton<IGeradorRelatorio, GeradorRelatorio>();
+builder.Services.AddSingleton<IGeradorResumoSemanal, GeradorResumoSemanal>();
 
 // Construtores de payload (I50/I60/I10). Apenas montam objetos/JSON — sem rede.
 builder.Services.AddSingleton<IConstrutorI50, ConstrutorI50>();
