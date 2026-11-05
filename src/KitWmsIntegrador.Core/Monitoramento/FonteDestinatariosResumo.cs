@@ -46,44 +46,15 @@ public sealed class FonteDestinatariosResumo
     public IReadOnlyList<string> Ler()
     {
         var caminho = Caminho;
-        try
+        var emails = LeitorListaEmails.Ler(caminho);
+        if (emails.Count > 0)
         {
-            if (!File.Exists(caminho))
-            {
-                _logger.LogWarning(
-                    "Arquivo de destinatários do resumo ausente ({Caminho}); usando o padrão {Padrao}.",
-                    caminho, DestinatarioPadrao);
-                return new[] { DestinatarioPadrao };
-            }
-
-            var emails = new List<string>();
-            foreach (var bruta in File.ReadAllLines(caminho))
-            {
-                var linha = bruta.Trim();
-                if (linha.Length == 0 || linha.StartsWith('#'))
-                {
-                    continue;
-                }
-
-                emails.Add(linha);
-            }
-
-            if (emails.Count == 0)
-            {
-                _logger.LogWarning(
-                    "Arquivo de destinatários do resumo vazio ({Caminho}); usando o padrão {Padrao}.",
-                    caminho, DestinatarioPadrao);
-                return new[] { DestinatarioPadrao };
-            }
-
             return emails;
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex, "Falha ao ler os destinatários do resumo ({Caminho}); usando o padrão {Padrao}.",
-                caminho, DestinatarioPadrao);
-            return new[] { DestinatarioPadrao };
-        }
+
+        _logger.LogWarning(
+            "Arquivo de destinatários do resumo ausente/vazio ({Caminho}); usando o padrão {Padrao}.",
+            caminho, DestinatarioPadrao);
+        return new[] { DestinatarioPadrao };
     }
 }
