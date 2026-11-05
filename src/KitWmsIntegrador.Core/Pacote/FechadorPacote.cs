@@ -22,6 +22,7 @@ public sealed class FechadorPacote
     private readonly OpcoesRelatorio _opcoesRelatorio;
     private readonly RegistradorTelemetria _telemetria;
     private readonly OpcoesMonitoramento _opcoesMonitoramento;
+    private readonly FonteDestinatariosFechamento _destinatarios;
     private readonly ILogger<FechadorPacote> _logger;
 
     /// <summary>Cria o fechador.</summary>
@@ -32,6 +33,7 @@ public sealed class FechadorPacote
         IOptions<OpcoesRelatorio> opcoesRelatorio,
         RegistradorTelemetria telemetria,
         IOptions<OpcoesMonitoramento> opcoesMonitoramento,
+        FonteDestinatariosFechamento destinatarios,
         ILogger<FechadorPacote> logger)
     {
         _gerador = gerador ?? throw new ArgumentNullException(nameof(gerador));
@@ -40,6 +42,7 @@ public sealed class FechadorPacote
         _opcoesRelatorio = opcoesRelatorio?.Value ?? throw new ArgumentNullException(nameof(opcoesRelatorio));
         _telemetria = telemetria ?? throw new ArgumentNullException(nameof(telemetria));
         _opcoesMonitoramento = opcoesMonitoramento?.Value ?? throw new ArgumentNullException(nameof(opcoesMonitoramento));
+        _destinatarios = destinatarios ?? throw new ArgumentNullException(nameof(destinatarios));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -106,6 +109,17 @@ public sealed class FechadorPacote
                 return true;
             }
 
+            // Destinatários do fechamento vêm do txt editável a quente (precedência); fallback para
+            // Email:Destinatarios; se ambos vazios, a fonte já logou o aviso e não enviamos.
+            var destinatarios = _destinatarios.Ler();
+            if (destinatarios.Count == 0)
+            {
+                _logger.LogInformation(
+                    "Sem destinatários; e-mail do pacote não enviado (relatório salvo em {Pasta}).",
+                    _opcoesRelatorio.PastaSaida);
+                return true;
+            }
+
             var assunto = $"Fechamento do pacote {fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
                           $"{resumo.Total} nota(s), {resumo.NaoIntegradas} não integrada(s), {resumo.Pendentes} pendente(s)";
             var logo = IdentidadeVisual.LerLogoPng(_opcoesRelatorio.LogoPath);
@@ -114,7 +128,9 @@ public sealed class FechadorPacote
                 ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)
                 : identificadorPacote) + ".pdf";
             var resultado = await _email.EnviarAsync(
-                new MensagemEmail(assunto, corpo.Html, new[] { new AnexoEmail(nomePdf, pdf) }, corpo.ImagemEmbutida),
+                new MensagemEmail(
+                    assunto, corpo.Html, new[] { new AnexoEmail(nomePdf, pdf) }, corpo.ImagemEmbutida,
+                    DestinatariosOverride: destinatarios),
                 ct).ConfigureAwait(false);
 
             switch (resultado.Status)
