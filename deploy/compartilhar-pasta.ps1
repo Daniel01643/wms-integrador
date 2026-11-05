@@ -50,7 +50,8 @@
 param(
     [string] $NomeShare = 'kitbrf',
     [string] $CaminhoLocal = 'C:\Friozem\kitbrf',
-    [string] $GravadoresShare = 'Authenticated Users'
+    [string] $GravadoresShare = 'Authenticated Users',
+    [switch] $PermitirExclusao
 )
 
 Set-StrictMode -Version Latest
@@ -113,17 +114,35 @@ if ($temSmbCmdlets) {
     }
 }
 
-# --- 3. ACL NTFS da pasta (escrita para o gravador, sem remover heranca) ---
-Write-Passo ("Ajustando ACL NTFS de {0} ({1}: Modify)..." -f $CaminhoLocal, $GravadoresShare)
-if ($PSCmdlet.ShouldProcess($CaminhoLocal, "Conceder Modify a '$GravadoresShare' (mantendo heranca)")) {
+# --- 3. ACL NTFS da pasta: escrita SEM exclusao para o gravador (usuarios nao apagam) ---
+# Por padrao os usuarios podem LER e GRAVAR (criar arquivos/pastas, anexar), mas NAO EXCLUIR.
+# O servico roda como SYSTEM e, junto com Administradores, mantem controle total pela heranca,
+# entao a movimentacao para Processados/Erro e a limpeza de 10 dias seguem funcionando.
+# Use -PermitirExclusao para dar Modify (inclui apagar), se algum dia for necessario.
+if ($PermitirExclusao) {
+    Write-Passo ("Ajustando ACL NTFS de {0} ({1}: Modify, COM exclusao)..." -f $CaminhoLocal, $GravadoresShare)
+    $direitos = [System.Security.AccessControl.FileSystemRights]::Modify
+    $rotuloAcl = 'Modify (com exclusao)'
+} else {
+    Write-Passo ("Ajustando ACL NTFS de {0} ({1}: escrita SEM exclusao)..." -f $CaminhoLocal, $GravadoresShare)
+    # Ler/executar + criar arquivos + criar pastas + anexar + escrever atributos, SEM Delete
+    # nem DeleteSubdirectoriesAndFiles. Assim o usuario deposita XMLs e le, mas nao apaga.
+    $direitos = [System.Security.AccessControl.FileSystemRights]'ReadAndExecute, CreateFiles, AppendData, Write'
+    $rotuloAcl = 'escrita sem exclusao'
+}
+if ($PSCmdlet.ShouldProcess($CaminhoLocal, "Conceder '$rotuloAcl' a '$GravadoresShare' (mantendo heranca)")) {
     $acl = Get-Acl -LiteralPath $CaminhoLocal
     $heranca = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
     $prop = [System.Security.AccessControl.PropagationFlags]::None
+    # Remove regras 'Allow' antigas do mesmo principal para nao acumular um Modify anterior.
+    $acl.Access |
+        Where-Object { $_.IdentityReference.Value -ieq $GravadoresShare -and $_.AccessControlType -eq 'Allow' } |
+        ForEach-Object { [void]$acl.RemoveAccessRule($_) }
     $regra = New-Object System.Security.AccessControl.FileSystemAccessRule(
-        $GravadoresShare, 'Modify', $heranca, $prop, 'Allow')
+        $GravadoresShare, $direitos, $heranca, $prop, 'Allow')
     $acl.AddAccessRule($regra)
     Set-Acl -LiteralPath $CaminhoLocal -AclObject $acl
-    Write-Passo ("ACL NTFS atualizada: {0} com Modify em {1}." -f $GravadoresShare, $CaminhoLocal) -Nivel Ok
+    Write-Passo ("ACL NTFS atualizada: {0} com {1} em {2}." -f $GravadoresShare, $rotuloAcl, $CaminhoLocal) -Nivel Ok
 }
 
 Write-Passo 'Compartilhamento concluido.' -Nivel Ok
