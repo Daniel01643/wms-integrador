@@ -34,6 +34,7 @@ public class ConstrutorI50Tests
         TipoSeparacao2 = "AGL;FEF;PLL",
         TipoAcondicionamento = "PC",
         QtdMandante = "U",
+        EnviarPlacaVeiculo = true,
     };
 
     private static ConstrutorI50 Criar(OpcoesOperacionais? op = null, OpcoesI50? i50 = null) =>
@@ -254,6 +255,55 @@ public class ConstrutorI50Tests
 
         Assert.False(string.IsNullOrWhiteSpace(pedido.Observacao));
         Assert.True(pedido.Observacao.Length <= 255);
+    }
+
+    [Fact]
+    public void Construir_FlagPlacaLigada_EnviaPlacaDoXml()
+    {
+        var nota = LerXml1();
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.Equal("AYC8G72", pedido.PlacaVeiculo);
+    }
+
+    [Fact]
+    public void Construir_FlagPlacaDesligada_EnviaPlacaEmBranco()
+    {
+        var nota = LerXml1();
+        var i50 = new OpcoesI50
+        {
+            TipoCarga = "CN",
+            TipoSeparacao = "RES;FEF;PLI",
+            TipoSeparacao2 = "AGL;FEF;PLL",
+            TipoAcondicionamento = "PC",
+            QtdMandante = "U",
+            EnviarPlacaVeiculo = false,
+        };
+
+        var pedido = Assert.Single(Criar(i50: i50).Construir(nota).Pedido);
+
+        Assert.Equal("", pedido.PlacaVeiculo);
+    }
+
+    [Fact]
+    public void Construir_FlagPlacaLigadaMasNotaSemPlaca_EnviaPlacaEmBranco()
+    {
+        var nota = LerXml1() with { PlacaVeiculo = "" };
+
+        var pedido = Assert.Single(Criar().Construir(nota).Pedido);
+
+        Assert.Equal("", pedido.PlacaVeiculo);
+    }
+
+    [Fact]
+    public void ConstruirJson_FlagPlacaLigada_ContemPlacaDoXml()
+    {
+        var nota = LerXml1();
+
+        var json = Criar().ConstruirJson(nota);
+
+        Assert.Contains("\"placaVeiculo\":\"AYC8G72\"", json);
     }
 
     [Fact]
