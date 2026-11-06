@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Arquitetura de implantacao no servidor SRVAPPALC02">
+  <defs>
+    <marker id="setaA" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#17479E"/>
+    </marker>
+    <marker id="setaCinza" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555555"/>
+    </marker>
+  </defs>
+
+  <!-- Faixa de titulo -->
+  <rect x="0" y="0" width="1000" height="44" fill="#17479E"/>
+  <rect x="0" y="44" width="1000" height="4" fill="#54B6E7"/>
+  <text x="24" y="29" fill="#ffffff" font-size="19" font-weight="bold">Arquitetura de implantacao</text>
+
+  <!-- Colaboradores depositando XML (fora do servidor) -->
+  <g>
+    <circle cx="70" cy="150" r="14" fill="#54B6E7"/>
+    <path d="M50,186 a20,20 0 0 1 40,0 z" fill="#54B6E7"/>
+    <text x="70" y="212" text-anchor="middle" fill="#333333" font-size="11.5">Colaboradores</text>
+    <text x="70" y="226" text-anchor="middle" fill="#333333" font-size="11.5">(rede SMB)</text>
+  </g>
+  <!-- seta SMB para o share -->
+  <path d="M110,175 C150,175 180,200 215,215" fill="none" stroke="#555555" stroke-width="2.5" marker-end="url(#setaCinza)"/>
+  <text x="150" y="168" fill="#555555" font-size="11">deposita .xml</text>
+
+  <!-- CAIXA DO SERVIDOR -->
+  <rect x="160" y="78" width="560" height="470" rx="16" fill="#f6f8fc" stroke="#17479E" stroke-width="3"/>
+  <text x="184" y="104" fill="#17479E" font-size="15" font-weight="bold">SERVIDOR SRVAPPALC02 (Windows Server 2012 R2)</text>
+
+  <!-- Servico NSSM -->
+  <rect x="184" y="120" width="230" height="70" rx="12" fill="#ffffff" stroke="#009A83" stroke-width="2.5"/>
+  <!-- icone engrenagem -->
+  <circle cx="214" cy="155" r="13" fill="none" stroke="#009A83" stroke-width="4"/>
+  <circle cx="214" cy="155" r="4" fill="#009A83"/>
+  <text x="300" y="150" text-anchor="middle" fill="#17479E" font-size="12.5" font-weight="bold">Servico NSSM</text>
+  <text x="300" y="168" text-anchor="middle" fill="#333333" font-size="11.5">Friozem-ImportacaoNotas</text>
+
+  <!-- SHARE: C:\Friozem\kitbrf -->
+  <rect x="184" y="210" width="330" height="200" rx="12" fill="#eaf5fc" stroke="#54B6E7" stroke-width="2.5" stroke-dasharray="7 4"/>
+  <!-- icone pasta compartilhada -->
+  <path d="M200,230 h22 l8,8 h30 a5,5 0 0 1 5,5 v6 h-70 v-14 a5,5 0 0 1 5,-5 z" fill="#54B6E7" stroke="#17479E" stroke-width="1.5"/>
+  <text x="280" y="246" fill="#17479E" font-size="12.5" font-weight="bold">C:\Friozem\kitbrf</text>
+  <text x="200" y="266" fill="#555555" font-size="11">compartilhado SMB = \\SRVAPPALC02\kitbrf</text>
+
+  <rect x="204" y="282" width="140" height="42" rx="8" fill="#e6f5f1" stroke="#009A83" stroke-width="2"/>
+  <text x="274" y="308" text-anchor="middle" fill="#009A83" font-size="12" font-weight="bold">Processados\</text>
+
+  <rect x="358" y="282" width="140" height="42" rx="8" fill="#fdecea" stroke="#C0392B" stroke-width="2"/>
+  <text x="428" y="308" text-anchor="middle" fill="#C0392B" font-size="12" font-weight="bold">Erro\</text>
+
+  <rect x="204" y="338" width="294" height="42" rx="8" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+  <text x="351" y="364" text-anchor="middle" fill="#17479E" font-size="12" font-weight="bold">relatorios\ (HTML + PDF)</text>
+
+  <!-- data\ FORA do share -->
+  <rect x="534" y="210" width="166" height="80" rx="12" fill="#ffffff" stroke="#17479E" stroke-width="2.5"/>
+  <text x="617" y="234" text-anchor="middle" fill="#17479E" font-size="12.5" font-weight="bold">data\</text>
+  <text x="617" y="252" text-anchor="middle" fill="#333333" font-size="11">Estado + telemetria</text>
+  <text x="617" y="278" text-anchor="middle" fill="#C0392B" font-size="10.5" font-weight="bold">FORA do share</text>
+
+  <!-- config\ -->
+  <rect x="534" y="304" width="166" height="76" rx="12" fill="#fff7e6" stroke="#E8A317" stroke-width="2.5"/>
+  <text x="617" y="328" text-anchor="middle" fill="#17479E" font-size="12.5" font-weight="bold">config\</text>
+  <text x="617" y="346" text-anchor="middle" fill="#333333" font-size="11">segredos (SMTP/WMS)</text>
+  <text x="617" y="364" text-anchor="middle" fill="#333333" font-size="11">ACL restrita</text>
+
+  <!-- rotulo limite do share -->
+  <text x="184" y="400" fill="#555555" font-size="10.5" font-style="italic">tracejado = limite do share (so Processados/Erro/relatorios ficam dentro)</text>
+
+  <!-- SAIDAS do servidor -->
+  <!-- HTTPS -> WMS -->
+  <line x1="414" y1="155" x2="800" y2="155" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaA)"/>
+  <text x="560" y="146" text-anchor="middle" fill="#17479E" font-size="11.5" font-weight="bold">HTTPS</text>
+  <g>
+    <path d="M800,170 a16,16 0 0 1 2,-31 a18,18 0 0 1 34,5 a14,14 0 0 1 -5,26 z" fill="#eaf5fc" stroke="#17479E" stroke-width="2"/>
+    <text x="872" y="150" text-anchor="middle" fill="#17479E" font-size="12" font-weight="bold">WMS</text>
+    <text x="872" y="168" text-anchor="middle" fill="#333333" font-size="10">friozem.assist</text>
+    <text x="872" y="180" text-anchor="middle" fill="#333333" font-size="10">software.com.br</text>
+  </g>
+
+  <!-- SMTP -->
+  <line x1="414" y1="300" x2="800" y2="440" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaA)"/>
+  <text x="600" y="368" text-anchor="middle" fill="#17479E" font-size="11.5" font-weight="bold">SMTP</text>
+  <g>
+    <rect x="806" y="418" width="70" height="46" rx="4" fill="#e6f5f1" stroke="#009A83" stroke-width="2"/>
+    <path d="M806,422 L841,446 L876,422" fill="none" stroke="#009A83" stroke-width="2"/>
+    <text x="872" y="486" text-anchor="middle" fill="#333333" font-size="10">smtp.friozem</text>
+    <text x="872" y="498" text-anchor="middle" fill="#333333" font-size="10">.com.br:587</text>
+  </g>
+
+  <!-- Legenda -->
+  <rect x="160" y="566" width="760" height="40" rx="10" fill="#f6f8fc" stroke="#e1e7f0" stroke-width="1.5"/>
+  <text x="180" y="591" fill="#555555" font-size="12">Setas azuis = conexoes de saida do servidor (WMS por HTTPS, e-mail por SMTP). Seta cinza = deposito de XML pela rede.</text>
+</svg>
