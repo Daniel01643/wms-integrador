@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Ciclo do pacote e orquestrador reativo">
+  <defs>
+    <marker id="setaC" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#17479E"/>
+    </marker>
+    <marker id="setaErro" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#C0392B"/>
+    </marker>
+    <marker id="setaLoop" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#009A83"/>
+    </marker>
+  </defs>
+
+  <!-- Faixa de titulo -->
+  <rect x="0" y="0" width="1000" height="44" fill="#17479E"/>
+  <rect x="0" y="44" width="1000" height="4" fill="#54B6E7"/>
+  <text x="24" y="29" fill="#ffffff" font-size="19" font-weight="bold">Ciclo do pacote — orquestrador reativo</text>
+
+  <!-- Ocioso -->
+  <rect x="400" y="66" width="200" height="54" rx="27" fill="#eaf5fc" stroke="#17479E" stroke-width="2.5"/>
+  <text x="500" y="99" text-anchor="middle" fill="#17479E" font-size="15" font-weight="bold">Ocioso</text>
+
+  <line x1="500" y1="120" x2="500" y2="150" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- detecta XML -->
+  <rect x="380" y="150" width="240" height="46" rx="12" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+  <text x="500" y="179" text-anchor="middle" fill="#333333" font-size="13">Detecta XML na pasta</text>
+  <line x1="500" y1="196" x2="500" y2="222" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- janela de coleta -->
+  <rect x="380" y="222" width="240" height="46" rx="12" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+  <text x="500" y="251" text-anchor="middle" fill="#333333" font-size="13">Janela de coleta</text>
+  <line x1="500" y1="268" x2="500" y2="294" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- FOTO do pacote -->
+  <rect x="380" y="294" width="240" height="46" rx="12" fill="#fff7e6" stroke="#E8A317" stroke-width="2.5"/>
+  <text x="500" y="323" text-anchor="middle" fill="#17479E" font-size="13" font-weight="bold">FOTO do pacote</text>
+  <line x1="500" y1="340" x2="500" y2="366" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- processa por transporte -->
+  <rect x="340" y="366" width="320" height="50" rx="12" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+  <text x="500" y="390" text-anchor="middle" fill="#333333" font-size="13">Processa POR TRANSPORTE</text>
+  <text x="500" y="406" text-anchor="middle" fill="#555555" font-size="11">(sequencial)</text>
+  <line x1="500" y1="416" x2="500" y2="442" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- BLOCO por nota (I50/I10/I30) -->
+  <rect x="60" y="442" width="620" height="170" rx="14" fill="#f6f8fc" stroke="#54B6E7" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="80" y="465" fill="#17479E" font-size="13" font-weight="bold">Por nota — ate 3 tentativas</text>
+
+  <!-- envia I50 -->
+  <rect x="84" y="478" width="150" height="46" rx="10" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+  <text x="159" y="507" text-anchor="middle" fill="#17479E" font-size="13" font-weight="bold">Envia I50</text>
+
+  <!-- empresa nao localizada -> I10 -->
+  <rect x="270" y="470" width="180" height="30" rx="8" fill="#fdecea" stroke="#C0392B" stroke-width="1.5"/>
+  <text x="360" y="490" text-anchor="middle" fill="#C0392B" font-size="10.5">"empresa nao localizada"</text>
+  <rect x="470" y="470" width="180" height="30" rx="8" fill="#e6f5f1" stroke="#009A83" stroke-width="2"/>
+  <text x="560" y="490" text-anchor="middle" fill="#009A83" font-size="11" font-weight="bold">I10 e reenvia</text>
+  <line x1="234" y1="492" x2="268" y2="486" stroke="#C0392B" stroke-width="2" marker-end="url(#setaErro)"/>
+  <line x1="450" y1="485" x2="468" y2="485" stroke="#17479E" stroke-width="2" marker-end="url(#setaC)"/>
+
+  <!-- produto nao cadastrado -> I30 -->
+  <rect x="270" y="510" width="180" height="30" rx="8" fill="#fdecea" stroke="#C0392B" stroke-width="1.5"/>
+  <text x="360" y="530" text-anchor="middle" fill="#C0392B" font-size="10.5">"produto nao cadastrado"</text>
+  <rect x="470" y="510" width="180" height="30" rx="8" fill="#e6f5f1" stroke="#009A83" stroke-width="2"/>
+  <text x="560" y="530" text-anchor="middle" fill="#009A83" font-size="11" font-weight="bold">I30 e reenvia</text>
+  <line x1="234" y1="505" x2="268" y2="522" stroke="#C0392B" stroke-width="2" marker-end="url(#setaErro)"/>
+  <line x1="450" y1="525" x2="468" y2="525" stroke="#17479E" stroke-width="2" marker-end="url(#setaC)"/>
+
+  <!-- reenvio volta ao I50 (loop ate 3) -->
+  <path d="M560,540 C560,565 300,575 234,520" fill="none" stroke="#009A83" stroke-width="2" marker-end="url(#setaLoop)"/>
+  <text x="360" y="592" text-anchor="middle" fill="#009A83" font-size="11">reenvia (limite: 3 tentativas)</text>
+
+  <!-- seta do bloco por nota -> classifica -->
+  <line x1="680" y1="500" x2="740" y2="500" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- classifica -->
+  <rect x="740" y="452" width="220" height="96" rx="12" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+  <text x="850" y="474" text-anchor="middle" fill="#17479E" font-size="12.5" font-weight="bold">Classifica</text>
+  <rect x="756" y="484" width="14" height="14" rx="3" fill="#009A83"/>
+  <text x="778" y="496" fill="#333333" font-size="11.5">Integrada</text>
+  <rect x="756" y="504" width="14" height="14" rx="3" fill="#E8A317"/>
+  <text x="778" y="516" fill="#333333" font-size="11.5">Pendente</text>
+  <rect x="756" y="524" width="14" height="14" rx="3" fill="#C0392B"/>
+  <text x="778" y="536" fill="#333333" font-size="11.5">Nao integrada</text>
+
+  <!-- classifica -> move arquivo -->
+  <line x1="850" y1="548" x2="850" y2="588" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+  <rect x="740" y="588" width="220" height="42" rx="10" fill="#eaf5fc" stroke="#17479E" stroke-width="2"/>
+  <text x="850" y="614" text-anchor="middle" fill="#17479E" font-size="12.5" font-weight="bold">Move o arquivo</text>
+
+  <!-- fim do pacote: relatorio + email + telemetria -->
+  <rect x="340" y="640" width="400" height="56" rx="12" fill="#e6f5f1" stroke="#009A83" stroke-width="2.5"/>
+  <text x="540" y="664" text-anchor="middle" fill="#009A83" font-size="12.5" font-weight="bold">Ao fim do pacote</text>
+  <text x="540" y="684" text-anchor="middle" fill="#333333" font-size="11.5">gera relatorio + envia e-mail + grava telemetria</text>
+  <line x1="740" y1="616" x2="712" y2="660" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaC)"/>
+
+  <!-- volta a Ocioso (loop grande) -->
+  <path d="M340,668 C120,660 100,120 398,93" fill="none" stroke="#009A83" stroke-width="2.5" marker-end="url(#setaLoop)"/>
+  <text x="120" y="400" text-anchor="middle" fill="#009A83" font-size="12" font-weight="bold" transform="rotate(-90 120 400)">volta a Ocioso</text>
+</svg>
