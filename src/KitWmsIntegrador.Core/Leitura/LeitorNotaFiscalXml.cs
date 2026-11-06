@@ -453,12 +453,21 @@ public sealed class LeitorNotaFiscalXml
 
         ParaCadaFilho(veicTransp, r =>
         {
-            if (r.LocalName == "placa")
+            switch (r.LocalName)
             {
-                placa = r.ReadElementContentAsString();
-                return true;
+                // Consome o subtree do reboque sem descer nele: o reboque também
+                // possui um elemento <placa>, que NÃO deve sobrescrever a placa do
+                // veículo (requisito "só veicTransp").
+                case "reboque":
+                    r.Skip();
+                    return true;
+                // Captura apenas a primeira <placa> de nível direto (a do veículo).
+                case "placa" when placa is null:
+                    placa = r.ReadElementContentAsString();
+                    return true;
+                default:
+                    return false;
             }
-            return false;
         });
 
         return placa;
