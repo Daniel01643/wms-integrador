@@ -14,7 +14,8 @@ Os scripts estão em `deploy\` na raiz do repositório. Todos são idempotentes,
 > verdade** dos scripts de operação no servidor. Depois da produção, o técnico abre um PowerShell
 > **como Administrador no próprio servidor** (RDP), vai até essa pasta e opera dali
 > (`servico.ps1`, `publicar-release.ps1`, `rollback.ps1`, `configurar-segredos.ps1`,
-> `diagnostico.ps1`, `compartilhar-pasta.ps1`, `remover.ps1`) — **sem** depender de `C:\temp` nem
+> `diagnostico.ps1`, `compartilhar-pasta.ps1`, `limpar-extensao-invalida.ps1`, `remover.ps1`) —
+> **sem** depender de `C:\temp` nem
 > de WinRM da máquina de build. `C:\temp\deploy` é usado **apenas no primeiro install** (quando a
 > pasta ainda não existe no servidor). Como os scripts fazem dot-source de `_comum.ps1` por
 > `$PSScriptRoot` e resolvem o `nssm.exe` por parâmetro/fallback, rodar de `tools\deploy` funciona
@@ -280,6 +281,31 @@ release, para acompanharem a versão (`instalar.ps1` faz o mesmo). Se os scripts
 # Remove o serviço E limpa app\/logs\, preservando data\/backups\/config\ (com confirmação):
 .\remover.ps1 -LimparPastas -Confirm
 ```
+
+### 3.11 Limpeza forçada das pastas `ExtensaoInvalida` (NÃO-XML)
+Os arquivos que **não são XML** recusados na detecção vão para
+`C:\Friozem\kitbrf\Erro\<pacote_...>\ExtensaoInvalida`. Eles são removidos **automaticamente** pela
+limpeza de 10 dias (junto com a subpasta do pacote). Quando o operador quiser **esvaziar os NÃO-XML
+antes** desse prazo (limpeza forçada sob demanda), use o `limpar-extensao-invalida.ps1`:
+
+```powershell
+# A partir de C:\Friozem\importacao_notas\tools\deploy no servidor (RDP):
+# 1) SEMPRE primeiro: ver o que seria apagado, sem apagar nada:
+.\limpar-extensao-invalida.ps1 -WhatIf
+# 2) Apagar de fato (lista o que será removido e pede confirmação s/n):
+.\limpar-extensao-invalida.ps1
+# 3) Sem perguntar (automação):
+.\limpar-extensao-invalida.ps1 -Force
+```
+
+O script só remove o conteúdo (incluindo os `.motivo.txt`) e a própria pasta de pastas chamadas
+`ExtensaoInvalida` **dentro de** `<Entrada>\Erro` (default `C:\Friozem\kitbrf\Erro`); recusa raiz de
+drive, ignora junctions/symlinks e nunca toca em nada fora de `Erro` nem em outras categorias (ex.
+`XmlInvalido`). É idempotente e suporta `-WhatIf`. Parâmetros: `-Caminho` (Entrada, default
+`C:\Friozem\kitbrf`), `-NomePastaErro` (default `Erro`), `-NomeCategoria` (default
+`ExtensaoInvalida`), `-Force` (pula a confirmação). Como os demais `.ps1` de `deploy\`, ele é
+**replicado automaticamente** para `C:\Friozem\importacao_notas\tools\deploy` pelo `instalar.ps1`
+(via `Copy-ScriptsDeployParaServidor`), então acompanha a instalação sem passo extra.
 
 ---
 
