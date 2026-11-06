@@ -1,44 +1,70 @@
 # Controle Financeiro — Integrador WMS
 
-Registro de esforço do projeto, separando **horas de IA** (trabalho feito pelo agente
-Kiro) e **horas humanas** (trabalho do time: decisões, validação, operação).
+Registro de esforço do projeto, separando **horas humanas** (trabalho do time:
+decisões, validação, operação) e **horas de IA** (trabalho do agente Kiro, estimado
+pelo tempo de sessão). Documento de **fechamento** (Etapa 11).
 
 ## Parâmetros de custo
 
-Preencher quando definido. Enquanto vazio, o controle registra apenas horas.
+| Parâmetro                         | Valor        | Observação                                                                 |
+|-----------------------------------|--------------|-----------------------------------------------------------------------------|
+| Custo hora humana                 | R$ 28,70/h   | Derivado do salário mensal ÷ 220 h/mês (o salário não é exposto).           |
+| Custo hora IA (proporcional)      | ~R$ 0,95/h   | Custo **da ferramenta**, ilustrativo — ver nota metodológica.               |
+| Jornada de referência             | 220 h/mês    | Base para converter custo mensal em custo/hora.                             |
+| Câmbio de referência              | R$ 5,20 / US$| **Cotação de referência — atualizar no fechamento final.**                  |
 
-| Parâmetro            | Valor (R$/h) |
-|----------------------|--------------|
-| Custo hora IA        | _a definir_  |
-| Custo hora humana    | _a definir_  |
+**Custo da ferramenta de IA**: assinatura Kiro Pro+ de US$ 40/mês. A US$ 40 × R$ 5,20
+= ~R$ 208/mês; ~R$ 208 ÷ 220 h = **~R$ 0,95/h**. Esse valor representa o **custo
+proporcional da ferramenta** no período — a IA **não** é contratada por hora; o número
+é apenas ilustrativo do custo da ferramenta durante o projeto.
 
-## Registro de horas
+## Registro de horas (reconciliado)
 
-Convenção: **horas humanas** são informadas pelo time; **horas de IA** são
-contabilizadas automaticamente pelo agente (tempo de execução da sessão).
+Convenção: **horas humanas** são informadas pelo time; **horas de IA** são estimadas
+pelo tempo de execução/sessão do agente.
 
-| Data       | Tipo    | Horas | Descrição                                                        | Custo (R$) |
-|------------|---------|-------|------------------------------------------------------------------|------------|
-| 2026-10-29 | Humana  | 2,0   | Levantamento do fluxo, regras de negócio, decisões               | _a definir_ |
-| 2026-10-29 | IA      | 0,6   | Briefing, arquitetura + diagramas, deck de 4 slides, financeiro   | _a definir_ |
-| 2026-10-30 | IA      | 0,5   | Mapeamento dos dados reais, verificação do ambiente, instalação SDK | _a definir_ |
-| 2026-10-30 | Humana  | 5,0   | Decisões de negócio, validações no WMS, testes de comunicação, chamado | _a definir_ |
-| 2026-10-30 | IA      | 1,8   | Etapas 3+4 (cliente WMS, construtores), testes E2E ao vivo, correções, chamado | _a definir_ |
-| 2026-11-03 | Humana  | 3,0   | Decisões (I60/I50 enriquecida, relatório, orquestrador reativo), validações | _a definir_ |
-| 2026-11-03 | IA      | 1,5   | Etapa 5 (I50 enriquecida, flag I60, relatório HTML/PDF), início do Orquestrador | _a definir_ |
+| Data       | Tipo    | Horas | Descrição                                                                                     |
+|------------|---------|-------|-----------------------------------------------------------------------------------------------|
+| 2026-10-29 | Humana  | 2,00  | Briefing, levantamento do fluxo, regras de negócio, decisões, arquitetura                     |
+| 2026-10-29 | IA      | 0,60  | Arquitetura + diagramas, deck inicial, controle financeiro                                    |
+| 2026-10-30 | Humana  | 5,00  | Decisões de negócio, validações no WMS, comunicação validada ao vivo, chamado I60             |
+| 2026-10-30 | IA      | 1,80  | Stack .NET + 4 etapas de código, testes E2E ao vivo, correções, chamado                       |
+| 2026-11-03 | Humana  | 3,00  | Decisões (I50 enriquecida, flag I60, relatório, orquestrador reativo), validações             |
+| 2026-11-03 | IA      | 1,50  | Etapa 5 (I50 enriquecida, flag I60, relatório HTML/PDF), início do Orquestrador               |
+| 2026-11-04 | Humana  | 4,50  | Etapas 6/7/7b/7c/8, watcher, subpastas, limpeza, e-mail visual, validação REAL até 1196 notas |
+| 2026-11-04 | IA      | 2,50  | Orquestrador reativo, relatório refinado, watcher/pacote/e-mail, teste de esforço             |
+| 2026-11-05 | Humana  | 4,75  | Etapa 9 (pacote + NSSM + 50 notas), monitoramento/resumo semanal, e-mail por TXT, Etapa 10    |
+| 2026-11-05 | IA      | 3,50  | Pacote de instalação, serviço NSSM, e-mail configurável, manuais (Etapa 10)                   |
+| 2026-11-06 | Humana  | 6,00  | Virada em PRODUÇÃO, não-XML, placa na I50, TLS 1.2, GetToken resiliente, 5 releases            |
+| 2026-11-06 | IA      | 4,50  | Correções TLS/GetToken, tratamento não-XML, placa no XML→WMS, manuais embarcados, releases     |
+| Planejada  | Humana  | 1,00  | Apresentação e treinamento                                                                    |
 
-## Totais
+Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**.
 
-| Tipo    | Horas | Custo (R$) |
-|---------|-------|------------|
-| IA      | 4,4   | _a definir_ |
-| Humana  | 10,0  | _a definir_ |
-| **Total** | **14,4** | _a definir_ |
+## Totais e fechamento financeiro
 
-## Notas
+| Tipo        | Horas     | Valor/hora   | Custo (R$)   |
+|-------------|-----------|--------------|--------------|
+| Humana      | 26,25     | R$ 28,70     | **R$ 753,38** |
+| IA (ferramenta, ilustrativo) | ~14,40 | ~R$ 0,95 | **~R$ 13,68** |
+| **Total do desenvolvimento** | —   | —            | **~R$ 767**  |
 
-- **Horas de IA**: tempo de execução do agente (geração de documentação, código,
-  diagramas). Pode ser medido pela plataforma (ex.: créditos/tempo de sessão).
-- **Horas humanas**: reuniões, decisões, validação de credenciais, testes no WMS,
-  operação e acompanhamento.
-- Atualizar este arquivo a cada sessão de trabalho ou marco do projeto.
+- Custo humano: 26,25 h × R$ 28,70 = **R$ 753,38**.
+- Custo IA (proporcional, ilustrativo): ~14,40 h × ~R$ 0,95 = **~R$ 13,68**.
+- Custo total do desenvolvimento (humano + ferramenta): **~R$ 767,06 ≈ R$ 767**.
+
+O grosso do custo é a **hora humana**; a IA é o **multiplicador de produtividade**, não
+uma linha de custo relevante por hora.
+
+## Notas metodológicas
+
+- **Salário não é exposto**: o valor/hora humano (R$ 28,70) deriva do salário mensal
+  dividido por 220 h/mês; apenas o valor/hora é apresentado.
+- **IA como custo proporcional de ferramenta**: a assinatura Kiro Pro+ (US$ 40/mês) é
+  rateada por 220 h/mês para chegar a ~R$ 0,95/h. A IA não é contratada por hora; o
+  número é ilustrativo do custo da ferramenta no período.
+- **Câmbio atualizável**: R$ 5,20/US$ é cotação de referência — **atualizar no
+  fechamento final** se necessário.
+- **Horas de IA**: estimadas pelo tempo de execução/sessão do agente.
+- **Horas humanas**: decisões, validação de credenciais, testes no WMS, operação e
+  acompanhamento.
