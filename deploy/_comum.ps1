@@ -290,6 +290,57 @@ function Compress-ZipPortavel {
     Write-Passo ("Zip gerado: {0}" -f $ZipPath) -Nivel Ok
 }
 
+function Copy-ScriptsDeployParaServidor {
+    <#
+    .SYNOPSIS Copia (idempotente) todos os .ps1 de deploy\ para uma pasta PERMANENTE no servidor,
+              para que os scripts de operacao vivam junto da instalacao (RDP, sem depender de C:\temp).
+    .DESCRIPTION
+        Fonte = a pasta onde o script chamador esta sendo executado ($PSScriptRoot). Copia todos os
+        .ps1 (inclusive _comum.ps1 e este conjunto) para -PastaDestino, SOBRESCREVENDO a cada
+        execucao (mantem a versao mais nova dos scripts junto da release). Como os demais scripts
+        fazem dot-source de _comum.ps1 por $PSScriptRoot, rodando de -PastaDestino eles continuam
+        achando o _comum.ps1 ao lado. NAO apaga outros conteudos de tools\ (so gerencia esta
+        subpasta). Se a fonte e o destino forem a MESMA pasta (ja rodando de tools\deploy), nao faz
+        nada. Respeita -WhatIf do chamador.
+    .PARAMETER PastaOrigem  Pasta de origem dos .ps1 (tipicamente $PSScriptRoot do chamador).
+    .PARAMETER PastaDestino Pasta PERMANENTE de destino no servidor (ex. ...\tools\deploy).
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)] [string] $PastaOrigem,
+        [Parameter(Mandatory)] [string] $PastaDestino
+    )
+
+    if (-not (Test-Path -LiteralPath $PastaOrigem -PathType Container)) {
+        throw ("Copy-ScriptsDeployParaServidor: pasta de origem inexistente: {0}" -f $PastaOrigem)
+    }
+
+    [void](Confirm-Directory -Caminho $PastaDestino)
+
+    $origemFull  = (Resolve-Path -LiteralPath $PastaOrigem).ProviderPath
+    $destinoFull = (Resolve-Path -LiteralPath $PastaDestino).ProviderPath
+
+    # Se ja estamos rodando de dentro do destino, nao ha o que copiar.
+    if ($origemFull.TrimEnd('\') -ieq $destinoFull.TrimEnd('\')) {
+        Write-Passo ("Scripts de deploy ja estao na pasta permanente: {0} (sem copia)." -f $destinoFull) -Nivel Info
+        return
+    }
+
+    $scripts = Get-ChildItem -LiteralPath $origemFull -Filter '*.ps1' -File -ErrorAction SilentlyContinue
+    if (-not $scripts) {
+        Write-Passo ("Nenhum .ps1 encontrado em {0}; nada copiado." -f $origemFull) -Nivel Alerta
+        return
+    }
+
+    foreach ($s in $scripts) {
+        $destino = Join-Path $destinoFull $s.Name
+        if ($PSCmdlet.ShouldProcess($destino, ("Copiar script de deploy '{0}'" -f $s.Name))) {
+            Copy-Item -LiteralPath $s.FullName -Destination $destino -Force
+        }
+    }
+    Write-Passo ("Scripts de deploy copiados (idempotente) para: {0}" -f $destinoFull) -Nivel Ok
+}
+
 function Get-VersaoPadrao {
     <#
     .SYNOPSIS Deriva uma versao: yyyy.MM.dd[-<hash git curto>] ou yyyy.MM.dd.HHmm sem git.
