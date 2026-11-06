@@ -228,23 +228,73 @@ public sealed class ClienteWmsHttp : IClienteWms
 
     private async Task<string> ObterTokenAsync(CancellationToken cancellationToken)
     {
+        // O GetToken pode falhar de forma TRANSITORIA (401/5xx/erro de rede) por motivos do
+        // lado do WMS (concorrencia de sessao, rate, renovacao interna). Sem retry, um unico
+        // 401 no token derruba o PACOTE INTEIRO (todas as notas daquele GetToken). Por isso,
+        // aqui aplicamos a mesma resiliencia do envio: tentamos ate MaxTentativas com backoff,
+        // tratando 401 como transitorio no token (diferente de 401 no POST, que renova 1x).
         var credenciais = Convert.ToBase64String(
             Encoding.UTF8.GetBytes($"{_opcoes.Usuario}:{_opcoes.Senha}"));
 
-        using var requisicao = new HttpRequestMessage(HttpMethod.Get, "Integracao/GetToken");
-        requisicao.Headers.Authorization = new AuthenticationHeaderValue("Basic", credenciais);
-
-        using var resposta = await _http.SendAsync(requisicao, cancellationToken).ConfigureAwait(false);
-        resposta.EnsureSuccessStatusCode();
-
-        var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var dto = JsonSerializer.Deserialize<TokenResposta>(corpo, JsonOpcoes);
-        if (dto is null || string.IsNullOrWhiteSpace(dto.Token))
+        var tentativa = 0;
+        while (true)
         {
-            throw new InvalidOperationException("GetToken não retornou um token válido.");
-        }
+            tentativa++;
+            cancellationToken.ThrowIfCancellationRequested();
 
-        return dto.Token;
+            HttpResponseMessage resposta;
+            try
+            {
+                using var requisicao = new HttpRequestMessage(HttpMethod.Get, "Integracao/GetToken");
+                requisicao.Headers.Authorization = new AuthenticationHeaderValue("Basic", credenciais);
+                resposta = await _http.SendAsync(requisicao, cancellationToken).ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex) when (tentativa < _opcoes.MaxTentativas)
+            {
+                _logger.LogWarning(ex,
+                    "Falha de rede no GetToken (tentativa={Tentativa}/{Max}); nova tentativa com backoff.",
+                    tentativa, _opcoes.MaxTentativas);
+                await EsperarBackoffAsync(tentativa, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested && tentativa < _opcoes.MaxTentativas)
+            {
+                _logger.LogWarning(ex,
+                    "Timeout no GetToken (tentativa={Tentativa}/{Max}); nova tentativa com backoff.",
+                    tentativa, _opcoes.MaxTentativas);
+                await EsperarBackoffAsync(tentativa, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            using (resposta)
+            {
+                // 401/403/5xx no GetToken sao tratados como TRANSITORIOS: retry com backoff.
+                var transitorio =
+                    resposta.StatusCode == HttpStatusCode.Unauthorized ||
+                    resposta.StatusCode == HttpStatusCode.Forbidden ||
+                    (int)resposta.StatusCode >= 500;
+
+                if (transitorio && tentativa < _opcoes.MaxTentativas)
+                {
+                    _logger.LogWarning(
+                        "HTTP {Status} no GetToken (tentativa={Tentativa}/{Max}); nova tentativa com backoff.",
+                        (int)resposta.StatusCode, tentativa, _opcoes.MaxTentativas);
+                    await EsperarBackoffAsync(tentativa, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                resposta.EnsureSuccessStatusCode();
+
+                var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                var dto = JsonSerializer.Deserialize<TokenResposta>(corpo, JsonOpcoes);
+                if (dto is null || string.IsNullOrWhiteSpace(dto.Token))
+                {
+                    throw new InvalidOperationException("GetToken não retornou um token válido.");
+                }
+
+                return dto.Token;
+            }
+        }
     }
 
     private static RespostaWms DesserializarResposta(string corpo)
