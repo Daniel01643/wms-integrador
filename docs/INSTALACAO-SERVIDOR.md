@@ -8,6 +8,20 @@ Os scripts estão em `deploy\` na raiz do repositório. Todos são idempotentes,
 (`$ErrorActionPreference='Stop'`), nunca logam segredos e aceitam os caminhos-raiz por parâmetro
 (defaults da casa). Os que escrevem suportam `-WhatIf`.
 
+> **Servidor autossuficiente (operação por RDP).** A partir da **1ª instalação**, `instalar.ps1`
+> **replica** todos os `.ps1` de `deploy\` (inclusive `_comum.ps1`) para a pasta **permanente**
+> **`C:\Friozem\importacao_notas\tools\deploy`** no servidor — essa pasta passa a ser a **fonte de
+> verdade** dos scripts de operação no servidor. Depois da produção, o técnico abre um PowerShell
+> **como Administrador no próprio servidor** (RDP), vai até essa pasta e opera dali
+> (`servico.ps1`, `publicar-release.ps1`, `rollback.ps1`, `configurar-segredos.ps1`,
+> `diagnostico.ps1`, `compartilhar-pasta.ps1`, `remover.ps1`) — **sem** depender de `C:\temp` nem
+> de WinRM da máquina de build. `C:\temp\deploy` é usado **apenas no primeiro install** (quando a
+> pasta ainda não existe no servidor). Como os scripts fazem dot-source de `_comum.ps1` por
+> `$PSScriptRoot` e resolvem o `nssm.exe` por parâmetro/fallback, rodar de `tools\deploy` funciona
+> sem mudança. `publicar-release.ps1` também atualiza esses scripts ao promover uma release, para
+> acompanharem a versão. Só a subpasta `tools\deploy` é gerenciada; o resto de `tools\` (ex.
+> `nssm.exe` referenciado de outro lugar) não é tocado.
+
 > Nada neste guia deve ser executado contra o servidor real sem a supervisão do operador. Os
 > scripts foram validados localmente (parse + publish real); a instalação no servidor é conduzida
 > pelo operador seguindo os passos abaixo.
@@ -51,6 +65,7 @@ C:\Friozem\importacao_notas\          (APP — binários, config, logs)
 ├── logs\                    (worker.out.log / worker.err.log, rotação pelo NSSM)
 ├── backups\                 (zips do current anterior antes de cada virada)
 └── tools\
+    └── deploy\              (FONTE DE VERDADE dos scripts .ps1 de operação no servidor — RDP)
 
 C:\Friozem\kitbrf\                     (ENTRADA — dados; pasta LOCAL compartilhada na rede)
 ├── (XMLs a processar, no topo)
@@ -72,13 +87,20 @@ resolvem **dentro** dessa pasta (ver `docs\OPERACAO.md`).
 
 Todos os scripts rodam igualmente nos dois modos.
 
-### RDP (sessão local no servidor)
-Abra um PowerShell **como administrador** no servidor e execute os scripts de `deploy\` (copiados
-para, por exemplo, `C:\temp\deploy\`):
+### RDP (sessão local no servidor) — modo recomendado para o dia a dia
+Abra um PowerShell **como administrador** no servidor.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File C:\temp\deploy\diagnostico.ps1
-```
+- **Primeira instalação** (a pasta permanente ainda não existe): copie `deploy\` para
+  `C:\temp\deploy\` e rode a partir dali:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File C:\temp\deploy\diagnostico.ps1
+  ```
+- **Dia a dia (após a 1ª instalação)**: os scripts já vivem em
+  `C:\Friozem\importacao_notas\tools\deploy`. Opere a partir dessa pasta:
+  ```powershell
+  cd C:\Friozem\importacao_notas\tools\deploy
+  powershell -ExecutionPolicy Bypass -File .\diagnostico.ps1
+  ```
 
 ### WinRM (de outra máquina — usuário `SRVAPPALC02\administrator`)
 ```powershell
@@ -111,7 +133,10 @@ Remove-PSSession $s
 
 ### 3.1 Diagnóstico (só leitura)
 ```powershell
+# 1ª instalação (ainda sem a pasta permanente): a partir de C:\temp\deploy
 .\deploy\diagnostico.ps1
+# Dia a dia (após instalar): a partir de C:\Friozem\importacao_notas\tools\deploy
+# cd C:\Friozem\importacao_notas\tools\deploy ; .\diagnostico.ps1
 ```
 Confere SO, .NET, nssm, serviços NSSM, TLS 1.2, alcance WMS:8888 e SMTP:587, estrutura de pastas e
 ACL de `config\`. Não altera nada. Corrija/anote os alertas antes de seguir.
@@ -143,12 +168,21 @@ aplica ACL restrita em `config\`. **Não inicia** o serviço enquanto os segredo
 A pasta de entrada tem default `-PastaEntrada C:\Friozem\kitbrf`; passe `-CompartilharEntrada`
 para já expô-la na rede (equivale a rodar o §3.4b).
 
+Além disso, `instalar.ps1` **replica os próprios scripts de `deploy\`** (inclusive `_comum.ps1`)
+para `C:\Friozem\importacao_notas\tools\deploy` — a **fonte de verdade** dos scripts de operação no
+servidor, de forma idempotente (sobrescreve a cada instalação/atualização). O caminho de destino é
+logado. A partir daí, **opere o dia a dia a partir de `tools\deploy`** (não mais de `C:\temp`).
+Parâmetros: `-CopiarScripts $false` desliga a cópia; `-PastaScriptsDestino <pasta>` muda o destino
+(default `<RaizInstalacao>\tools\deploy`). Só essa subpasta de `tools\` é gerenciada; o resto de
+`tools\` não é tocado.
+
 ### 3.4b Compartilhar a pasta de entrada na rede (SMB)
 ```powershell
+# A partir da pasta permanente no servidor (RDP): cd C:\Friozem\importacao_notas\tools\deploy
 # Validação (gravação para Authenticated Users):
-.\deploy\compartilhar-pasta.ps1
+.\compartilhar-pasta.ps1
 # Produção (recomendado restringir a um grupo de domínio — DECISÃO EM ABERTO (a)):
-.\deploy\compartilhar-pasta.ps1 -GravadoresShare 'FRIOPART\<grupo>'
+.\compartilhar-pasta.ps1 -GravadoresShare 'FRIOPART\<grupo>'
 ```
 Cria a pasta local (se faltar), cria/atualiza o compartilhamento SMB `kitbrf` (Full para
 Administradores, Change/escrita para o principal gravador) e concede `Modify` NTFS ao mesmo
@@ -157,7 +191,8 @@ Server 2012 R2 usa os cmdlets `SmbShare`; se indisponíveis, cai para `net share
 
 ### 3.5 Configurar os segredos de HOMOLOGAÇÃO (no servidor)
 ```powershell
-.\deploy\configurar-segredos.ps1 -Fase Homolog
+# A partir da pasta permanente no servidor (RDP): cd C:\Friozem\importacao_notas\tools\deploy
+.\configurar-segredos.ps1 -Fase Homolog
 ```
 Pede (sem eco) usuário/senha do WMS e do SMTP. Grava:
 - WMS → variáveis de ambiente de **máquina** `WMS__Usuario`/`WMS__Senha` (padrão `-Escopo Maquina`;
@@ -194,8 +229,9 @@ Remove-ItemProperty -Path $k -Name Enabled,DisabledByDefault -ErrorAction Silent
 
 ### 3.7 Iniciar e validar com um lote pequeno (em HOMOLOG)
 ```powershell
-.\deploy\servico.ps1 -Acao Start
-.\deploy\servico.ps1 -Acao Status
+# A partir da pasta permanente no servidor (RDP): cd C:\Friozem\importacao_notas\tools\deploy
+.\servico.ps1 -Acao Start
+.\servico.ps1 -Acao Status
 ```
 Coloque **poucos** XMLs na pasta de entrada (`C:\Friozem\kitbrf`, local ou via o share `kitbrf`),
 acompanhe `logs\worker.out.log` e
@@ -207,31 +243,42 @@ A virada é só troca de valores de config + restart:
    `config\appsettings.Production.json` (ou env `Wms__BaseUrl`).
 2. Grave as credenciais de produção do WMS:
    ```powershell
-   .\deploy\configurar-segredos.ps1 -Fase Producao
+   # A partir de C:\Friozem\importacao_notas\tools\deploy no servidor (RDP):
+   .\configurar-segredos.ps1 -Fase Producao
    ```
 3. Confirme destinatários de produção (fechamento em `config\destinatarios-fechamento.txt`, com
    `Email:Destinatarios` como fallback; resumo em `config\destinatarios-resumo.txt`).
 4. Reinicie:
    ```powershell
-   .\deploy\servico.ps1 -Acao Restart
+   .\servico.ps1 -Acao Restart
    ```
 
-### 3.9 Nova release / rollback
+### 3.9 Nova release / rollback (ATUALIZAR versão)
+Fluxo de atualização: na **máquina de build** rode `publicar.ps1` para gerar o novo `.zip`; copie o
+`.zip` (e, se os scripts de `deploy\` mudaram, a própria pasta `deploy\`) para o servidor; depois,
+**no servidor (RDP)**, opere a partir de `C:\Friozem\importacao_notas\tools\deploy`.
+`publicar-release.ps1` (idempotente) também **atualiza os scripts** em `tools\deploy` ao promover a
+release, para acompanharem a versão (`instalar.ps1` faz o mesmo). Se os scripts de deploy mudaram e
+`tools\deploy` ainda está com a versão antiga, rode a nova **uma vez** a partir de `C:\temp\deploy`
+(ela se auto-replica para `tools\deploy`).
+
 ```powershell
-# Promover nova release (backup do current, vira, reinicia, mantém as últimas 5):
-.\deploy\publicar-release.ps1 -ReleaseZip C:\temp\KitWmsIntegrador-<nova>-win-x64.zip -Versao <nova>
+# A partir de C:\Friozem\importacao_notas\tools\deploy no servidor (RDP):
+# Promover nova release (backup do current, vira, reinicia, mantém as últimas 5, atualiza scripts):
+.\publicar-release.ps1 -ReleaseZip C:\temp\KitWmsIntegrador-<nova>-win-x64.zip -Versao <nova>
 
 # Rollback para a release anterior (ou -Versao explícita):
-.\deploy\rollback.ps1
-.\deploy\rollback.ps1 -Versao 2026.01.15-1
+.\rollback.ps1
+.\rollback.ps1 -Versao 2026.01.15-1
 ```
 
 ### 3.10 Remoção
 ```powershell
+# A partir de C:\Friozem\importacao_notas\tools\deploy no servidor (RDP):
 # Remove o serviço, preserva as pastas:
-.\deploy\remover.ps1
+.\remover.ps1
 # Remove o serviço E limpa app\/logs\, preservando data\/backups\/config\ (com confirmação):
-.\deploy\remover.ps1 -LimparPastas -Confirm
+.\remover.ps1 -LimparPastas -Confirm
 ```
 
 ---
@@ -267,6 +314,9 @@ O Worker (host genérico) lê, em ordem: `appsettings.json` (na release) + `apps
   `Wms__BaseUrl`, `Email__Habilitado`...) — persistem entre releases e tornam a virada trivial.
 - **Segredos**: WMS em env de máquina `WMS__Usuario`/`WMS__Senha` (ou `config\appsettings.Production.json`
   com ACL); SMTP em `config\email.settings.json` (ACL). **Nunca** no `appsettings.json` versionado.
+- **Scripts de operação**: vivem de forma **permanente** em `tools\deploy` (fonte de verdade no
+  servidor). `instalar.ps1`/`publicar-release.ps1` os **replicam/atualizam** (idempotente) junto da
+  release, então acompanham a versão. O técnico opera a partir dessa pasta (RDP).
 
 ---
 
