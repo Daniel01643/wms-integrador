@@ -121,4 +121,39 @@ public class LeitorNotaFiscalXmlTests
 
         Assert.Equal("QPJ1H28", nota.PlacaVeiculo);
     }
+
+    [Fact]
+    public void Parse_ComReboque_UsaPlacaDoVeiculoEIgnoraReboque()
+    {
+        // NFe com veicTransp/placa E reboque/placa: a placa do reboque NÃO deve
+        // sobrescrever a placa do veículo (requisito "só veicTransp").
+        const string xml =
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+              <NFe>
+                <infNFe Id="NFe35251201838723009850550060156658071604491612">
+                  <transp>
+                    <modFrete>0</modFrete>
+                    <veicTransp>
+                      <placa>ABC1234</placa>
+                      <UF>SP</UF>
+                    </veicTransp>
+                    <reboque>
+                      <placa>REB9999</placa>
+                      <UF>SP</UF>
+                    </reboque>
+                  </transp>
+                </infNFe>
+              </NFe>
+            </nfeProc>
+            """;
+
+        var leitor = new LeitorNotaFiscalXml();
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
+
+        var nota = leitor.Parse(stream, "memoria.xml");
+
+        Assert.Equal("ABC1234", nota.PlacaVeiculo);
+    }
 }
