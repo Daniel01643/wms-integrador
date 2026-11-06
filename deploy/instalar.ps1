@@ -39,6 +39,17 @@
     default de Pastas:Entrada. Para expor na rede, rode compartilhar-pasta.ps1 (ou use
     -CompartilharEntrada).
 
+.PARAMETER CopiarScripts
+    Se $true (default), copia todos os .ps1 de deploy\ (inclusive _comum.ps1) para a pasta
+    PERMANENTE de scripts no servidor (ver -PastaScriptsDestino), de forma idempotente. Assim o
+    servidor fica autossuficiente e o tecnico opera direto dele (RDP) a partir dessa pasta, sem
+    depender de C:\temp nem de WinRM. Passe $false para desligar.
+
+.PARAMETER PastaScriptsDestino
+    Pasta PERMANENTE de destino dos scripts de deploy no servidor (default
+    <RaizInstalacao>\tools\deploy, ex. C:\Friozem\importacao_notas\tools\deploy). Apenas essa
+    subpasta de tools\ e gerenciada; outros conteudos de tools\ (ex. nssm.exe) nao sao tocados.
+
 .PARAMETER CompartilharEntrada
     Se presente, chama compartilhar-pasta.ps1 para expor a PastaEntrada na rede via SMB (share
     'kitbrf', gravacao para 'Authenticated Users' por padrao).
@@ -71,6 +82,8 @@ param(
     [string] $Versao,
     [string] $ContaServico = 'NT AUTHORITY\SYSTEM',
     [string] $PastaEntrada = 'C:\Friozem\kitbrf',
+    [bool]   $CopiarScripts = $true,
+    [string] $PastaScriptsDestino,
     [switch] $CompartilharEntrada,
     [switch] $HabilitarTls12,
     [switch] $IniciarServico
@@ -108,6 +121,19 @@ $pastaBackups   = Join-Path $RaizInstalacao 'backups'
 $pastaTools     = Join-Path $RaizInstalacao 'tools'
 foreach ($p in @($RaizInstalacao, $pastaApp, $pastaReleases, $pastaConfig, $pastaData, $pastaLogs, $pastaBackups, $pastaTools)) {
     [void](Confirm-Directory -Caminho $p)
+}
+
+# --- 1b. Replicar os scripts de deploy para a pasta PERMANENTE do servidor (idempotente) ---
+# Deixa o servidor autossuficiente: apos a producao, o tecnico abre o PowerShell como Admin NO
+# SERVIDOR, vai ate esta pasta e opera (servico, publicar-release, rollback, configurar-segredos,
+# diagnostico, compartilhar-pasta, remover) sem depender de C:\temp nem de WinRM da maquina de build.
+# A fonte e a propria pasta onde este script esta rodando ($PSScriptRoot), entao _comum.ps1 vai junto.
+if (-not $PastaScriptsDestino) { $PastaScriptsDestino = Join-Path $pastaTools 'deploy' }
+if ($CopiarScripts) {
+    Write-Passo ("Replicando scripts de deploy para a pasta permanente: {0}" -f $PastaScriptsDestino)
+    Copy-ScriptsDeployParaServidor -PastaOrigem $PSScriptRoot -PastaDestino $PastaScriptsDestino -WhatIf:$WhatIfPreference
+} else {
+    Write-Passo 'Copia dos scripts de deploy desativada (-CopiarScripts $false).' -Nivel Info
 }
 
 # Pasta LOCAL de entrada de XMLs (fora da raiz do app). As subpastas Processados/Erro/Estado/
