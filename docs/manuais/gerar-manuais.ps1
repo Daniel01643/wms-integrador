@@ -29,7 +29,77 @@ $ErrorActionPreference = 'Stop'
 # ---------------------------------------------------------------------------
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $docsDir   = Split-Path -Parent $scriptDir
+$repoDir   = Split-Path -Parent $docsDir
 $deckPath  = Join-Path $docsDir 'apresentacao\deck.html'
+$assetsDir = Join-Path $scriptDir 'assets'
+
+# ---------------------------------------------------------------------------
+# Versao exibida na capa: replica o criterio de deploy\_comum.ps1::Get-VersaoPadrao
+# (yyyy.MM.dd-<hash git curto>). Fallback 'v1.0 - 2026-11' quando git nao responder.
+# ---------------------------------------------------------------------------
+function Get-VersaoManual {
+    param([string]$RaizRepo)
+
+    $hash = $null
+    if ($RaizRepo -and (Test-Path -LiteralPath (Join-Path $RaizRepo '.git'))) {
+        try {
+            Push-Location $RaizRepo
+            $hash = (& git rev-parse --short HEAD 2>$null)
+        } catch {
+            $hash = $null
+        } finally {
+            Pop-Location
+        }
+    }
+    if ($hash) {
+        return ("{0}-{1}" -f (Get-Date).ToString('yyyy.MM.dd'), $hash.Trim())
+    }
+    return 'v1.0 - 2026-11'
+}
+
+# ---------------------------------------------------------------------------
+# Le um SVG de assets\<nome>.svg como UTF-8 e devolve o markup intacto.
+# ---------------------------------------------------------------------------
+function Read-AssetSvg {
+    param([string]$Nome)
+    $caminho = Join-Path $assetsDir ($Nome + '.svg')
+    if (-not (Test-Path -LiteralPath $caminho)) {
+        throw "SVG de diagrama nao encontrado: $caminho"
+    }
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    return [System.IO.File]::ReadAllText($caminho, $utf8)
+}
+
+# ---------------------------------------------------------------------------
+# Monta o bloco HTML da capa (logo base64 + titulo + subtitulo + tipo + data + versao).
+# Identidade Friozem; a quebra de pagina depois da capa vem do CSS (.capa).
+# ---------------------------------------------------------------------------
+function Build-Capa {
+    param(
+        [string]$TipoManual,
+        [string]$LogoBase64,
+        [string]$Versao,
+        [string]$DataGeracao
+    )
+    $logoSrc = 'data:image/png;base64,' + $LogoBase64
+    $tipoEsc = ConvertTo-HtmlText $TipoManual
+    $verEsc  = ConvertTo-HtmlText $Versao
+    $dataEsc = ConvertTo-HtmlText $DataGeracao
+
+    return @"
+<section class="capa">
+  <div class="capa-faixa"></div>
+  <img class="capa-logo" src="$logoSrc" alt="Friozem" />
+  <h1 class="capa-titulo">Integrador Notas Fiscais KIT &rarr; WMS</h1>
+  <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
+  <p class="capa-tipo">$tipoEsc</p>
+  <div class="capa-meta">
+    <span>Gerado em: $dataEsc</span>
+    <span>Vers&atilde;o: $verEsc</span>
+  </div>
+</section>
+"@
+}
 
 # ---------------------------------------------------------------------------
 # 1) Extrair a logo base64 do deck (linha 125 = indice 124; com fallback)
@@ -363,7 +433,22 @@ function Build-HtmlDocument {
     /* Rodape */
     .ft { margin: 36px 40px 0; padding-top: 12px; border-top: 3px solid #009A83; color: #555555; font-size: 12.5px; display: flex; justify-content: space-between; }
 
+    /* Capa ilustrada (identidade Friozem, sobria) */
+    .capa { position: relative; text-align: center; padding: 70px 40px 60px; margin: 0 0 24px; }
+    .capa-faixa { height: 10px; background: #17479E; border-bottom: 4px solid #54B6E7; margin: -0px -40px 48px; }
+    .capa-logo { width: 240px; height: auto; display: block; margin: 0 auto 44px; }
+    .capa-titulo { color: #17479E; font-size: 34px; font-weight: 700; line-height: 1.2; margin: 0 0 14px; border: 0; }
+    .capa-sub { color: #54B6E7; font-size: 18px; font-weight: 700; margin: 0 0 40px; }
+    .capa-tipo { display: inline-block; color: #ffffff; background: #17479E; font-size: 17px; font-weight: 700; padding: 8px 26px; border-radius: 22px; margin: 0 0 56px; }
+    .capa-meta { display: flex; justify-content: center; gap: 48px; color: #555555; font-size: 13.5px; border-top: 3px solid #009A83; padding-top: 16px; max-width: 520px; margin: 0 auto; }
+
+    /* Diagramas SVG inline (nao cortar, largura total da area de conteudo) */
+    figure.diagrama { max-width: 100%; margin: 18px 0; }
+    figure.diagrama svg { width: 100%; height: auto; display: block; }
+
     @media print {
+      .capa { page-break-after: always; min-height: 90vh; }
+      figure.diagrama { page-break-inside: avoid; }
       @page {
         size: A4;
         margin: 18mm 16mm 20mm 16mm;
@@ -423,7 +508,9 @@ function Convert-Manual {
         [string]$MarkdownPath,
         [string]$HtmlPath,
         [string]$Title,
-        [string]$LogoBase64
+        [string]$LogoBase64,
+        [string]$Versao,
+        [string]$DataGeracao
     )
 
     if (-not (Test-Path -LiteralPath $MarkdownPath)) {
@@ -442,7 +529,61 @@ function Convert-Manual {
         [void]$body.Add($l)
     }
 
-    $bodyHtml = Convert-MarkdownToHtmlBody -Lines $body.ToArray()
+    # --- Resolver os marcadores de CAPA e DIAGRAMA ANTES de converter o Markdown ---
+    # Tecnica: substituir cada marcador por um placeholder de linha unica que o
+    # conversor repassa intacto (como paragrafo), guardando o HTML cru num store;
+    # depois da conversao, reinjetar o HTML cru no lugar do placeholder.
+    $htmlStore = New-Object System.Collections.ArrayList
+    $NUL = [char]0
+
+    $mapaDiagramas = @{
+        'fluxo-usuario'       = 'fluxo-usuario'
+        'arquitetura-tecnico' = 'arquitetura-tecnico'
+        'ciclo-pacote'        = 'ciclo-pacote'
+    }
+
+    $bodyLines = New-Object System.Collections.ArrayList
+    foreach ($l in $body) {
+        $t = $l.Trim()
+        $m = [regex]::Match($t, '^<!--\s*(CAPA|DIAGRAMA)\s*:\s*([a-z0-9\-]+)\s*-->$')
+        if ($m.Success) {
+            $tipo = $m.Groups[1].Value
+            $nome = $m.Groups[2].Value
+            if ($tipo -eq 'CAPA') {
+                $tipoManual = if ($nome -eq 'tecnico') { 'Manual Tecnico' } else { 'Manual do Usuario' }
+                $html = Build-Capa -TipoManual $tipoManual -LogoBase64 $LogoBase64 -Versao $Versao -DataGeracao $DataGeracao
+            } else {
+                if (-not $mapaDiagramas.ContainsKey($nome)) {
+                    throw "Marcador de diagrama desconhecido: $nome (em $MarkdownPath)"
+                }
+                $svg = Read-AssetSvg -Nome $mapaDiagramas[$nome]
+                $html = "<figure class=`"diagrama`">$svg</figure>"
+            }
+            $idx = $htmlStore.Add($html)
+            [void]$bodyLines.Add($NUL + "HTMLBLOCK$idx" + $NUL)
+        } else {
+            [void]$bodyLines.Add($l)
+        }
+    }
+
+    $bodyHtml = Convert-MarkdownToHtmlBody -Lines $bodyLines.ToArray()
+
+    # Reinjetar o HTML cru (capa/diagramas) no lugar dos placeholders. O conversor
+    # envolve a linha do placeholder num <p>...</p>; removemos esse wrapper para que
+    # o <section>/<figure> fique como bloco de nivel superior (HTML valido).
+    $nulEsc = [regex]::Escape($NUL)
+    $bodyHtml = [regex]::Replace($bodyHtml, '<p>\s*' + $nulEsc + 'HTMLBLOCK(\d+)' + $nulEsc + '\s*</p>', {
+        param($match)
+        $i = [int]$match.Groups[1].Value
+        return $htmlStore[$i]
+    })
+    # Rede de seguranca: se por algum motivo nao estiver em <p>, reinjeta mesmo assim.
+    $bodyHtml = [regex]::Replace($bodyHtml, $nulEsc + 'HTMLBLOCK(\d+)' + $nulEsc, {
+        param($match)
+        $i = [int]$match.Groups[1].Value
+        return $htmlStore[$i]
+    })
+
     $doc = Build-HtmlDocument -Title $Title -BodyHtml $bodyHtml -LogoBase64 $LogoBase64
 
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -456,16 +597,24 @@ function Convert-Manual {
 $logo = Get-LogoBase64 -DeckHtmlPath $deckPath
 Write-Host ("Logo base64 extraida ({0} chars)." -f $logo.Length)
 
+$versao      = Get-VersaoManual -RaizRepo $repoDir
+$dataGeracao = (Get-Date).ToString('yyyy-MM-dd')
+Write-Host ("Versao da capa: {0} | Data de geracao: {1}" -f $versao, $dataGeracao)
+
 Convert-Manual `
     -MarkdownPath (Join-Path $scriptDir 'MANUAL-USUARIO.md') `
     -HtmlPath     (Join-Path $scriptDir 'MANUAL-USUARIO.html') `
     -Title        'Manual do Usuario' `
-    -LogoBase64   $logo
+    -LogoBase64   $logo `
+    -Versao       $versao `
+    -DataGeracao  $dataGeracao
 
 Convert-Manual `
     -MarkdownPath (Join-Path $scriptDir 'MANUAL-TECNICO.md') `
     -HtmlPath     (Join-Path $scriptDir 'MANUAL-TECNICO.html') `
     -Title        'Manual Tecnico (Nivel 1)' `
-    -LogoBase64   $logo
+    -LogoBase64   $logo `
+    -Versao       $versao `
+    -DataGeracao  $dataGeracao
 
 Write-Host "Concluido. Para os PDFs, use o Microsoft Edge headless (ver README.md)."
