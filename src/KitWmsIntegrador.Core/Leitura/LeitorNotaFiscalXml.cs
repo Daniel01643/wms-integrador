@@ -48,6 +48,7 @@ public sealed class LeitorNotaFiscalXml
         VolumeTransporte? volumes = null;
         string? transportadoraNome = null;
         string? transportadoraCnpj = null;
+        string? placaVeiculo = null;
         string? infCpl = null;
         string? protocolo = null;
 
@@ -105,7 +106,7 @@ public sealed class LeitorNotaFiscalXml
                     break;
 
                 case "transp":
-                    (volumes, transportadoraNome, transportadoraCnpj) = LerTransp(reader.ReadSubtree());
+                    (volumes, transportadoraNome, transportadoraCnpj, placaVeiculo) = LerTransp(reader.ReadSubtree());
                     break;
 
                 case "infAdic":
@@ -144,6 +145,7 @@ public sealed class LeitorNotaFiscalXml
             Volumes = volumes,
             TransportadoraNome = transportadoraNome,
             TransportadoraCnpj = transportadoraCnpj,
+            PlacaVeiculo = placaVeiculo ?? string.Empty,
             Protocolo = protocolo,
             NumeroTransporte = ExtratorTransporte.Extrair(infCpl),
             InfoComplementar = infCpl,
@@ -420,10 +422,10 @@ public sealed class LeitorNotaFiscalXml
         return vNF;
     }
 
-    private static (VolumeTransporte? volumes, string? transportadoraNome, string? transportadoraCnpj) LerTransp(XmlReader transp)
+    private static (VolumeTransporte? volumes, string? transportadoraNome, string? transportadoraCnpj, string? placa) LerTransp(XmlReader transp)
     {
         VolumeTransporte? volumes = null;
-        string? nome = null, cnpj = null;
+        string? nome = null, cnpj = null, placa = null;
 
         ParaCadaFilho(transp, r =>
         {
@@ -432,6 +434,9 @@ public sealed class LeitorNotaFiscalXml
                 case "transporta":
                     (nome, cnpj) = LerTransporta(r.ReadSubtree());
                     return true;
+                case "veicTransp":
+                    placa = LerVeicTransp(r.ReadSubtree());
+                    return true;
                 case "vol":
                     volumes = LerVolume(r.ReadSubtree());
                     return true;
@@ -439,7 +444,24 @@ public sealed class LeitorNotaFiscalXml
             }
         });
 
-        return (volumes, nome, cnpj);
+        return (volumes, nome, cnpj, placa);
+    }
+
+    private static string? LerVeicTransp(XmlReader veicTransp)
+    {
+        string? placa = null;
+
+        ParaCadaFilho(veicTransp, r =>
+        {
+            if (r.LocalName == "placa")
+            {
+                placa = r.ReadElementContentAsString();
+                return true;
+            }
+            return false;
+        });
+
+        return placa;
     }
 
     private static (string? nome, string? cnpj) LerTransporta(XmlReader transporta)
