@@ -248,7 +248,19 @@ if ($HabilitarTls12) {
         if (-not (Test-Path -LiteralPath $tlsBase)) { [void](New-Item -Path $tlsBase -Force) }
         New-ItemProperty -Path $tlsBase -Name 'Enabled' -Value 1 -PropertyType DWord -Force | Out-Null
         New-ItemProperty -Path $tlsBase -Name 'DisabledByDefault' -Value 0 -PropertyType DWord -Force | Out-Null
-        Write-Passo 'TLS 1.2 Client habilitado no registro. REVERSIVEL (ver docs). Pode exigir REINICIO do servidor.' -Nivel Ok
+        Write-Passo 'TLS 1.2 Client habilitado no SChannel. REVERSIVEL (ver docs). O SChannel pode exigir REINICIO do servidor.' -Nivel Ok
+
+        # Chaves do .NET Framework (v4.0.30319): fazem processos .NET (como o Worker) negociarem
+        # TLS 1.2 SEM depender do reboot do SChannel. Foram DECISIVAS em producao (2012 R2): sem
+        # elas o GetToken HTTPS de producao falha com "Could not create SSL/TLS secure channel".
+        foreach ($netKey in @(
+            'HKLM:\SOFTWARE\Microsoft\.NETFramework\v4.0.30319',
+            'HKLM:\SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319')) {
+            if (-not (Test-Path -LiteralPath $netKey)) { [void](New-Item -Path $netKey -Force) }
+            New-ItemProperty -Path $netKey -Name 'SchUseStrongCrypto' -Value 1 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -Path $netKey -Name 'SystemDefaultTlsVersions' -Value 1 -PropertyType DWord -Force | Out-Null
+        }
+        Write-Passo 'Chaves .NET de TLS 1.2 (SchUseStrongCrypto, SystemDefaultTlsVersions) gravadas. Basta REINICIAR O SERVICO para o Worker usar TLS 1.2 (nao exige reboot da maquina).' -Nivel Ok
     }
 } else {
     Write-Passo 'TLS 1.2 nao alterado. Se o handshake com o WMS falhar, rode novamente com -HabilitarTls12 (ver docs).' -Nivel Info

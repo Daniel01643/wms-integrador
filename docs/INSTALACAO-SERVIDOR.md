@@ -214,18 +214,24 @@ para herdá-la.
 > sobre `Email:Destinatarios` (que vira fallback; se ambos vazios, o e-mail do pacote não é enviado).
 
 ### 3.6 (Opcional) habilitar TLS 1.2 se o handshake com o WMS falhar
-Só se o diagnóstico/validação indicar falha de TLS no handshake com o WMS. É **reversível** e exige
-confirmação:
+**NECESSARIO em producao (licao de 06/11/2026):** o endpoint de PRODUCAO (sem `:8888`) EXIGE TLS 1.2.
+No Windows Server 2012 R2 o .NET nao negocia TLS 1.2 por padrao, e o GetToken falha com
+`Could not create SSL/TLS secure channel` (aparece como 401 no relatorio). O homolog (`:8888`) tolerava
+protocolo antigo, por isso nao exigia. **Em producao, rode a instalacao com `-HabilitarTls12`.**
 ```powershell
-.\deploy\instalar.ps1 -ReleaseZip ... -Versao ... -HabilitarTls12 -Confirm
+.\instalar.ps1 -ReleaseZip ... -Versao ... -HabilitarTls12 -Confirm
 ```
-Grava em `HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client`:
-`Enabled=1`, `DisabledByDefault=0`. **Pode exigir reinício do servidor.**
+Grava DUAS coisas:
+1. SChannel: `HKLM\SYSTEM\...\SCHANNEL\Protocols\TLS 1.2\Client` (`Enabled=1`, `DisabledByDefault=0`) — pode exigir reinicio do servidor.
+2. **.NET Framework** (`HKLM\SOFTWARE\Microsoft\.NETFramework\v4.0.30319` e o `WOW6432Node`): `SchUseStrongCrypto=1`, `SystemDefaultTlsVersions=1` — DECISIVAS para o Worker (.NET); valem apenas reiniciando o SERVICO (`servico.ps1 -Acao Restart`), SEM reboot da maquina.
+
+Em producao bastou gravar essas chaves e reiniciar o servico (sem reboot do servidor).
 
 Reverter (manual, se necessário):
 ```powershell
 $k = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.2\Client'
 Remove-ItemProperty -Path $k -Name Enabled,DisabledByDefault -ErrorAction SilentlyContinue
+# As chaves .NET (SchUseStrongCrypto/SystemDefaultTlsVersions) sao seguras; normalmente mantidas.
 ```
 
 ### 3.7 Iniciar e validar com um lote pequeno (em HOMOLOG)
