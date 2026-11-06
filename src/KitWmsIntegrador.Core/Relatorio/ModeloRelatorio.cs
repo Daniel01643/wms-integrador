@@ -6,6 +6,7 @@ namespace KitWmsIntegrador.Core.Relatorio;
 /// <param name="IntegradasRevisarProduto">Subconjunto de integradas com produto provisório a revisar.</param>
 /// <param name="Pendentes">Notas pendentes na interface.</param>
 /// <param name="NaoIntegradas">Notas não integradas.</param>
+/// <param name="ArquivosIgnorados">Arquivos não-XML ignorados pela integração (não são notas reais).</param>
 /// <param name="Transportes">Quantidade de transportes distintos.</param>
 /// <param name="NotasPorTransporte">Notas por transporte, na ordem do relatório.</param>
 public sealed record ResumoRelatorio(
@@ -14,6 +15,7 @@ public sealed record ResumoRelatorio(
     int IntegradasRevisarProduto,
     int Pendentes,
     int NaoIntegradas,
+    int ArquivosIgnorados,
     int Transportes,
     IReadOnlyList<(string Transporte, int Notas)> NotasPorTransporte);
 
@@ -28,8 +30,11 @@ public sealed record GrupoTransporte(string Transporte, IReadOnlyList<LinhaRelat
     /// <summary>Notas integradas (inclui "revisar produto").</summary>
     public int Integradas => Linhas.Count(l => l.EstaIntegrada);
 
-    /// <summary>Notas com problema: pendentes, não integradas ou integradas com produto a revisar.</summary>
-    public int ComProblema => Linhas.Count(l => !l.EstaIntegrada || l.IntegradaRevisarProduto);
+    /// <summary>
+    /// Notas com problema: pendentes, não integradas ou integradas com produto a revisar.
+    /// Arquivos ignorados (não-XML) não são problema de integração e ficam de fora.
+    /// </summary>
+    public int ComProblema => Linhas.Count(l => !l.ArquivoIgnorado && (!l.EstaIntegrada || l.IntegradaRevisarProduto));
 }
 
 /// <summary>Produtos provisórios de uma nota, para a seção "revisar cadastro".</summary>
@@ -60,11 +65,13 @@ public sealed record ModeloRelatorio(
             .ToList();
 
         var resumo = new ResumoRelatorio(
-            Total: ordenadas.Count,
+            // Total reflete apenas notas reais (nota fiscal); arquivos ignorados têm contador próprio.
+            Total: ordenadas.Count(l => !l.ArquivoIgnorado),
             Integradas: ordenadas.Count(l => l.EstaIntegrada),
             IntegradasRevisarProduto: ordenadas.Count(l => l.IntegradaRevisarProduto),
             Pendentes: ordenadas.Count(l => !l.EstaIntegrada && l.StatusEfetivo == StatusLinhaRelatorio.Pendente),
-            NaoIntegradas: ordenadas.Count(l => !l.EstaIntegrada && l.StatusEfetivo != StatusLinhaRelatorio.Pendente),
+            NaoIntegradas: ordenadas.Count(l => !l.ArquivoIgnorado && !l.EstaIntegrada && l.StatusEfetivo != StatusLinhaRelatorio.Pendente),
+            ArquivosIgnorados: ordenadas.Count(l => l.ArquivoIgnorado),
             Transportes: grupos.Count,
             NotasPorTransporte: grupos.Select(g => (g.Transporte, g.Notas)).ToList());
 

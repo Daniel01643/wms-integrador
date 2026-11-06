@@ -30,6 +30,7 @@ h2{font-size:16px;margin:22px 0 0;color:#17479E}
 .card.rev{border-top-color:#009A83}
 .card.pen{border-top-color:#F5A623}.card.pen b{color:#B8741A}
 .card.nao{border-top-color:#D32F2F}.card.nao b{color:#D32F2F}
+.card.ign{border-top-color:#6B7280}.card.ign b{color:#6B7280}
 .porte{margin:6px 0;color:#333333}
 .chip{display:inline-block;border:1px solid #C1C1C1;border-radius:12px;padding:2px 10px;margin:2px 6px 2px 0;background:#f5f9fd}
 table{border-collapse:collapse;width:100%;margin-top:8px}
@@ -40,6 +41,7 @@ tr[hidden]{display:none}
 .st{display:inline-block;border-radius:3px;padding:1px 8px;color:#ffffff;font-weight:bold;white-space:nowrap}
 .st-integrada{background:#009A83}.st-revisar{background:#009A83}
 .st-pendente{background:#F5A623;color:#333333}.st-nao-integrada{background:#D32F2F}
+.st-ignorado{background:#6B7280}
 .revmarca{display:block;margin-top:3px;font-size:11px;color:#17479E}
 .id{white-space:nowrap}
 .msg{min-width:280px}
@@ -130,6 +132,7 @@ aplicar();
         Card(sb, "rev", "Integradas — revisar produto", r.IntegradasRevisarProduto);
         Card(sb, "pen", "Pendentes", r.Pendentes);
         Card(sb, "nao", "Não integradas", r.NaoIntegradas);
+        Card(sb, "ign", "Arquivos ignorados", r.ArquivosIgnorados);
         Card(sb, "", "Transportes", r.Transportes);
         sb.Append("</div>");
         sb.Append("<p class=\"porte\"><b>Notas por transporte:</b> ");
@@ -182,6 +185,7 @@ aplicar();
           .Append("<option value=\"revisar\">Integrada — revisar produto</option>")
           .Append("<option value=\"pendente\">Pendente</option>")
           .Append("<option value=\"nao-integrada\">Não integrada</option>")
+          .Append("<option value=\"ignorado\">Arquivo ignorado (não é XML)</option>")
           .Append("</select><span id=\"contagem\"></span></div>\n");
 
         sb.Append("<table><thead><tr>");
@@ -285,6 +289,7 @@ aplicar();
     internal static string ChaveStatus(LinhaRelatorioErro l) =>
         l.IntegradaRevisarProduto ? "revisar"
         : l.EstaIntegrada ? "integrada"
+        : l.ArquivoIgnorado ? "ignorado"
         : l.StatusEfetivo == StatusLinhaRelatorio.Pendente ? "pendente"
         : "nao-integrada";
 

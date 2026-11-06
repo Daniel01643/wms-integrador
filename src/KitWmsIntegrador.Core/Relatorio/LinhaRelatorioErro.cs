@@ -39,10 +39,14 @@ public record LinhaRelatorioErro(
     /// <summary>Há produto provisório (criado por contenção) a revisar no cadastro.</summary>
     public bool RevisaoProdutoPendente => ProdutosProvisorios is { Count: > 0 };
 
-    /// <summary>Status único exibido: Integrada, Integrada — revisar produto, Pendente ou Não integrada.</summary>
+    /// <summary>Arquivo não-XML ignorado pela integração (não é falha de WMS, apenas aviso).</summary>
+    public bool ArquivoIgnorado => StatusEfetivo == StatusLinhaRelatorio.ArquivoIgnorado;
+
+    /// <summary>Status único exibido: Integrada, Integrada — revisar produto, Pendente, Não integrada ou Arquivo ignorado.</summary>
     public string StatusDescricao =>
         IntegradaRevisarProduto ? "Integrada — revisar produto"
         : EstaIntegrada ? "Integrada"
+        : ArquivoIgnorado ? "Arquivo ignorado (não é XML)"
         : StatusEfetivo == StatusLinhaRelatorio.Pendente ? "Pendente"
         : "Não integrada";
 

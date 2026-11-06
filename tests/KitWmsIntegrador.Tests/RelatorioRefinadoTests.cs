@@ -169,6 +169,66 @@ public class RelatorioRefinadoTests
             L("1", "A", StatusLinhaRelatorio.Pendente, true, prod: new[] { "9" }).StatusDescricao);
         Assert.Equal("Pendente", L("1", "A", StatusLinhaRelatorio.Pendente, false).StatusDescricao);
         Assert.Equal("Não integrada", L("1", "A", StatusLinhaRelatorio.NaoIntegrada, false).StatusDescricao);
+        Assert.Equal("Arquivo ignorado (não é XML)",
+            L("doc.pdf", "", StatusLinhaRelatorio.ArquivoIgnorado, false).StatusDescricao);
+    }
+
+    // ---------- Arquivo ignorado (não-XML) ----------
+
+    private static LinhaRelatorioErro Ignorado(string nome) =>
+        new(nome, string.Empty, Em, "ignorado", false, 0, "", "", StatusLinhaRelatorio.ArquivoIgnorado);
+
+    [Fact]
+    public void Resumo_ContaArquivoIgnoradoNoContadorProprio_NaoNoTotalNemNaoIntegradas()
+    {
+        var m = ModeloRelatorio.Montar(new[]
+        {
+            L("100", "A", StatusLinhaRelatorio.Integrada, true),
+            L("101", "A", StatusLinhaRelatorio.NaoIntegrada, false),
+            Ignorado("doc.pdf"),
+        });
+
+        Assert.Equal(2, m.Resumo.Total); // só notas reais
+        Assert.Equal(1, m.Resumo.Integradas);
+        Assert.Equal(1, m.Resumo.NaoIntegradas);
+        Assert.Equal(1, m.Resumo.ArquivosIgnorados);
+    }
+
+    [Fact]
+    public void Linha_Ignorada_ChaveStatusEDescricao()
+    {
+        var l = Ignorado("doc.pdf");
+
+        Assert.True(l.ArquivoIgnorado);
+        Assert.False(l.EstaIntegrada);
+        Assert.False(l.IntegradaRevisarProduto);
+        Assert.Equal("ignorado", RenderizadorHtml.ChaveStatus(l));
+        Assert.Equal("Arquivo ignorado (não é XML)", l.StatusDescricao);
+    }
+
+    [Fact]
+    public void Html_ComArquivoIgnorado_TemClasseECartao()
+    {
+        var html = Criar().GerarHtml(new[]
+        {
+            L("100", "A", StatusLinhaRelatorio.Integrada, true),
+            Ignorado("doc.pdf"),
+        }, Em);
+
+        Assert.Contains("st-ignorado", html);
+        Assert.Contains("Arquivos ignorados", html);
+    }
+
+    [Fact]
+    public void Pdf_ComArquivoIgnorado_GeraSemExcecao()
+    {
+        var pdf = Criar().GerarPdf(new[]
+        {
+            L("100", "A", StatusLinhaRelatorio.Integrada, true),
+            Ignorado("doc.pdf"),
+        }, Em);
+
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
     }
 
     // ---------- Resumo da mensagem / quebra ----------

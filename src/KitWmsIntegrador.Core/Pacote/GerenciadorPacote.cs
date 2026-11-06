@@ -111,7 +111,9 @@ public sealed class GerenciadorPacote
             _processador.RepetirMovesPendentes();
         }
 
-        var arquivos = ListarXml();
+        var classificacao = ClassificarEntrada();
+        var naoXmlDefinitivos = new HashSet<string>(classificacao.NaoXmlDefinitivo, StringComparer.OrdinalIgnoreCase);
+        var arquivos = classificacao.XmlOuAguardando.Concat(classificacao.NaoXmlDefinitivo).ToList();
         var deteccao = _detector.Avaliar(arquivos);
         var pendentes = new HashSet<string>(_processador.MovePendentes, StringComparer.OrdinalIgnoreCase);
 
@@ -164,7 +166,18 @@ public sealed class GerenciadorPacote
                     foto.Count, _periodo?.PrimeiraGravacao, _periodo?.UltimaGravacao);
 
                 _idPacote ??= IdDe(_inicio ?? agora);
-                var novos = await _processador.ProcessarAsync(foto, _idPacote, ct).ConfigureAwait(false);
+
+                // A foto pode conter XML (fluxo de integração) e não-XML definitivos (ExtensaoInvalida).
+                var fotoXml = foto.Where(a => !naoXmlDefinitivos.Contains(a)).ToList();
+                var fotoNaoXml = foto.Where(a => naoXmlDefinitivos.Contains(a)).ToList();
+
+                if (fotoNaoXml.Count > 0)
+                {
+                    var ignorados = _processador.ProcessarNaoXml(fotoNaoXml, _idPacote);
+                    _registros.AddRange(ignorados);
+                }
+
+                var novos = await _processador.ProcessarAsync(fotoXml, _idPacote, ct).ConfigureAwait(false);
                 _registros.AddRange(novos);
                 Estado = EstadoPacote.Fechando;
             }
@@ -272,7 +285,7 @@ public sealed class GerenciadorPacote
 
         _registros.AddRange(mantidos);
         _inicio = _registros.Count > 0 ? _registros.Min(r => r.Horario) : agora;
-        var restantes = ListarXml();
+        var restantes = ListarEntrada();
         if (restantes.Count > 0)
         {
             _inicio = agora;
@@ -286,17 +299,22 @@ public sealed class GerenciadorPacote
         _logger.LogInformation("Pacote retomado do diário com {Registros} resultado(s).", _registros.Count);
     }
 
-    private IReadOnlyList<string> ListarXml()
+    // Candidatos top-level da entrada já classificados: XML (fluxo de integração) e não-XML
+    // definitivos (viram ExtensaoInvalida). Temporários/em-cópia são ignorados e não aparecem aqui.
+    private ResultadoClassificacaoEntrada ClassificarEntrada()
     {
         var entrada = _pastas.CaminhoEntrada;
         if (!Directory.Exists(entrada))
         {
             _logger.LogWarning("Pasta de entrada não encontrada: {Pasta}", entrada);
-            return Array.Empty<string>();
+            return new ResultadoClassificacaoEntrada(Array.Empty<string>(), Array.Empty<string>());
         }
 
-        return Directory.EnumerateFiles(entrada, "*.xml", SearchOption.TopDirectoryOnly)
-            .Where(f => string.Equals(Path.GetExtension(f), ".xml", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var todos = Directory.EnumerateFiles(entrada, "*", SearchOption.TopDirectoryOnly);
+        return ClassificadorEntrada.Classificar(todos, _pastas);
     }
+
+    // Lista os candidatos (XML + não-XML definitivos) para a detecção/estabilização.
+    private IReadOnlyList<string> ListarEntrada() =>
+        ClassificarEntrada() is var c ? c.XmlOuAguardando.Concat(c.NaoXmlDefinitivo).ToList() : Array.Empty<string>();
 }

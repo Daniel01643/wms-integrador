@@ -14,4 +14,7 @@ public enum StatusLinhaRelatorio
 
     /// <summary>Não integrada (erro não recuperável ou tentativas esgotadas).</summary>
     NaoIntegrada,
+
+    /// <summary>Arquivo não-XML: ignorado pela integração (aviso, não é falha de WMS).</summary>
+    ArquivoIgnorado,
 }

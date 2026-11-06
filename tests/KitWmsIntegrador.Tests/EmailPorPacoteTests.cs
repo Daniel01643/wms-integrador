@@ -67,6 +67,40 @@ public sealed class EmailPorPacoteTests : IDisposable
     }
 
     [Fact]
+    public async Task Pacote100PorCentoNaoXml_GeraRelatorioMasNaoEnviaEmail()
+    {
+        _amb.OpcoesDeEmail.EnviarQuando = EnviarQuando.Sempre;
+        var g = _amb.CriarGerenciador(_orq);
+        _amb.EscreverNaoXml("doc.pdf");
+        _amb.EscreverNaoXml("aviso.txt");
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        Assert.Empty(_amb.Email.Enviadas);
+        Assert.Single(_amb.RelatoriosGerados(".pdf"));
+        Assert.Single(_amb.RelatoriosGerados(".html"));
+        Assert.Empty(_orq.Chamadas);
+    }
+
+    [Fact]
+    public async Task PacoteMisto_EnviaEmailEListaNotaEArquivoIgnorado()
+    {
+        _amb.OpcoesDeEmail.EnviarQuando = EnviarQuando.Sempre;
+        var g = _amb.CriarGerenciador(_orq);
+        _amb.EscreverXml("a.xml", "100", "70001");
+        _amb.EscreverNaoXml("doc.pdf");
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        var email = Assert.Single(_amb.Email.Enviadas);
+        Assert.Contains("1 nota(s)", email.Assunto); // só notas reais
+        var html = File.ReadAllText(_amb.RelatoriosGerados(".html").Single());
+        Assert.Contains("100", html);
+        Assert.Contains("doc.pdf", html);
+        Assert.Contains("Arquivo ignorado (não é XML)", html);
+    }
+
+    [Fact]
     public async Task SmtpNaoConfigurado_NaoFalhaESalvaRelatorioEmDisco()
     {
         // Enviador SMTP real com Habilitado=false (padrão): devolve NaoConfigurado sem rede.

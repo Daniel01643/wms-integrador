@@ -37,6 +37,69 @@ public sealed class OpcoesPasta
     /// <summary>Organização dos arquivos dentro da pasta de erro.</summary>
     public OrganizacaoErro OrganizacaoErro { get; set; } = OrganizacaoErro.PorCategoria;
 
+    /// <summary>
+    /// Extensões de arquivos temporários/em-cópia (podem virar .xml ao fim da gravação). Arquivos
+    /// com essas extensões são IGNORADOS: não são processados nem movidos, ficam na entrada.
+    /// Comparação case-insensitive; o ponto inicial é normalizado.
+    /// </summary>
+    public IList<string> ExtensoesTemporarias { get; set; } = new List<string>
+    {
+        ".tmp", ".temp", ".crdownload", ".part", ".partial", ".filepart", ".!ut", ".opdownload", ".bak", ".lock",
+    };
+
+    /// <summary>
+    /// Quando verdadeiro (padrão), arquivos não-XML definitivos (ex.: .pdf, .txt) são registrados
+    /// como <see cref="OrganizacaoErro"/>/ExtensaoInvalida e movidos para Erro. Quando falso, são
+    /// apenas ignorados (permanecem na entrada), como no comportamento legado.
+    /// </summary>
+    public bool TratarNaoXmlComoErro { get; set; } = true;
+
+    /// <summary>
+    /// Verdadeiro se o arquivo deve ser tratado como temporário (em cópia): extensão na lista de
+    /// <see cref="ExtensoesTemporarias"/> ou atributo Hidden/System. A extensão é normalizada
+    /// (minúscula, com ponto). Falha ao ler atributos não lança — assume não-temporário.
+    /// </summary>
+    public bool EhExtensaoTemporaria(string caminho)
+    {
+        if (string.IsNullOrWhiteSpace(caminho))
+        {
+            return false;
+        }
+
+        var extensao = Path.GetExtension(caminho);
+        if (!string.IsNullOrEmpty(extensao))
+        {
+            foreach (var temp in ExtensoesTemporarias ?? Array.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(temp))
+                {
+                    continue;
+                }
+
+                var alvo = temp.StartsWith('.') ? temp : "." + temp;
+                if (string.Equals(extensao, alvo, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        try
+        {
+            var atributos = File.GetAttributes(caminho);
+            if (atributos.HasFlag(FileAttributes.Hidden) || atributos.HasFlag(FileAttributes.System))
+            {
+                return true;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            // Sem acesso aos atributos: assume não-temporário (não bloqueia o fluxo).
+        }
+
+        return false;
+    }
+
     /// <summary>Entrada resolvida (caminho completo, sem separador final).</summary>
     public string CaminhoEntrada => Normalizar(Path.GetFullPath(Entrada));
 

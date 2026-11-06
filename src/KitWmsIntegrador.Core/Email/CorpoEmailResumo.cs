@@ -152,8 +152,8 @@ public static class CorpoEmailResumo
         Cartao(sb, "Não integradas", r.NaoIntegradas, IdentidadeVisual.Vermelho, IdentidadeVisual.Vermelho, ci);
         Cartao(sb, "XMLs inválidos", xmlsInvalidos, IdentidadeVisual.Vermelho, IdentidadeVisual.Vermelho, ci);
         sb.Append("</tr><tr>");
+        Cartao(sb, "Arquivos ignorados", r.ArquivosIgnorados, IdentidadeVisual.CinzaNeutro, IdentidadeVisual.CinzaNeutro, ci);
         Cartao(sb, "Transportes", r.Transportes, IdentidadeVisual.AzulClaro, IdentidadeVisual.Azul, ci);
-        sb.Append("<td style=\"width:50%;\"></td>");
         sb.Append("</tr></table></td></tr>");
     }
 
@@ -251,6 +251,7 @@ public static class CorpoEmailResumo
         {
             "pendente" => (IdentidadeVisual.Ambar, IdentidadeVisual.Texto),
             "nao-integrada" => (IdentidadeVisual.Vermelho, "#ffffff"),
+            "ignorado" => (IdentidadeVisual.CinzaNeutro, "#ffffff"),
             _ => (IdentidadeVisual.Verde, "#ffffff"), // integrada / revisar
         };
         sb.Append("<span style=\"display:inline-block;border-radius:3px;padding:1px 8px;white-space:nowrap;background:")

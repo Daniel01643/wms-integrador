@@ -129,6 +129,14 @@ public sealed class AmbientePacote : IDisposable
         return caminho;
     }
 
+    /// <summary>Grava um arquivo não-XML qualquer (ex.: .pdf, .txt) na entrada e devolve o caminho.</summary>
+    public string EscreverNaoXml(string arquivo, string conteudo = "conteudo")
+    {
+        var caminho = Caminho(arquivo);
+        File.WriteAllText(caminho, conteudo);
+        return caminho;
+    }
+
     public static string Xml(string numero, string? transporte)
     {
         var chave = numero.PadLeft(44, '0');
@@ -227,6 +235,23 @@ public sealed class AmbientePacote : IDisposable
             ? Directory.GetFiles(erro, "*.xml", SearchOption.AllDirectories)
                 .Where(a => string.Equals(
                     Path.GetFileName(Path.GetDirectoryName(a)), categoria, StringComparison.OrdinalIgnoreCase))
+                .ToArray()
+            : Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Arquivos de erro de uma categoria com QUALQUER extensão (não só .xml), independentemente
+    /// da subpasta de pacote intermediária (<c>Erro\pacote_&lt;id&gt;\&lt;categoria&gt;\...</c>).
+    /// Exclui os sidecars <c>.motivo.txt</c>. Útil para ver arquivos ignorados (.pdf, .txt).
+    /// </summary>
+    public string[] ArquivosErroCategoriaQualquer(string categoria)
+    {
+        var erro = Path.Combine(Entrada, "Erro");
+        return Directory.Exists(erro)
+            ? Directory.GetFiles(erro, "*", SearchOption.AllDirectories)
+                .Where(a => !a.EndsWith(".motivo.txt", StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(
+                                Path.GetFileName(Path.GetDirectoryName(a)), categoria, StringComparison.OrdinalIgnoreCase))
                 .ToArray()
             : Array.Empty<string>();
     }

@@ -37,6 +37,7 @@ internal static class RenderizadorPdf
     private static readonly XColor CCinza = XColor.FromArgb(0xC1, 0xC1, 0xC1);
     private static readonly XColor CAmbar = XColor.FromArgb(0xF5, 0xA6, 0x23);
     private static readonly XColor CVermelho = XColor.FromArgb(0xD3, 0x2F, 0x2F);
+    private static readonly XColor CCinzaNeutra = XColor.FromArgb(0x6B, 0x72, 0x80);
     private static readonly XColor CGrupo = XColor.FromArgb(0xE8, 0xF4, 0xFB);
 
     // Colunas: Nota, Transporte, Horário, Status, ID de processamento, Mensagem, Integrada, Tent.
@@ -316,6 +317,7 @@ internal static class RenderizadorPdf
             ("Integradas — revisar produto", r.IntegradasRevisarProduto, CVerde),
             ("Pendentes", r.Pendentes, CAmbar),
             ("Não integradas", r.NaoIntegradas, CVermelho),
+            ("Arquivos ignorados", r.ArquivosIgnorados, CCinzaNeutra),
             ("Transportes", r.Transportes, CAzulClaro),
         };
         const double espaco = 8;
@@ -396,6 +398,7 @@ internal static class RenderizadorPdf
         }.Max() + 2 * PaddingCelula;
 
         var (corFundo, corTexto) = l.IntegradaRevisarProduto || l.EstaIntegrada ? (CVerde, XColors.White)
+            : l.ArquivoIgnorado ? (CCinzaNeutra, XColors.White)
             : l.StatusEfetivo == StatusLinhaRelatorio.Pendente ? (CAmbar, XColor.FromArgb(0x33, 0x33, 0x33))
             : (CVermelho, XColors.White);
 

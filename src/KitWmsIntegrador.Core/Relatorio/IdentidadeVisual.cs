@@ -15,6 +15,9 @@ internal static class IdentidadeVisual
     /// <summary>Vermelho semântico (Não integrada) — fora da paleta da marca.</summary>
     public const string Vermelho = "#D32F2F";
 
+    /// <summary>Cinza neutro semântico (Arquivo ignorado / não-XML) — fora da paleta da marca.</summary>
+    public const string CinzaNeutro = "#6B7280";
+
     public const string Titulo = "Relatório de Erros de Integração";
 
     /// <summary>

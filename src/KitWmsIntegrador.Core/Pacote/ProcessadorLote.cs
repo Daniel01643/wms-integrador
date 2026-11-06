@@ -104,6 +104,45 @@ public sealed class ProcessadorLote
     }
 
     /// <summary>
+    /// Trata arquivos não-XML definitivos: cada um vira um <see cref="RegistroDiario"/> com
+    /// <see cref="CategoriaErro.ExtensaoInvalida"/>/<see cref="StatusLinhaRelatorio.ArquivoIgnorado"/>,
+    /// é gravado no diário e movido para <c>Erro\&lt;id&gt;\ExtensaoInvalida</c> com o sidecar .motivo.txt.
+    /// NUNCA chama o Orquestrador (não é nota fiscal).
+    /// </summary>
+    public IReadOnlyList<RegistroDiario> ProcessarNaoXml(
+        IReadOnlyCollection<string> arquivos, string identificadorPacote)
+    {
+        ArgumentNullException.ThrowIfNull(arquivos);
+        var registros = new ConcurrentQueue<RegistroDiario>();
+
+        var ordenados = arquivos
+            .OrderBy(ObterCriacao)
+            .ThenBy(a => Path.GetFileName(a), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var arquivo in ordenados)
+        {
+            if (_movePendentes.TryGetValue(arquivo, out var pendente))
+            {
+                RepetirMove(arquivo, pendente);
+                continue;
+            }
+
+            var extensao = Path.GetExtension(arquivo);
+            var motivo = $"Arquivo ignorado: extensão {extensao} não é XML. " +
+                         "Coloque apenas arquivos .xml na pasta de entrada.";
+            _logger.LogInformation(
+                "Arquivo não-XML ignorado (extensão {Extensao}): {Arquivo}", extensao, Path.GetFileName(arquivo));
+            Finalizar(registros, Registro(arquivo, false, Path.GetFileName(arquivo), string.Empty, motivo, false, 0,
+                    StatusLinhaRelatorio.ArquivoIgnorado, string.Empty, string.Empty, null,
+                    Array.Empty<string>(), CategoriaErro.ExtensaoInvalida, DestinoArquivo.Erro, identificadorPacote),
+                arquivo);
+        }
+
+        return registros.ToList();
+    }
+
+    /// <summary>
     /// Processa os arquivos e devolve os registros novos. Respeita a ordem de chegada
     /// (criação, depois nome). Propaga apenas o cancelamento.
     /// </summary>

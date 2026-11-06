@@ -7,7 +7,7 @@ namespace KitWmsIntegrador.Tests;
 public class PoliticaEnvioEmailTests
 {
     private static ResumoRelatorio Resumo(int integ = 0, int revisar = 0, int pend = 0, int nao = 0) =>
-        new(integ + pend + nao, integ, revisar, pend, nao, 1, new List<(string, int)>());
+        new(integ + pend + nao, integ, revisar, pend, nao, 0, 1, new List<(string, int)>());
 
     private static OpcoesEmail Op(EnviarQuando q) => new() { EnviarQuando = q };
 

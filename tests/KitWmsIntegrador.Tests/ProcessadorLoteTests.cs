@@ -212,4 +212,31 @@ public sealed class ProcessadorLoteTests : IDisposable
 
         Assert.Equal(2, diario.Ler().Count);
     }
+
+    [Fact]
+    public void NaoXml_ViraExtensaoInvalida_MoveParaErro_ENaoChamaOrquestrador()
+    {
+        var p = _amb.CriarProcessador(_orq, out _);
+        var pdf = _amb.EscreverNaoXml("doc.pdf");
+        var txt = _amb.EscreverNaoXml("aviso.txt");
+
+        var regs = p.ProcessarNaoXml(new[] { pdf, txt }, IdPacote);
+
+        Assert.Equal(2, regs.Count);
+        Assert.All(regs, r =>
+        {
+            Assert.False(r.XmlInvalido);
+            Assert.Equal(StatusLinhaRelatorio.ArquivoIgnorado, r.Status);
+            Assert.Equal(CategoriaErro.ExtensaoInvalida, r.Categoria);
+            Assert.Equal(DestinoArquivo.Erro, r.Destino);
+            Assert.Equal(string.Empty, r.NumeroTransporte);
+        });
+
+        var movidos = _amb.ArquivosErroCategoriaQualquer("ExtensaoInvalida");
+        Assert.Equal(2, movidos.Length);
+        Assert.All(movidos, m => Assert.True(File.Exists(m + ".motivo.txt")));
+        Assert.False(File.Exists(pdf));
+        Assert.False(File.Exists(txt));
+        Assert.Empty(_orq.Chamadas);
+    }
 }

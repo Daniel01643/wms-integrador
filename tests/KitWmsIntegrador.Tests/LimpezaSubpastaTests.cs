@@ -97,6 +97,19 @@ public sealed class LimpezaSubpastaTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(_entrada, "Erro", "pacote_antigo")));
     }
 
+    // (d2) subpasta de erro ExtensaoInvalida vencida → removida por inteiro (não-XML + sidecar).
+    [Fact]
+    public void SubpastaDeErroExtensaoInvalidaVencida_ERemovida()
+    {
+        Arquivo(Path.Combine("Erro", "pacote_antigo", "ExtensaoInvalida", "doc.pdf"), diasAtras: 12);
+        Arquivo(Path.Combine("Erro", "pacote_antigo", "ExtensaoInvalida", "doc.pdf.motivo.txt"), diasAtras: 12);
+
+        var r = Criar().Limpar();
+
+        Assert.Empty(r.Erros);
+        Assert.False(Directory.Exists(Path.Combine(_entrada, "Erro", "pacote_antigo")));
+    }
+
     // (e) nunca toca Entrada/Estado/Relatórios.
     [Fact]
     public void NaoTocaEntradaEstadoNemRelatorios()

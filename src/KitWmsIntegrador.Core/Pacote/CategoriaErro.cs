@@ -6,6 +6,9 @@ public enum CategoriaErro
     /// <summary>XML não pôde ser lido/validado.</summary>
     XmlInvalido,
 
+    /// <summary>Arquivo cuja extensão não é .xml — ignorado pela integração.</summary>
+    ExtensaoInvalida,
+
     /// <summary>Nota sem número de transporte.</summary>
     SemTransporte,
 

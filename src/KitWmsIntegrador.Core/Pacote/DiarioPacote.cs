@@ -35,7 +35,10 @@ public sealed record RegistroDiario(
     /// <summary>Converte para a linha do relatório.</summary>
     public LinhaRelatorioErro ParaLinha() => new(
         NumeroNota,
-        string.IsNullOrWhiteSpace(NumeroTransporte) ? RotuloSemTransporte : NumeroTransporte,
+        // Arquivo ignorado (não-XML) não é nota: não recebe o rótulo "(sem transporte)", fica vazio.
+        Status == StatusLinhaRelatorio.ArquivoIgnorado
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(NumeroTransporte) ? RotuloSemTransporte : NumeroTransporte,
         Horario,
         Mensagem,
         Integrada,

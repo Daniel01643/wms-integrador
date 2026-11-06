@@ -192,4 +192,39 @@ public sealed class GerenciadorPacoteTests : IDisposable
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => g.CicloAsync(cts.Token));
     }
+
+    [Fact]
+    public async Task ArquivoTemporario_PermaneceNaEntrada_SemRegistroNemMove()
+    {
+        var g = _amb.CriarGerenciador(_orq);
+        var tmp = _amb.EscreverNaoXml("em-copia.part");
+
+        // Sem XML/não-XML definitivo, nada abre pacote: segue ocioso e o .part fica na entrada.
+        for (var i = 0; i < 5; i++)
+        {
+            await Ciclo(g, i == 0 ? 0 : 10);
+        }
+
+        Assert.Equal(EstadoPacote.Ocioso, g.Estado);
+        Assert.True(File.Exists(tmp));
+        Assert.Empty(_orq.Chamadas);
+        Assert.Empty(_amb.Email.Enviadas);
+        Assert.Empty(_amb.ArquivosErroCategoriaQualquer("ExtensaoInvalida"));
+    }
+
+    [Fact]
+    public async Task NaoXmlDefinitivo_ViraExtensaoInvalida_SemChamarOrquestrador()
+    {
+        var g = _amb.CriarGerenciador(_orq);
+        _amb.EscreverXml("a.xml", "100", "70001");
+        _amb.EscreverNaoXml("doc.pdf");
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        Assert.Single(_orq.Chamadas); // só a nota XML
+        Assert.Single(_amb.Arquivos("Processados"));
+        var ignorado = Assert.Single(_amb.ArquivosErroCategoriaQualquer("ExtensaoInvalida"));
+        Assert.EndsWith("doc.pdf", ignorado);
+        Assert.True(File.Exists(ignorado + ".motivo.txt"));
+    }
 }

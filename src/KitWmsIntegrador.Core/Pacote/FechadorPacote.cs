@@ -103,6 +103,15 @@ public sealed class FechadorPacote
         try
         {
             var resumo = ModeloRelatorio.Montar(linhas).Resumo;
+
+            // resumo.Total conta apenas notas reais (nota fiscal); arquivos ignorados têm contador próprio.
+            if (resumo.Total == 0)
+            {
+                _logger.LogInformation(
+                    "Pacote sem notas, apenas arquivos ignorados; relatorio salvo, e-mail nao enviado.");
+                return true;
+            }
+
             if (!PoliticaEnvioEmail.Deve(resumo, xmlsInvalidos, _opcoesEmail))
             {
                 _logger.LogInformation("E-mail não enviado pela política ({Quando}).", _opcoesEmail.EnviarQuando);
