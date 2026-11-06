@@ -30,4 +30,5 @@ quantidade da I60 (retomar terça 03/11).
 |------|--------|-----|-------|--------|
 | 2026-11-03 | 3,0 | 1,5 | 4,5 | Etapa 5 (I50 enriquecida, flag I60, relatório HTML/PDF); Orquestrador iniciado |
 | 2026-11-04 | 4,5 | 2,5 | 7,0 | Etapas 8, 7, 7b, 7c; e-mail visual; validação REAL no homolog (até 1196 notas) |
-| **Total parcial** | **7,5** | **4,0** | **11,5** | |
+| 2026-11-05 | 4,75 | 3,5 | 8,25 | Etapa 9 (instalação NSSM no servidor + validação 50 notas); monitoramento; e-mail configurável; Etapa 10 (manuais) |
+| **Total parcial** | **12,25** | **7,5** | **19,75** | |

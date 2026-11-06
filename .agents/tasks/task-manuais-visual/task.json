@@ -1,0 +1,7 @@
+{
+  "task_id": "task-manuais-visual",
+  "task_description": "Dar identidade visual Friozem aos manuais humanos (HTML + PDF com a cara do deck), complementar o MANUAL-TECNICO (dois TXT de destinatarios editaveis a quente + guia rapido da IA), revisar o MANUAL-USUARIO (sem IA) e atualizar o README dos manuais. Documentacao apenas: nao alterar .cs, docs/diario, docs/controle; branch main; sem dotnet; sem push.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

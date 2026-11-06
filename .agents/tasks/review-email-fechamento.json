@@ -1,0 +1,18 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "label": "Aviso de TXT ilegível indistinto",
+      "confidence": "possible",
+      "blocking": false,
+      "description": "LeitorListaEmails trata IOException/UnauthorizedAccessException como lista vazia sem log proprio, entao um TXT bloqueado por ACL se comporta como ausente e so o aviso generico da fonte aparece. Nao bloqueante; considerar um log de debug no helper se diagnostico de ACL virar necessidade."
+    },
+    {
+      "label": "Avisos do resumo unificados",
+      "confidence": "confirmed",
+      "blocking": false,
+      "description": "A refatoracao fundiu tres mensagens (ausente/vazio/ilegivel) numa so no FonteDestinatariosResumo. O plano permitiu explicitamente; comportamento observavel preservado e testes do resumo verdes. Sem acao necessaria."
+    }
+  ],
+  "reviewDoc": "c:\\wms-integrador\\.agents\\tasks\\review-email-fechamento.md"
+}
