@@ -1,0 +1,7 @@
+{
+  "task_id": "task-placa-manuais",
+  "task_description": "Preencher PayloadI50.placaVeiculo com a placa do veiculo lida de transp/veicTransp/placa do XML da NF-e, com flag liga/desliga I50:EnviarPlacaVeiculo (default true); empacotar os manuais (docs/manuais) nas releases e copia-los para C:\\Friozem\\importacao_notas\\manuais na instalacao; adicionar capitulo no MANUAL-TECNICO explicando como ligar/desligar a placa e regenerar HTML/PDF.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}
