@@ -2,21 +2,30 @@
 
 <!--CAPA:tecnico-->
 
-Guia de operação para técnico humano no servidor **SRVAPPALC02** (Windows Server 2012 R2,
-PowerShell 4.0/5.1). O passo a passo pressupõe **acesso LOCAL ao servidor por RDP (Área de
+Guia de **operação do dia a dia** para o técnico humano no servidor **SRVAPPALC02** (Windows Server
+2012 R2, PowerShell 4.0/5.1). O passo a passo pressupõe **acesso LOCAL ao servidor por RDP (Área de
 Trabalho Remota) ou direto na máquina**, abrindo o **PowerShell como Administrador** no próprio
 servidor. (Alternativa avançada: os scripts também rodam por WinRM com `Invoke-Command`, mas este
 manual foca no acesso local.)
 
-Todos os comandos abaixo assumem que você está na pasta `deploy\` do projeto no servidor. Rode o
-PowerShell como Administrador e use sempre:
+Depois que o sistema está em produção, o técnico **opera a partir do servidor**. Todos os scripts de
+operação vivem de forma **permanente** em **`C:\Friozem\importacao_notas\tools\deploy`** — essa é a
+pasta de trabalho do dia a dia. Rode o PowerShell como Administrador, entre nessa pasta e use sempre:
 
 ```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
 ```
 
+> A **instalação completa** (criar as pastas, publicar a primeira release, configurar o serviço
+> NSSM, compartilhar a entrada, virar para produção) **não** está aqui: ela vive em
+> [`docs\INSTALACAO-SERVIDOR.md`](../INSTALACAO-SERVIDOR.md). Este manual cobre só a **operação
+> recorrente** no servidor. O `C:\temp\deploy` só aparece na **primeira instalação** (ver o guia de
+> instalação); no dia a dia use sempre `tools\deploy`.
+
 ## Índice
 
+0. [Ambiente: servidor x máquina de build (local)](#0-ambiente-servidor-x-máquina-de-build-local)
 1. [Dados do ambiente](#1-dados-do-ambiente)
 2. [Iniciar / parar / reiniciar / status do serviço](#2-iniciar--parar--reiniciar--status-do-serviço)
 3. [Ver e interpretar os logs](#3-ver-e-interpretar-os-logs)
@@ -34,25 +43,72 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
 
 ---
 
+## 0. Ambiente: servidor x máquina de build (local)
+
+Há **dois ambientes** diferentes, e a maior parte das tarefas acontece só no **servidor**. Não
+confunda as pastas de um com as do outro.
+
+### Servidor `SRVAPPALC02` (produção) — onde você opera no dia a dia
+
+É onde o serviço roda e onde o técnico **trabalha** (via RDP). A estrutura do app fica em
+`C:\Friozem\importacao_notas`:
+
+- `app\current` — a release ativa (o NSSM aponta aqui); releases antigas em `app\releases\<versao>`.
+- `config\` — `appsettings.Production.json`, `email.settings.json` e os dois TXT de destinatários
+  (ACL restrita).
+- `data\` — **Estado** (diário do pacote) e **telemetria**, fora do share.
+- `logs\` — `worker.out.log` / `worker.err.log`.
+- `backups\` — zips do `current` anterior a cada virada.
+- `tools\deploy\` — **os scripts de operação** (`servico.ps1`, `publicar-release.ps1`,
+  `rollback.ps1`, `configurar-segredos.ps1`, `diagnostico.ps1`, `remover.ps1`, etc.). É a **fonte de
+  verdade** dos scripts no servidor.
+
+A **entrada** compartilhada fica em `C:\Friozem\kitbrf` (share SMB `kitbrf`). Para operar: abra o
+**PowerShell como Administrador** no servidor e vá para **`C:\Friozem\importacao_notas\tools\deploy`**.
+
+### Máquina de build (local, opcional/avançado) — só para gerar nova versão
+
+É o **repositório com o código-fonte** (`src\`) e os **scripts-fonte** (`deploy\`). Serve **apenas**
+para **gerar uma nova versão** quando houver mudança de código: rode `deploy\publicar.ps1`, que
+produz o `.zip` em `artifacts\`. A **maioria das tarefas de operação NÃO precisa** da máquina de
+build.
+
+> As pastas `deploy\` e `artifacts\` são do **repositório local** (máquina de build), **não** existem
+> no servidor. No servidor, os scripts de operação ficam em `tools\deploy` (não em `deploy\`) e não
+> há `artifacts\`. Se você está no servidor e vê uma instrução com `deploy\` ou `artifacts\`, ela é
+> da máquina de build — no servidor, o equivalente é `tools\deploy`.
+
+### Onde estou? → o que uso
+
+| Onde estou | O que uso |
+|---|---|
+| **No servidor (RDP)** — operação do dia a dia | `C:\Friozem\importacao_notas\tools\deploy` (ex.: `cd C:\Friozem\importacao_notas\tools\deploy ; .\servico.ps1 -Acao Status`) |
+| **Na máquina de build** — gerar nova versão (mudança de código) | repositório: `deploy\publicar.ps1` → gera o `.zip` em `artifacts\<versao>\` |
+
+---
+
 ## 1. Dados do ambiente
 
 | Item | Valor |
 |---|---|
 | Servidor | `SRVAPPALC02` / `200.200.200.213` (Windows Server 2012 R2) |
 | Raiz do app | `C:\Friozem\importacao_notas` |
-| Subpastas do app | `app\releases\<versao>`, `app\current`, `config`, `data`, `logs`, `backups`, `tools` |
+| Subpastas do app | `app\releases\<versao>`, `app\current`, `config`, `data`, `logs`, `backups`, `tools\deploy` (scripts de operação) |
+| Pasta de trabalho (RDP) | `C:\Friozem\importacao_notas\tools\deploy` (onde você roda os scripts) |
 | Serviço (NSSM) | `Friozem-ImportacaoNotas` |
-| nssm.exe | `C:\Friozem\Gestao_Enderecos\tools\nssm.exe` (fallback `deploy\tools\nssm.exe`) |
+| nssm.exe | `C:\Friozem\Gestao_Enderecos\tools\nssm.exe` (já embutido como default `-NssmPath`) |
 | Pasta de entrada (local) | `C:\Friozem\kitbrf` (share SMB `kitbrf`: `\\SRVAPPALC02\kitbrf`) |
 | Config não-secreta | `C:\Friozem\importacao_notas\config\appsettings.Production.json` |
 | Segredos SMTP | `C:\Friozem\importacao_notas\config\email.settings.json` |
 | Segredos WMS | variáveis de ambiente de **MÁQUINA** `WMS__Usuario` / `WMS__Senha` |
 | Logs do serviço | `C:\Friozem\importacao_notas\logs\worker.out.log` e `worker.err.log` |
 
-Os scripts de deploy ficam em `deploy\`. Defaults já embutidos em todos eles:
-`-RaizInstalacao C:\Friozem\importacao_notas`, `-NomeServico Friozem-ImportacaoNotas`,
-`-NssmPath C:\Friozem\Gestao_Enderecos\tools\nssm.exe`. Os scripts que escrevem aceitam `-WhatIf`
-(simula sem alterar nada).
+No servidor, os scripts de operação ficam de forma **permanente** em
+`C:\Friozem\importacao_notas\tools\deploy` (fonte de verdade; `instalar.ps1` os replica para lá e
+`publicar-release.ps1` os atualiza a cada release). Opere sempre a partir dessa pasta. Defaults já
+embutidos em todos eles: `-RaizInstalacao C:\Friozem\importacao_notas`,
+`-NomeServico Friozem-ImportacaoNotas`, `-NssmPath C:\Friozem\Gestao_Enderecos\tools\nssm.exe`. Os
+scripts que escrevem aceitam `-WhatIf` (simula sem alterar nada).
 
 O diagrama abaixo resume a implantação no servidor: o serviço NSSM, o share `kitbrf` (com
 `Processados\`, `Erro\` e `relatorios\` dentro), a pasta `data\` (Estado + telemetria) **fora** do
@@ -69,10 +125,11 @@ com o limite de **3 tentativas** por nota.
 
 ## 2. Iniciar / parar / reiniciar / status do serviço
 
-Use `deploy\servico.ps1`. O parâmetro `-Acao` é **obrigatório** e aceita exatamente
-`Start`, `Stop`, `Restart` ou `Status`:
+Use `servico.ps1` a partir de `C:\Friozem\importacao_notas\tools\deploy`. O parâmetro `-Acao` é
+**obrigatório** e aceita exatamente `Start`, `Stop`, `Restart` ou `Status`:
 
 ```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Status
 powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Start
 powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Stop
@@ -121,10 +178,12 @@ Se muitas notas aparecem como **Pendente** ao mesmo tempo, geralmente o problema
 ## 4. Trocar usuário e senha do WMS
 
 As credenciais do WMS ficam, por padrão, em **variáveis de ambiente de MÁQUINA**
-`WMS__Usuario` / `WMS__Senha`. Troque com `deploy\configurar-segredos.ps1` (ele **nunca** exibe os
-valores; se você não passar, ele pede sem eco):
+`WMS__Usuario` / `WMS__Senha`. Troque com `configurar-segredos.ps1` (ele **nunca** exibe os
+valores; se você não passar, ele pede sem eco), a partir de
+`C:\Friozem\importacao_notas\tools\deploy`:
 
 ```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\configurar-segredos.ps1 -Fase Homolog
 ```
 
@@ -143,9 +202,11 @@ powershell -ExecutionPolicy Bypass -File .\configurar-segredos.ps1 -Fase Homolog
 
 O SMTP vive em `C:\Friozem\importacao_notas\config\email.settings.json`. A forma recomendada é
 pelo mesmo `configurar-segredos.ps1`, que grava o bloco `Email` com os valores da casa
-(`Host=smtp.friozem.com.br`, `Porta=587`, `UsarTls=false`, `Habilitado=true`):
+(`Host=smtp.friozem.com.br`, `Porta=587`, `UsarTls=false`, `Habilitado=true`), a partir de
+`C:\Friozem\importacao_notas\tools\deploy`:
 
 ```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\configurar-segredos.ps1 -Fase Producao
 ```
 
@@ -255,20 +316,28 @@ e **nunca** toca a entrada, o `Estado`, a telemetria ou os `relatorios`.
 
 ## 9. Publicar nova versão e rollback
 
-**Publicar uma nova release** (no servidor) com `deploy\publicar-release.ps1`. Informe a origem
-(`-ReleaseZip` **ou** `-ReleaseDir`, nunca os dois):
+O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
+`deploy\publicar.ps1` do repositório; o arquivo sai em `artifacts\<versao>\`. Copie esse `.zip` para
+o servidor (ex.: `C:\temp`) e faça o resto **no servidor**.
+
+**Publicar uma nova release** (no servidor) com `publicar-release.ps1`, a partir de
+`C:\Friozem\importacao_notas\tools\deploy`. Informe a origem (`-ReleaseZip` **ou** `-ReleaseDir`,
+nunca os dois):
 
 ```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\publicar-release.ps1 -ReleaseZip C:\temp\rel.zip -Versao 2026.02.01-1
 ```
 
 - `-ManterUltimas` (padrão `5`): quantas releases antigas preservar em `app\releases`.
 - Faz backup do `current` anterior em `backups\current_<carimbo>.zip`, copia a config, aponta
   `app\current` para a nova release e reinicia o serviço.
+- Também **atualiza os próprios scripts** em `tools\deploy` para acompanharem a release.
 
-**Rollback** para uma release anterior com `deploy\rollback.ps1`:
+**Rollback** para uma release anterior com `rollback.ps1`, na mesma pasta:
 
 ```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\rollback.ps1
 powershell -ExecutionPolicy Bypass -File .\rollback.ps1 -Versao 2026.01.15-1
 ```
@@ -277,6 +346,15 @@ powershell -ExecutionPolicy Bypass -File .\rollback.ps1 -Versao 2026.01.15-1
 - Para o serviço, copia a config, reaponta `current` e reinicia.
 
 Ambos aceitam `-WhatIf` para simular antes de executar.
+
+**Remover o serviço** (raro; preserva as pastas por padrão) com `remover.ps1`, na mesma pasta:
+
+```powershell
+cd C:\Friozem\importacao_notas\tools\deploy
+powershell -ExecutionPolicy Bypass -File .\remover.ps1
+# Remove o serviço E limpa app\/logs\, preservando data\/backups\/config\ (com confirmação):
+powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm
+```
 
 ## 10. Estado e telemetria (não mexer)
 
@@ -305,9 +383,11 @@ Passos na ordem:
    inválida (por exemplo `Estado` igual a `Processados`/`Erro`).
 2. **Confirme as variáveis de máquina** do WMS: o serviço lê `WMS__Usuario`/`WMS__Senha` das env de
    **máquina**; se foram gravadas e o serviço não reiniciou, ele ainda não as herdou — reinicie.
-3. **Rode o diagnóstico** (somente leitura, sempre termina sem erro):
+3. **Rode o diagnóstico** (somente leitura, sempre termina sem erro), a partir de
+   `C:\Friozem\importacao_notas\tools\deploy`:
 
    ```powershell
+   cd C:\Friozem\importacao_notas\tools\deploy
    powershell -ExecutionPolicy Bypass -File .\diagnostico.ps1
    ```
 
@@ -315,33 +395,34 @@ Passos na ordem:
    (`smtp.friozem.com.br:587`), a pasta de entrada e o share `kitbrf`, e lê o registro do SChannel
    (TLS).
 4. **Falha de conexão HTTPS ao WMS** (handshake/TLS): em Windows Server 2012 R2 o TLS 1.2 depende do
-   SChannel do sistema. Para habilitar o TLS 1.2 há a opção no instalador:
-
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -HabilitarTls12 ...
-   ```
-
-   O procedimento completo de TLS 1.2 está em [`docs\INSTALACAO-SERVIDOR.md`](../INSTALACAO-SERVIDOR.md)
-   (seções 3.6/6). Não há uma mensagem fixa de "handshake" no log — o sintoma é a falha de conexão
-   HTTPS ao WMS.
+   SChannel do sistema. A habilitação é feita pelo **instalador** (`instalar.ps1 -HabilitarTls12`,
+   reversível e com confirmação) — um passo de instalação/manutenção, não de operação do dia a dia.
+   O procedimento completo está em [`docs\INSTALACAO-SERVIDOR.md`](../INSTALACAO-SERVIDOR.md)
+   (seções 3.6/6); siga o guia de instalação para esse ajuste. Não há uma mensagem fixa de
+   "handshake" no log — o sintoma é a falha de conexão HTTPS ao WMS.
 
 ## 12. Tabela: "Quero fazer X → arquivo/comando → reinicia?"
 
-| Quero fazer | Arquivo / comando | Precisa reiniciar o serviço? |
+Todos os comandos rodam de **`C:\Friozem\importacao_notas\tools\deploy`** (no servidor, via RDP); os
+arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
+
+| Quero fazer | Arquivo / comando (no servidor) | Precisa reiniciar o serviço? |
 |---|---|---|
-| Ver situação do serviço | `servico.ps1 -Acao Status` | — |
-| Iniciar / parar / reiniciar | `servico.ps1 -Acao Start\|Stop\|Restart` | — (é a própria ação) |
-| Ver logs | `logs\worker.out.log` / `worker.err.log` | Não |
-| Trocar usuário/senha do WMS | `configurar-segredos.ps1` (env de máquina) | **Sim** |
-| Trocar SMTP (usuário/senha/remetente) | `configurar-segredos.ps1` ou editar `config\email.settings.json` | Recarrega ao salvar; na dúvida reinicie |
-| Trocar URL do WMS | editar `Wms:BaseUrl` em `appsettings.Production.json` | **Sim** |
-| Destinatários do fechamento | editar o TXT `destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
-| Destinatários do resumo semanal | editar o TXT `destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
-| Dia/hora do resumo | `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
-| Janela de coleta / limpeza (10 dias) | `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
-| Publicar nova versão | `publicar-release.ps1` | Automático (o script reinicia) |
-| Rollback | `rollback.ps1` | Automático (o script reinicia) |
-| Diagnosticar | `diagnostico.ps1` | Não (só leitura) |
+| Ver situação do serviço | `tools\deploy\servico.ps1 -Acao Status` | — |
+| Iniciar / parar / reiniciar | `tools\deploy\servico.ps1 -Acao Start\|Stop\|Restart` | — (é a própria ação) |
+| Ver logs | `logs\worker.out.log` / `logs\worker.err.log` | Não |
+| Trocar usuário/senha do WMS | `tools\deploy\configurar-segredos.ps1` (env de máquina) | **Sim** |
+| Trocar SMTP (usuário/senha/remetente) | `tools\deploy\configurar-segredos.ps1` ou editar `config\email.settings.json` | Recarrega ao salvar; na dúvida reinicie |
+| Trocar URL do WMS | editar `Wms:BaseUrl` em `config\appsettings.Production.json` | **Sim** |
+| Destinatários do fechamento | editar o TXT `config\destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
+| Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
+| Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
+| Janela de coleta / limpeza (10 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
+| Publicar nova versão | `tools\deploy\publicar-release.ps1` (o `.zip` vem da máquina de build) | Automático (o script reinicia) |
+| Rollback | `tools\deploy\rollback.ps1` | Automático (o script reinicia) |
+| Remover o serviço | `tools\deploy\remover.ps1` (`-LimparPastas -Confirm` para limpar `app\`/`logs\`) | — (para o serviço) |
+| Diagnosticar | `tools\deploy\diagnostico.ps1` | Não (só leitura) |
+| Habilitar TLS 1.2 | instalação/manutenção: `instalar.ps1 -HabilitarTls12` (ver INSTALACAO-SERVIDOR.md) | Pode exigir reinício do servidor |
 
 ## 13. Avisos de segurança
 
