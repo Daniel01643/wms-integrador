@@ -117,6 +117,39 @@ if ($PSCmdlet.ShouldProcess($pastaApp, 'dotnet publish')) {
         Write-Passo ("Zip gerado: {0} ({1:N1} MB)" -f $zipPath, ($tamZip / 1MB)) -Nivel Ok
     }
 
+    # --- Empacotar os manuais (docs\manuais) como pasta IRMA de app\ ---
+    # Os manuais NAO entram no zip de app (poluiriam app\current no servidor). Vao para
+    # artifacts\<versao>\manuais\ e, com -Zip, tambem para artifacts\<versao>\manuais.zip.
+    $pastaManuaisOrigem  = Join-Path $raizRepo 'docs\manuais'
+    $pastaManuaisDestino = Join-Path $pastaVersao 'manuais'
+    if (Test-Path -LiteralPath $pastaManuaisOrigem -PathType Container) {
+        if ($PSCmdlet.ShouldProcess($pastaManuaisDestino, 'Copiar manuais (sem gerar-manuais.ps1)')) {
+            [void](Confirm-Directory -Caminho $pastaManuaisDestino)
+            # Copia TODO o conteudo (.md/.html/.pdf, README.md e assets\) e remove o gerador no destino.
+            Copy-Item -Path (Join-Path $pastaManuaisOrigem '*') -Destination $pastaManuaisDestino -Recurse -Force
+            $gerador = Join-Path $pastaManuaisDestino 'gerar-manuais.ps1'
+            if (Test-Path -LiteralPath $gerador -PathType Leaf) { Remove-Item -LiteralPath $gerador -Force }
+
+            $arqManuais = Get-ChildItem -LiteralPath $pastaManuaisDestino -Recurse -File
+            $tamManuais = ($arqManuais | Measure-Object -Property Length -Sum).Sum
+            Write-Passo ("Manuais copiados para: {0} ({1} arquivos, {2:N1} MB)" -f $pastaManuaisDestino, $arqManuais.Count, ($tamManuais / 1MB)) -Nivel Ok
+        }
+
+        if ($Zip) {
+            $zipManuais = Join-Path $pastaVersao 'manuais.zip'
+            if (Test-Path -LiteralPath $zipManuais) { Remove-Item -LiteralPath $zipManuais -Force }
+            Write-Passo ("Compactando manuais -> {0}" -f $zipManuais)
+            # Conteudo de manuais\ na raiz do zip (mesmo padrao do zip de app).
+            Compress-ZipPortavel -Origem $pastaManuaisDestino -ZipPath $zipManuais
+            if (Test-Path -LiteralPath $zipManuais) {
+                $tamZipManuais = (Get-Item -LiteralPath $zipManuais).Length
+                Write-Passo ("Zip de manuais gerado: {0} ({1:N1} MB)" -f $zipManuais, ($tamZipManuais / 1MB)) -Nivel Ok
+            }
+        }
+    } else {
+        Write-Passo ("docs\manuais inexistente ({0}); manuais nao empacotados." -f $pastaManuaisOrigem) -Nivel Alerta
+    }
+
     Write-Host ''
     Write-Passo ("Publish OK. Artefato em: {0}" -f $pastaVersao) -Nivel Ok
     Write-Host ''
