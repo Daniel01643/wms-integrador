@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Fluxo operacional: do e-mail ao relatorio">
+  <defs>
+    <marker id="setaU" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#17479E"/>
+    </marker>
+    <marker id="setaVerdeU" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#009A83"/>
+    </marker>
+    <marker id="setaVermelhaU" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#C0392B"/>
+    </marker>
+  </defs>
+
+  <!-- Faixa de titulo -->
+  <rect x="0" y="0" width="1000" height="44" fill="#17479E"/>
+  <rect x="0" y="44" width="1000" height="4" fill="#54B6E7"/>
+  <text x="24" y="29" fill="#ffffff" font-size="19" font-weight="bold">Fluxo do dia a dia — do e-mail ao relatorio</text>
+
+  <!-- Realce: unico passo humano -->
+  <rect x="24" y="66" width="952" height="40" rx="10" fill="#eaf5fc" stroke="#54B6E7" stroke-width="2"/>
+  <text x="44" y="91" fill="#17479E" font-size="15" font-weight="bold">O colaborador SO faz UMA coisa: salvar os XML na pasta. Todo o resto e automatico.</text>
+
+  <!-- PASSO 0: E-mail -->
+  <g>
+    <rect x="40" y="140" width="200" height="110" rx="14" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+    <text x="140" y="164" text-anchor="middle" fill="#17479E" font-size="13" font-weight="bold">Passo 0</text>
+    <!-- icone envelope -->
+    <rect x="104" y="176" width="72" height="46" rx="4" fill="#eaf5fc" stroke="#17479E" stroke-width="2"/>
+    <path d="M104,180 L140,205 L176,180" fill="none" stroke="#17479E" stroke-width="2"/>
+    <text x="140" y="240" text-anchor="middle" fill="#333333" font-size="12.5">Notas chegam por E-MAIL</text>
+  </g>
+
+  <!-- seta 0->1 -->
+  <line x1="240" y1="195" x2="300" y2="195" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaU)"/>
+
+  <!-- PASSO 1: salvar XML na pasta (passo humano) -->
+  <g>
+    <rect x="300" y="128" width="230" height="134" rx="14" fill="#fff7e6" stroke="#E8A317" stroke-width="3"/>
+    <text x="415" y="152" text-anchor="middle" fill="#17479E" font-size="13" font-weight="bold">Passo 1 — UNICO passo humano</text>
+    <!-- icone pasta compartilhada -->
+    <path d="M360,170 h28 l10,10 h40 a6,6 0 0 1 6,6 v40 a6,6 0 0 1 -6,6 h-78 a6,6 0 0 1 -6,-6 v-50 a6,6 0 0 1 6,-6 z" fill="#54B6E7" stroke="#17479E" stroke-width="2"/>
+    <!-- usuarios (pessoas) -->
+    <circle cx="470" cy="190" r="8" fill="#17479E"/>
+    <path d="M458,214 a12,12 0 0 1 24,0 z" fill="#17479E"/>
+    <text x="415" y="242" text-anchor="middle" fill="#333333" font-size="12.5">Salvar os XML na</text>
+    <text x="415" y="256" text-anchor="middle" fill="#333333" font-size="12.5">pasta de rede</text>
+    <text x="415" y="276" text-anchor="middle" fill="#17479E" font-size="11.5" font-weight="bold">\\SRVAPPALC02\kitbrf</text>
+  </g>
+
+  <!-- seta 1->2 -->
+  <line x1="530" y1="195" x2="590" y2="195" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaU)"/>
+
+  <!-- PASSO 2: sistema le e integra no WMS -->
+  <g>
+    <rect x="590" y="140" width="230" height="110" rx="14" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+    <text x="705" y="164" text-anchor="middle" fill="#17479E" font-size="13" font-weight="bold">Passo 2 — automatico</text>
+    <!-- engrenagem -->
+    <circle cx="668" cy="200" r="16" fill="none" stroke="#009A83" stroke-width="4"/>
+    <circle cx="668" cy="200" r="5" fill="#009A83"/>
+    <!-- nuvem WMS -->
+    <path d="M726,206 a14,14 0 0 1 2,-27 a16,16 0 0 1 30,4 a12,12 0 0 1 -4,23 z" fill="#eaf5fc" stroke="#17479E" stroke-width="2"/>
+    <text x="742" y="202" text-anchor="middle" fill="#17479E" font-size="10.5" font-weight="bold">WMS</text>
+    <text x="705" y="240" text-anchor="middle" fill="#333333" font-size="12.5">O sistema le e integra no WMS</text>
+  </g>
+
+  <!-- seta 2 -> resultado (desce) -->
+  <line x1="705" y1="250" x2="705" y2="300" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaU)"/>
+
+  <!-- PASSO 3: Resultado -->
+  <text x="705" y="320" text-anchor="middle" fill="#17479E" font-size="14" font-weight="bold">Passo 3 — Resultado</text>
+
+  <!-- Processados (verde) -->
+  <g>
+    <rect x="470" y="340" width="190" height="70" rx="12" fill="#e6f5f1" stroke="#009A83" stroke-width="2.5"/>
+    <text x="565" y="370" text-anchor="middle" fill="#009A83" font-size="14" font-weight="bold">Processados</text>
+    <text x="565" y="390" text-anchor="middle" fill="#333333" font-size="11.5">pasta Processados\</text>
+  </g>
+  <!-- Erro (vermelho) -->
+  <g>
+    <rect x="750" y="340" width="190" height="70" rx="12" fill="#fdecea" stroke="#C0392B" stroke-width="2.5"/>
+    <text x="845" y="370" text-anchor="middle" fill="#C0392B" font-size="14" font-weight="bold">Erro</text>
+    <text x="845" y="390" text-anchor="middle" fill="#333333" font-size="11.5">pasta Erro\ (+ .motivo.txt)</text>
+  </g>
+  <!-- setas para resultado -->
+  <path d="M690,320 C640,330 600,330 575,338" fill="none" stroke="#009A83" stroke-width="2.5" marker-end="url(#setaVerdeU)"/>
+  <path d="M720,320 C780,330 820,330 840,338" fill="none" stroke="#C0392B" stroke-width="2.5" marker-end="url(#setaVermelhaU)"/>
+
+  <!-- PASSO 4: Relatorio + e-mail de fechamento -->
+  <g>
+    <rect x="40" y="340" width="380" height="110" rx="14" fill="#ffffff" stroke="#17479E" stroke-width="2"/>
+    <text x="230" y="365" text-anchor="middle" fill="#17479E" font-size="13" font-weight="bold">Passo 4 — automatico</text>
+    <!-- doc relatorio -->
+    <rect x="66" y="378" width="40" height="52" rx="4" fill="#eaf5fc" stroke="#17479E" stroke-width="2"/>
+    <line x1="76" y1="392" x2="96" y2="392" stroke="#17479E" stroke-width="2"/>
+    <line x1="76" y1="402" x2="96" y2="402" stroke="#17479E" stroke-width="2"/>
+    <line x1="76" y1="412" x2="96" y2="412" stroke="#17479E" stroke-width="2"/>
+    <text x="250" y="396" text-anchor="middle" fill="#333333" font-size="12">Relatorio (HTML+PDF) na pasta relatorios</text>
+    <!-- envelope de saida -->
+    <rect x="320" y="402" width="52" height="34" rx="3" fill="#e6f5f1" stroke="#009A83" stroke-width="2"/>
+    <path d="M320,404 L346,422 L372,404" fill="none" stroke="#009A83" stroke-width="2"/>
+    <text x="250" y="414" text-anchor="middle" fill="#333333" font-size="12">E-mail de fechamento</text>
+  </g>
+  <!-- seta resultado -> passo 4 -->
+  <path d="M470,392 C450,398 440,398 420,398" fill="none" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaU)"/>
+
+  <!-- Legenda de status -->
+  <rect x="40" y="478" width="900" height="56" rx="10" fill="#f6f8fc" stroke="#e1e7f0" stroke-width="1.5"/>
+  <text x="56" y="500" fill="#17479E" font-size="13" font-weight="bold">Legenda de status do relatorio:</text>
+  <rect x="56" y="510" width="16" height="16" rx="3" fill="#009A83"/>
+  <text x="80" y="523" fill="#333333" font-size="12.5">Integrada</text>
+  <rect x="200" y="510" width="16" height="16" rx="3" fill="#E8A317"/>
+  <text x="224" y="523" fill="#333333" font-size="12.5">Pendente</text>
+  <rect x="340" y="510" width="16" height="16" rx="3" fill="#C0392B"/>
+  <text x="364" y="523" fill="#333333" font-size="12.5">Nao integrada</text>
+</svg>
