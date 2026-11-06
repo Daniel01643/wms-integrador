@@ -1,0 +1,12 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "label": "Faixa de cabecalho acima da capa",
+      "severity": "nao-bloqueante",
+      "confidence": "possible",
+      "description": "A primeira pagina mostra a faixa .hd (titulo + logo) e a barra divisoria antes de <section class=\"capa\">. E um elemento pre-existente do template, nao introduzido por este diff, e puramente cosmetico. Se o objetivo for a capa totalmente limpa, ocultar .hd/.bar quando houver capa (fora do escopo deste trabalho)."
+    }
+  ],
+  "reviewDoc": "c:\\wms-integrador\\.agents\\tasks\\review-manuais.md"
+}
