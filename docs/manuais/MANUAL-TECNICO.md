@@ -1,5 +1,7 @@
 # Manual Técnico (Nível 1 / Júnior) — KitWms Integrador
 
+<!--CAPA:tecnico-->
+
 Guia de operação para técnico humano no servidor **SRVAPPALC02** (Windows Server 2012 R2,
 PowerShell 4.0/5.1). O passo a passo pressupõe **acesso LOCAL ao servidor por RDP (Área de
 Trabalho Remota) ou direto na máquina**, abrindo o **PowerShell como Administrador** no próprio
@@ -51,6 +53,19 @@ Os scripts de deploy ficam em `deploy\`. Defaults já embutidos em todos eles:
 `-RaizInstalacao C:\Friozem\importacao_notas`, `-NomeServico Friozem-ImportacaoNotas`,
 `-NssmPath C:\Friozem\Gestao_Enderecos\tools\nssm.exe`. Os scripts que escrevem aceitam `-WhatIf`
 (simula sem alterar nada).
+
+O diagrama abaixo resume a implantação no servidor: o serviço NSSM, o share `kitbrf` (com
+`Processados\`, `Erro\` e `relatorios\` dentro), a pasta `data\` (Estado + telemetria) **fora** do
+share, a `config\` com segredos e ACL restrita, e as saídas HTTPS (WMS) e SMTP (e-mail).
+
+<!--DIAGRAMA:arquitetura-tecnico-->
+
+O ciclo de processamento do pacote (orquestrador reativo) está detalhado em
+[`docs\OPERACAO.md`](../OPERACAO.md) e ilustrado a seguir: do estado **Ocioso** até o fechamento do
+pacote (relatório + e-mail + telemetria), passando pelo envio `I50` e pelos reenvios `I10`/`I30`,
+com o limite de **3 tentativas** por nota.
+
+<!--DIAGRAMA:ciclo-pacote-->
 
 ## 2. Iniciar / parar / reiniciar / status do serviço
 
