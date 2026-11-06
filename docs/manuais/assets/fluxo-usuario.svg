@@ -100,8 +100,13 @@
     <path d="M320,404 L346,422 L372,404" fill="none" stroke="#009A83" stroke-width="2"/>
     <text x="250" y="414" text-anchor="middle" fill="#333333" font-size="12">E-mail de fechamento</text>
   </g>
-  <!-- seta resultado -> passo 4 -->
-  <path d="M470,392 C450,398 440,398 420,398" fill="none" stroke="#17479E" stroke-width="2.5" marker-end="url(#setaU)"/>
+  <!-- Processados -> Passo 4 (verde) -->
+  <path d="M470,388 C450,392 440,392 420,392" fill="none" stroke="#009A83" stroke-width="2.5" marker-end="url(#setaVerdeU)"/>
+  <!-- Erro -> Passo 4 (vermelho): o erro TAMBEM fecha no relatorio + e-mail.
+       A seta desce do bloco Erro, contorna por baixo dos resultados e entra no Passo 4,
+       deixando claro que o e-mail/relatorio consolidam o pacote inteiro. -->
+  <path d="M845,410 L845,428 C845,436 838,440 828,440 L436,440 C426,440 420,434 420,424 L420,414" fill="none" stroke="#C0392B" stroke-width="2.5" marker-end="url(#setaVermelhaU)"/>
+  <text x="628" y="455" text-anchor="middle" fill="#C0392B" font-size="11">notas com erro/pendencia tambem entram no fechamento</text>
 
   <!-- Legenda de status -->
   <rect x="40" y="478" width="900" height="56" rx="10" fill="#f6f8fc" stroke="#e1e7f0" stroke-width="1.5"/>
