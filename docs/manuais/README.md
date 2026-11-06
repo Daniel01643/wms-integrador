@@ -5,6 +5,14 @@ em **Markdown** (fonte) e, para os manuais de pessoas, também publicado em **HT
 identidade visual Friozem (paleta azul `#17479E` / ciano `#54B6E7` / verde `#009A83`, logo e
 cabeçalho do deck).
 
+Os HTML/PDF de pessoas (Usuário e Técnico) abrem com uma **capa ilustrada** (nome do agente
+"Integrador Notas Fiscais KIT → WMS", subtítulo, tipo do manual, data de geração e versão) e trazem
+**diagramas de fluxo em SVG inline** (sem Mermaid, sem recurso externo): um fluxo operacional no
+Manual do Usuário e, no Manual Técnico, a arquitetura de implantação e o ciclo do pacote. Os fontes
+dos diagramas ficam em [`assets\*.svg`](assets) e são injetados por marcadores
+(`<!--CAPA:...-->` / `<!--DIAGRAMA:...-->`) no passo de geração; o HTML final continua
+**autocontido** (SVG e logo embutidos, nada externo).
+
 ## Manuais e formatos
 
 | Manual | Público-alvo | Formatos | Conteúdo |
