@@ -1,0 +1,42 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "severity": "info",
+      "detail": "Deteccao em 3 grupos confirmada no codigo: ClassificadorEntrada separa .xml (fluxo normal), temporarios/em-copia (ignorados, permanecem na entrada via OpcoesPasta.EhExtensaoTemporaria + Hidden/System) e nao-XML definitivo (somente quando TratarNaoXmlComoErro=true). GerenciadorPacote passou de EnumerateFiles('*.xml') para '*' top-level, separando fotoXml (ProcessarAsync) de fotoNaoXml (ProcessarNaoXml)."
+    },
+    {
+      "severity": "info",
+      "detail": "Nao-XML -> ExtensaoInvalida confirmado: ProcessadorLote.ProcessarNaoXml cria RegistroDiario com XmlInvalido=false, Status=ArquivoIgnorado, Categoria=ExtensaoInvalida, Destino=Erro, NumeroTransporte vazio; grava .motivo.txt ('Arquivo ignorado: extensao <ext> nao e XML...') e NUNCA chama o Orquestrador. Teste ProcessadorLoteTests.NaoXml_ViraExtensaoInvalida_MoveParaErro_ENaoChamaOrquestrador valida move para Erro\\<id>\\ExtensaoInvalida, sidecar .motivo.txt e _orq.Chamadas vazio."
+    },
+    {
+      "severity": "info",
+      "detail": "Pacote 100% nao-xml: FechadorPacote retorna true antecipadamente quando resumo.Total==0 logando EXATAMENTE 'Pacote sem notas, apenas arquivos ignorados; relatorio salvo, e-mail nao enviado.'; PoliticaEnvioEmail.Deve tambem retorna false (fail-closed) para Total==0 inclusive EnviarQuando.Sempre. Teste EmailPorPacoteTests.Pacote100PorCentoNaoXml_GeraRelatorioMasNaoEnviaEmail valida relatorio .pdf/.html gerado e Email.Enviadas vazio."
+    },
+    {
+      "severity": "info",
+      "detail": "Pacote misto segue a politica normal e lista ambos: teste PacoteMisto_EnviaEmailEListaNotaEArquivoIgnorado confirma 1 e-mail enviado, assunto com '1 nota(s)' (so notas reais) e HTML contendo a nota integrada e 'doc.pdf'/'Arquivo ignorado (nao e XML)'. Resumo: Total conta so notas reais; ArquivosIgnorados tem contador proprio; NaoIntegradas e GrupoTransporte.ComProblema excluem ignorados."
+    },
+    {
+      "severity": "info",
+      "detail": "Limpeza de 10 dias cobre Erro\\<id>\\ExtensaoInvalida sem mudanca no LimpadorPastas (remove a subpasta do pacote por inteiro). Teste LimpezaSubpastaTests.SubpastaDeErroExtensaoInvalidaVencida_ERemovida valida remocao de doc.pdf + doc.pdf.motivo.txt vencidos."
+    },
+    {
+      "severity": "info",
+      "detail": "CategoriaErro.XmlInvalido permanece distinto e intacto: o fluxo de parse invalido em ProcessadorLote continua usando CategoriaErro.XmlInvalido com Status=NaoIntegrada (linha nao tocada pelo diff); ExtensaoInvalida/ArquivoIgnorado sao novos valores de enum separados, com cor cinza neutra (#6B7280) distinta do vermelho de NaoIntegrada."
+    },
+    {
+      "severity": "info",
+      "detail": "Script deploy\\limpar-extensao-invalida.ps1 presente com as guardas de caminho exigidas: recusa raiz de drive; resolve [IO.Path]::GetFullPath; so apaga pastas cujo nome folha == NomeCategoria (case-insensitive) E cujo caminho COMECA com <Entrada>\\Erro + separador; Test-ReparsePoint ignora junctions/symlinks (fail-safe); idempotente; suporta -WhatIf e confirmacao interativa (s/n) com -Force para pular. [CmdletBinding(SupportsShouldProcess, ConfirmImpact=High)], Set-StrictMode, ErrorActionPreference=Stop."
+    },
+    {
+      "severity": "info",
+      "detail": "Manuais atualizados e regenerados: diff inclui MANUAL-USUARIO.md/.html/.pdf e MANUAL-TECNICO.md/.html/.pdf alem de INSTALACAO-SERVIDOR.md. Spot-check confirmou o HTML regenerado contem o texto novo (MANUAL-USUARIO.html: 'Arquivo ignorado'/'nao e XML'; MANUAL-TECNICO.html: 'ExtensaoInvalida'/'ArquivoIgnorado'/'limpar-extensao-invalida')."
+    },
+    {
+      "severity": "info",
+      "detail": "Build 0/0 e testes verdes conforme evidencia registrada (nao re-executado por instrucao): as findings de FEAT-001 e FEAT-003 registram 'dotnet build 0 Aviso/0 Erro' e 'dotnet test 344 aprovados, 9 ignorados, 0 falhas' (baseline 323 + 21 novos). Config binpada automaticamente (ExtensoesTemporarias/TratarNaoXmlComoErro em appsettings.json e deploy/config-exemplo/appsettings.Production.json)."
+    }
+  ],
+  "summary": "Aprovado. Todos os requisitos conferem contra o codigo commitado em main (base 592e3e7 -> ae4117b) e contra a evidencia registrada nos FEAT. Nao-XML definitivo vira ExtensaoInvalida/ArquivoIgnorado movido para Erro\\<id>\\ExtensaoInvalida com .motivo.txt e sem passar pelo Orquestrador; temporarios/em-copia sao ignorados e ficam na entrada; pacote 100% nao-xml gera relatorio e NAO envia e-mail (log exato + fail-closed na PoliticaEnvioEmail); pacote misto segue a politica normal e lista ambos; a limpeza de 10 dias cobre ExtensaoInvalida; XmlInvalido continua distinto; o script deploy\\limpar-extensao-invalida.ps1 tem as guardas de caminho (raiz de drive, prefixo <Entrada>\\Erro, nome folha, reparse point, -WhatIf/confirm); manuais atualizados e regenerados (MD/HTML/PDF). Evidencia registrada: build 0/0, 344 testes aprovados / 9 ignorados / 0 falhas."
+}

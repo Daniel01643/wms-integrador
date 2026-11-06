@@ -1,0 +1,7 @@
+{
+  "task_id": "task-nao-xml",
+  "task_description": "Tratar arquivos NAO-XML na pasta de entrada do KitWmsIntegrador: o detector passa a enxergar todos os arquivos top-level, separando XML (fluxo normal), temporarios/em copia (ignorados, deixados na entrada) e nao-XML definitivo (extensao invalida). Cada nao-XML vira um RegistroDiario com a nova CategoriaErro.ExtensaoInvalida e o novo StatusLinhaRelatorio.ArquivoIgnorado, e MOVIDO para Erro\\<id>\\ExtensaoInvalida com .motivo.txt. O relatorio/HTML/PDF e o corpo de e-mail ganham o status ArquivoIgnorado (cinza/neutro) e um contador 'Arquivos ignorados' no resumo. Pacote 100% nao-xml gera relatorio mas NAO envia e-mail. A limpeza de 10 dias ja cobre Erro\\<id>\\ExtensaoInvalida; um script de deploy faz limpeza forcada sob demanda. Manuais de usuario e tecnico atualizados e regenerados (HTML+PDF). I60 continua desligada; Orquestrador e construtores intactos. Validacao LOCAL (dotnet build 0/0, dotnet test verdes), sem deploy no servidor.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}
