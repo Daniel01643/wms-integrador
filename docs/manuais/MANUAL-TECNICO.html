@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-06</span>
-    <span>Vers&atilde;o: 2026.11.06-4c8cbce</span>
+    <span>Vers&atilde;o: 2026.11.06-c03449d</span>
   </div>
 </section>
   <header class="hd">
@@ -121,6 +121,11 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <li><a href="#6-trocar-o-endpointurl-do-wms-virada-homolog--produção">Trocar o endpoint/URL do WMS (virada homolog → produção)</a></li>
 <li><a href="#7-destinatários-de-e-mail-fechamento-e-resumo-semanal">Destinatários de e-mail (fechamento e resumo semanal)</a></li>
 <li><a href="#8-diahora-do-resumo-janela-de-coleta-e-limpeza">Dia/hora do resumo, janela de coleta e limpeza</a></li>
+</ol>
+<ul>
+<li><a href="#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro">8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></a></li>
+</ul>
+<ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
 <li><a href="#10-estado-e-telemetria-não-mexer">Estado e telemetria (não mexer)</a></li>
 <li><a href="#11-o-serviço-não-sobe--diagnóstico-e-tls-12">O serviço não sobe — diagnóstico e TLS 1.2</a></li>
@@ -563,7 +568,25 @@ gestor@friozem.com.br</code></pre>
 </tr>
 </tbody></table>
 <p>Outras chaves de <code>Pacote</code> úteis: <code>IntervaloVarreduraSegundos</code> (5), <code>EstabilizacaoSegundos</code> (3), <code>TimeoutArquivoSegundos</code> (300), <code>BackoffMaximoSegundos</code> (120), <code>MaxTransportesConcorrentes</code> (1).</p>
-<p>A limpeza roda na partida e a cada 24 h, atua <strong>apenas</strong> nas subpastas de <code>Processados</code> e <code>Erro</code>, e <strong>nunca</strong> toca a entrada, o <code>Estado</code>, a telemetria ou os <code>relatorios</code>.</p>
+<p>A limpeza roda na partida e a cada 24 h, atua <strong>apenas</strong> nas subpastas de <code>Processados</code> e <code>Erro</code>, e <strong>nunca</strong> toca a entrada, o <code>Estado</code>, a telemetria ou os <code>relatorios</code>. Como a subpasta <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> (arquivos não-XML; ver seção 8.1) fica dentro de <code>Erro</code>, ela <strong>já é coberta</strong> por essa limpeza de 10 dias — a pasta inteira do pacote é removida no vencimento, sem configuração extra.</p>
+<h3>8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></h3>
+<p>Quando um arquivo depositado na entrada <strong>não</strong> é <code>.xml</code>, ele não é uma nota: o sistema <strong>não</strong> chama o WMS para ele. A separação acontece <strong>na detecção</strong> (ao listar os candidatos do pacote), em três grupos:</p>
+<ul>
+<li><strong>XML</strong> (<code>.xml</code>): segue o fluxo normal de integração.</li>
+<li><strong>Temporários (em cópia)</strong>: extensões configuráveis em <code>Pastas:ExtensoesTemporarias</code> (default <code>.tmp</code>, <code>.temp</code>, <code>.crdownload</code>, <code>.part</code>, <code>.partial</code>, <code>.filepart</code>, <code>.!ut</code>, <code>.opdownload</code>, <code>.bak</code>, <code>.lock</code>; também arquivos com atributo Hidden/System). São <strong>ignorados</strong> — nem processa nem move, ficam na entrada até a cópia terminar (um <code>.tmp</code> pode virar <code>.xml</code>). Comparação case-insensitive, com o ponto normalizado.</li>
+<li><strong>Não-XML definitivo</strong>: qualquer outra extensão. Com <code>Pastas:TratarNaoXmlComoErro = true</code> (<strong>default</strong>), o arquivo é movido para <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> com um <code>.motivo.txt</code> ao lado e registrado no relatório. Com a flag em <code>false</code>, o não-XML definitivo é apenas <strong>ignorado</strong> (fica na entrada), como no comportamento legado.</li>
+</ul>
+<p>Reflexos nas estruturas:</p>
+<ul>
+<li><strong><code>CategoriaErro.ExtensaoInvalida</code></strong>: nova categoria de erro; define a subpasta <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> (reusa o mesmo mecanismo de mover + <code>.motivo.txt</code> das demais categorias).</li>
+<li><strong><code>StatusLinhaRelatorio.ArquivoIgnorado</code></strong>: novo status, com <strong>cor neutra/cinza</strong> (<code>#6B7280</code>, fora da paleta da marca) e rótulo <strong>"Arquivo ignorado (não é XML)"</strong>. No resumo do relatório e do e-mail há um contador próprio <strong>"Arquivos ignorados"</strong>. Esse status é um <strong>aviso</strong>, não uma falha de WMS: não conta como nota real (não infla <code>Total</code> nem <code>Não integradas</code>).</li>
+</ul>
+<p><strong>Regra de e-mail do pacote 100% não-XML</strong>: um pacote que só tem arquivos ignorados (nenhuma nota real, XML válido ou inválido-de-conteúdo) <strong>gera o relatório</strong> HTML + PDF normalmente, mas **não envia e-mail** (o log registra que o pacote não tinha notas, apenas arquivos ignorados). Um pacote <strong>misto</strong> (ao menos uma nota real) segue a política de e-mail normal, e os arquivos ignorados aparecem no relatório e no corpo do e-mail.</p>
+<p><strong>Limpeza forçada sob demanda</strong> — <code>limpar-extensao-invalida.ps1</code>: para apagar as pastas <code>ExtensaoInvalida</code> <strong>sem esperar</strong> o ciclo de 10 dias, use esse script a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code> (ele é replicado para lá pelo <code>instalar.ps1</code>):</p>
+<pre><code>cd C:\Friozem\importacao_notas\tools\deploy
+powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1 -WhatIf
+powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></pre>
+<p>Ele só remove pastas cujo nome-folha seja exatamente <code>ExtensaoInvalida</code> <strong>dentro</strong> de <code>&lt;Entrada&gt;\Erro</code>, com guardas de caminho (recusa raiz de drive, não segue junctions/symlinks), suporta <code>-WhatIf</code> (lista sem apagar) e pede confirmação <code>s/n</code> quando não usa <code>-Force</code>. Parâmetros: <code>-Caminho</code> (entrada, default <code>C:\Friozem\kitbrf</code>), <code>-NomePastaErro</code> (default <code>Erro</code>), <code>-NomeCategoria</code> (default <code>ExtensaoInvalida</code>) e <code>-Force</code> (pula a confirmação).</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -668,6 +691,11 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td>Janela de coleta / limpeza (10 dias)</td>
 <td><code>config\appsettings.Production.json</code>: <code>Pacote:JanelaColetaSegundos</code> / <code>Limpeza:DiasRetencao</code></td>
 <td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Limpar já as pastas de não-XML (ExtensaoInvalida)</td>
+<td><code>tools\deploy\limpar-extensao-invalida.ps1</code> (<code>-WhatIf</code> simula)</td>
+<td>Não (só apaga as pastas <code>ExtensaoInvalida</code>)</td>
 </tr>
 <tr>
 <td>Publicar nova versão</td>

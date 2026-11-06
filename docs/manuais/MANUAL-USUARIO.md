@@ -87,6 +87,7 @@ O relatório mostra uma linha por nota, com um **status**. Estes são os status 
 | **Integrada — revisar produto** | A nota entrou no WMS, mas havia um produto provisório que precisa ser conferido depois. | Avisar quem cuida de cadastro de produto para revisar o item no WMS. A nota já entrou. |
 | **Pendente** | A nota foi importada, mas está **aguardando processamento na tela do WMS**. | Aguardar e/ou conferir a nota na interface do WMS. |
 | **Não integrada** | A nota **não** entrou (erro que não deu para resolver, ou esgotaram as tentativas). | Corrigir a nota e reenviar (ver seção 8). O motivo está na coluna Mensagem e no arquivo `.motivo.txt` na pasta Erro. |
+| **Arquivo ignorado (não é XML)** | O arquivo depositado **não** é um `.xml`, então não é uma nota. O sistema não integra; só registra o aviso. | Depositar apenas arquivos `.xml` (ver a FAQ no fim deste manual). O arquivo foi para `Erro\...\ExtensaoInvalida`. |
 
 Além dos status, o relatório mostra um contador de **XMLs inválidos**: são arquivos que nem
 puderam ser lidos (por exemplo, arquivo corrompido ou cortado pela metade). Eles **não** viram
@@ -147,3 +148,13 @@ no WMS. A integração em si deu certo.
 **Não recebi o e-mail de fechamento.**
 O envio depende de você estar na lista de destinatários e do e-mail estar configurado. Fale com a
 TI para incluir seu endereço.
+
+**E se eu colocar um arquivo que não é XML?**
+O sistema **não** integra arquivos que não sejam `.xml`. Ele move o arquivo para
+`Erro\pacote_<data_hora>\ExtensaoInvalida` e registra no relatório como
+**"Arquivo ignorado (não é XML)"** (status cinza, aviso — não é falha de nota). Esse arquivo é
+removido automaticamente depois de **10 dias**, junto com o restante do pacote. Para evitar isso,
+deposite **apenas arquivos `.xml`** de nota fiscal na pasta de entrada.
+Arquivos que ainda estão sendo copiados (com extensão temporária como `.tmp`, `.part`,
+`.crdownload` etc.) são **deixados em paz**: o sistema não os processa nem os move, espera a cópia
+terminar. Quando a cópia acaba e o arquivo vira `.xml`, ele entra no fluxo normal.
