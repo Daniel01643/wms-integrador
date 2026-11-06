@@ -89,7 +89,7 @@ function Build-Capa {
     return @"
 <section class="capa">
   <div class="capa-faixa"></div>
-  <img class="capa-logo" src="$logoSrc" alt="Friozem" />
+  <span class="capa-logo-panel"><img class="capa-logo" src="$logoSrc" alt="Friozem" /></span>
   <h1 class="capa-titulo">Integrador Notas Fiscais KIT &rarr; WMS</h1>
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">$tipoEsc</p>
@@ -385,7 +385,8 @@ function Build-HtmlDocument {
     param(
         [string]$Title,
         [string]$BodyHtml,
-        [string]$LogoBase64
+        [string]$LogoBase64,
+        [string]$CapaHtml
     )
 
     $css = @'
@@ -436,7 +437,11 @@ function Build-HtmlDocument {
     /* Capa ilustrada (identidade Friozem, sobria) */
     .capa { position: relative; text-align: center; padding: 70px 40px 60px; margin: 0 0 24px; }
     .capa-faixa { height: 10px; background: #17479E; border-bottom: 4px solid #54B6E7; margin: -0px -40px 48px; }
-    .capa-logo { width: 240px; height: auto; display: block; margin: 0 auto 44px; }
+    /* Painel azul: a logo Friozem e branca, por isso vai sobre fundo #17479E (como no deck),
+       senao o lettering "FRIOZEM" some no branco da capa. A caixa usa object-fit: contain
+       para a marca aparecer INTEIRA e proporcional (sem corte/distorcao). */
+    .capa-logo-panel { display: inline-block; background: #17479E; border-radius: 14px; border-bottom: 4px solid #54B6E7; padding: 26px 40px; margin: 0 auto 44px; }
+    .capa-logo { width: 280px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto; }
     .capa-titulo { color: #17479E; font-size: 34px; font-weight: 700; line-height: 1.2; margin: 0 0 14px; border: 0; }
     .capa-sub { color: #54B6E7; font-size: 18px; font-weight: 700; margin: 0 0 40px; }
     .capa-tipo { display: inline-block; color: #ffffff; background: #17479E; font-size: 17px; font-weight: 700; padding: 8px 26px; border-radius: 22px; margin: 0 0 56px; }
@@ -469,6 +474,12 @@ function Build-HtmlDocument {
     $titleEsc = ConvertTo-HtmlText $Title
     $logoSrc = 'data:image/png;base64,' + $LogoBase64
 
+    # A capa (quando existir) e a PRIMEIRA coisa da pagina 1, antes do cabecalho .hd.
+    # Assim a pagina 1 fica limpa (so a capa) e a faixa .hd/.bar so aparece a partir
+    # da 2a pagina, junto do conteudo. O page-break depois da capa vem do CSS (.capa).
+    $capaBlock = ''
+    if ($CapaHtml) { $capaBlock = $CapaHtml + "`n" }
+
     $doc = @"
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -482,7 +493,7 @@ $css
 </head>
 <body>
 <div class="page">
-  <header class="hd">
+$capaBlock  <header class="hd">
     <h1>$titleEsc</h1>
     <img src="$logoSrc" alt="Friozem" />
   </header>
@@ -542,6 +553,11 @@ function Convert-Manual {
         'ciclo-pacote'        = 'ciclo-pacote'
     }
 
+    # A capa (quando houver) e extraida do corpo e devolvida a parte, para ser
+    # colada ANTES do cabecalho .hd (pagina 1 = capa limpa; a faixa .hd volta so
+    # na 2a pagina, com o conteudo).
+    $capaHtml = $null
+
     $bodyLines = New-Object System.Collections.ArrayList
     foreach ($l in $body) {
         $t = $l.Trim()
@@ -551,7 +567,9 @@ function Convert-Manual {
             $nome = $m.Groups[2].Value
             if ($tipo -eq 'CAPA') {
                 $tipoManual = if ($nome -eq 'tecnico') { 'Manual Tecnico' } else { 'Manual do Usuario' }
-                $html = Build-Capa -TipoManual $tipoManual -LogoBase64 $LogoBase64 -Versao $Versao -DataGeracao $DataGeracao
+                $capaHtml = Build-Capa -TipoManual $tipoManual -LogoBase64 $LogoBase64 -Versao $Versao -DataGeracao $DataGeracao
+                # Nao injeta a capa no corpo: ela vai antes do .hd no documento final.
+                continue
             } else {
                 if (-not $mapaDiagramas.ContainsKey($nome)) {
                     throw "Marcador de diagrama desconhecido: $nome (em $MarkdownPath)"
@@ -584,7 +602,7 @@ function Convert-Manual {
         return $htmlStore[$i]
     })
 
-    $doc = Build-HtmlDocument -Title $Title -BodyHtml $bodyHtml -LogoBase64 $LogoBase64
+    $doc = Build-HtmlDocument -Title $Title -BodyHtml $bodyHtml -LogoBase64 $LogoBase64 -CapaHtml $capaHtml
 
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($HtmlPath, $doc, $utf8NoBom)
