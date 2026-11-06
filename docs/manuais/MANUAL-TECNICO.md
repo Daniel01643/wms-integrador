@@ -35,6 +35,7 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
 7. [Destinatários de e-mail (fechamento e resumo semanal)](#7-destinatários-de-e-mail-fechamento-e-resumo-semanal)
 8. [Dia/hora do resumo, janela de coleta e limpeza](#8-diahora-do-resumo-janela-de-coleta-e-limpeza)
    - [8.1. Arquivos não-XML (ExtensaoInvalida) e a flag `Pastas:TratarNaoXmlComoErro`](#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro)
+   - [8.2. Ligar/desligar o envio da placa do veículo (`I50:EnviarPlacaVeiculo`)](#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo)
 9. [Publicar nova versão e rollback](#9-publicar-nova-versão-e-rollback)
 10. [Estado e telemetria (não mexer)](#10-estado-e-telemetria-não-mexer)
 11. [O serviço não sobe — diagnóstico e TLS 1.2](#11-o-serviço-não-sobe--diagnóstico-e-tls-12)
@@ -103,6 +104,11 @@ build.
 | Segredos SMTP | `C:\Friozem\importacao_notas\config\email.settings.json` |
 | Segredos WMS | variáveis de ambiente de **MÁQUINA** `WMS__Usuario` / `WMS__Senha` |
 | Logs do serviço | `C:\Friozem\importacao_notas\logs\worker.out.log` e `worker.err.log` |
+| Manuais (cópia no servidor) | `C:\Friozem\importacao_notas\manuais` (cópia feita na instalação) |
+
+Os **manuais** (este Manual Técnico e o Manual do Usuário, em HTML e PDF) ficam no servidor em
+`C:\Friozem\importacao_notas\manuais` — uma cópia feita na instalação, para consulta local sem
+precisar do repositório.
 
 No servidor, os scripts de operação ficam de forma **permanente** em
 `C:\Friozem\importacao_notas\tools\deploy` (fonte de verdade; `instalar.ps1` os replica para lá e
@@ -367,6 +373,46 @@ suporta `-WhatIf` (lista sem apagar) e pede confirmação `s/n` quando não usa 
 `-Caminho` (entrada, default `C:\Friozem\kitbrf`), `-NomePastaErro` (default `Erro`),
 `-NomeCategoria` (default `ExtensaoInvalida`) e `-Force` (pula a confirmação).
 
+### 8.2. Ligar/desligar o envio da placa do veículo (`I50:EnviarPlacaVeiculo`)
+
+O integrador pode enviar ao WMS, no payload **I50**, a **placa do veículo de transporte** lida do
+XML da nota em **`transp/veicTransp/placa`**. Esse envio é controlado pela chave
+**`I50:EnviarPlacaVeiculo`** na config não-secreta
+`C:\Friozem\importacao_notas\config\appsettings.Production.json`:
+
+| Valor | Efeito |
+|---|---|
+| `true` (**padrão**) | Envia a placa exatamente como está no XML (`transp/veicTransp/placa`). |
+| `false` | Envia a placa **em branco** (`placaVeiculo = ""`), como no comportamento anterior. |
+
+A placa é enviada **como está** no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras
+transformações além do básico.
+
+Para **desligar** o envio, edite o arquivo e deixe a chave em `false`:
+
+```json
+"I50": {
+  "EnviarPlacaVeiculo": false
+}
+```
+
+Para **religar**, volte a chave para `true` (ou remova-a: o padrão é `true`).
+
+> A chave também pode ser sobrescrita por **variável de ambiente de máquina**
+> `I50__EnviarPlacaVeiculo` (dois underscores). Na dúvida, prefira editar o
+> `appsettings.Production.json`.
+
+> **Só envia se existir no XML.** A placa só vai preenchida quando a nota traz
+> `transp/veicTransp/placa`. Se o XML não tiver esse campo, a placa vai **em branco** mesmo com a
+> chave em `true` (não é erro).
+
+> **Depois de editar, REINICIE o serviço** para a mudança valer:
+>
+> ```powershell
+> cd C:\Friozem\importacao_notas\tools\deploy
+> powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart
+> ```
+
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -471,6 +517,7 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
 | Janela de coleta / limpeza (10 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
+| Ligar/desligar envio da placa do veículo | editar `I50:EnviarPlacaVeiculo` em `config\appsettings.Production.json` | **Sim** |
 | Limpar já as pastas de não-XML (ExtensaoInvalida) | `tools\deploy\limpar-extensao-invalida.ps1` (`-WhatIf` simula) | Não (só apaga as pastas `ExtensaoInvalida`) |
 | Publicar nova versão | `tools\deploy\publicar-release.ps1` (o `.zip` vem da máquina de build) | Automático (o script reinicia) |
 | Rollback | `tools\deploy\rollback.ps1` | Automático (o script reinicia) |
