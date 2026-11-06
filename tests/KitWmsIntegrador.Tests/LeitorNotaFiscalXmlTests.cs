@@ -101,4 +101,24 @@ public class LeitorNotaFiscalXmlTests
         Assert.Equal("15666321", nota.Numero);
         Assert.Equal("0130693967", nota.NumeroTransporte);
     }
+
+    [Fact]
+    public void ParseArquivo_Xml1_ExtraiPlacaVeiculo()
+    {
+        var leitor = new LeitorNotaFiscalXml();
+
+        var nota = leitor.ParseArquivo(Caminho(Xml1));
+
+        Assert.Equal("AYC8G72", nota.PlacaVeiculo);
+    }
+
+    [Fact]
+    public void ParseArquivo_Xml2_ExtraiPlacaVeiculo()
+    {
+        var leitor = new LeitorNotaFiscalXml();
+
+        var nota = leitor.ParseArquivo(Caminho(Xml2));
+
+        Assert.Equal("QPJ1H28", nota.PlacaVeiculo);
+    }
 }
