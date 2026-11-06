@@ -88,6 +88,10 @@ public sealed class ConstrutorI50 : IConstrutorI50
             TipoSeparacao = _i50.TipoSeparacao,
             TipoSeparacao2 = _i50.TipoSeparacao2,
 
+            // Placa do veículo lida do XML (transp/veicTransp/placa), enviada como está.
+            // Flag I50:EnviarPlacaVeiculo liga/desliga o envio (false => branco).
+            PlacaVeiculo = _i50.EnviarPlacaVeiculo ? nota.PlacaVeiculo : string.Empty,
+
             // Agrupador da onda = número do transporte (string, zeros à esquerda).
             Nroagrupseparacao = transporte,
             // Confirmado BRF: numeroPlanejamento repete o número do transporte.
