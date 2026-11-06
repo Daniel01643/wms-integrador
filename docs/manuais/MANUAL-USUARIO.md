@@ -1,5 +1,7 @@
 # Manual do Usuário — KitWms Integrador
 
+<!--CAPA:usuario-->
+
 Guia prático para o operador do depósito depositar as notas fiscais (XML), acompanhar o
 resultado e entender os relatórios. Linguagem simples, passo a passo. Você **não** precisa de
 nada técnico: só o Windows Explorer e a rede da Friozem.
@@ -23,6 +25,8 @@ nada técnico: só o Windows Explorer e a rede da Friozem.
 O KitWms Integrador lê os arquivos XML de nota fiscal que você deposita numa pasta de rede,
 integra cada nota ao WMS automaticamente e organiza o resultado em pastas e relatórios. Você só
 precisa depositar os arquivos; o resto é automático.
+
+<!--DIAGRAMA:fluxo-usuario-->
 
 ## 2. Como depositar os XMLs
 
