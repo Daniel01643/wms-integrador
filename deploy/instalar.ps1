@@ -50,6 +50,20 @@
     <RaizInstalacao>\tools\deploy, ex. C:\Friozem\importacao_notas\tools\deploy). Apenas essa
     subpasta de tools\ e gerenciada; outros conteudos de tools\ (ex. nssm.exe) nao sao tocados.
 
+.PARAMETER CopiarManuais
+    Se $true (default), copia os manuais (gerados por publicar.ps1) para a pasta PERMANENTE
+    <RaizInstalacao>\manuais (ex. C:\Friozem\importacao_notas\manuais), para o tecnico te-los a mao
+    por RDP. Idempotente (sobrescreve a cada execucao). Passe $false para desligar. A origem e
+    resolvida nesta ordem: -ManuaisZip, -ManuaisDir, ou uma pasta/zip 'manuais' irma da release.
+
+.PARAMETER ManuaisDir
+    Pasta de manuais ja expandida (ex. artifacts\<versao>\manuais). Tem precedencia sobre a deteccao
+    automatica, mas nao sobre -ManuaisZip.
+
+.PARAMETER ManuaisZip
+    Zip de manuais gerado por publicar.ps1 (ex. artifacts\<versao>\manuais.zip). Tem a maior
+    precedencia na resolucao da origem dos manuais.
+
 .PARAMETER CompartilharEntrada
     Se presente, chama compartilhar-pasta.ps1 para expor a PastaEntrada na rede via SMB (share
     'kitbrf', gravacao para 'Authenticated Users' por padrao).
@@ -84,6 +98,9 @@ param(
     [string] $PastaEntrada = 'C:\Friozem\kitbrf',
     [bool]   $CopiarScripts = $true,
     [string] $PastaScriptsDestino,
+    [bool]   $CopiarManuais = $true,
+    [string] $ManuaisDir,
+    [string] $ManuaisZip,
     [switch] $CompartilharEntrada,
     [switch] $HabilitarTls12,
     [switch] $IniciarServico
@@ -176,6 +193,52 @@ if ($PSCmdlet.ShouldProcess($pastaCurrent, 'Atualizar current')) {
     Write-Passo ("current atualizado a partir de {0}" -f $Versao) -Nivel Ok
 }
 $exeCurrent = Join-Path $pastaCurrent 'KitWmsIntegrador.Worker.exe'
+
+# --- 4b. Copiar manuais para a pasta permanente (FORA de app\current) ---
+# Os manuais (.md/.html/.pdf + README.md + assets\) sao empacotados por publicar.ps1 como pasta
+# IRMA de app\ (artifacts\<versao>\manuais e manuais.zip), NUNCA dentro do zip de app. Aqui eles
+# vao para <RaizInstalacao>\manuais, para o tecnico consulta-los por RDP. Idempotente.
+if ($CopiarManuais) {
+    Write-Passo 'Copiando manuais para a pasta permanente...'
+    $pastaManuais = Join-Path $RaizInstalacao 'manuais'
+    [void](Confirm-Directory -Caminho $pastaManuais)
+
+    # Resolve a origem dos manuais: (1) -ManuaisZip; (2) -ManuaisDir; (3) deteccao a partir da release.
+    $origemManuaisZip = $null
+    $origemManuaisDir = $null
+    if ($ManuaisZip) {
+        $origemManuaisZip = $ManuaisZip
+    } elseif ($ManuaisDir) {
+        $origemManuaisDir = $ManuaisDir
+    } elseif ($ReleaseDir) {
+        # Pasta 'manuais' irma de -ReleaseDir (ex. artifacts\<versao>\app -> artifacts\<versao>\manuais).
+        $candidatoDir = Join-Path (Split-Path -Parent $ReleaseDir) 'manuais'
+        if (Test-Path -LiteralPath $candidatoDir -PathType Container) { $origemManuaisDir = $candidatoDir }
+    } elseif ($ReleaseZip) {
+        # manuais.zip (ou pasta manuais\) irmao de -ReleaseZip.
+        $candidatoZip = Join-Path (Split-Path -Parent $ReleaseZip) 'manuais.zip'
+        $candidatoDir = Join-Path (Split-Path -Parent $ReleaseZip) 'manuais'
+        if (Test-Path -LiteralPath $candidatoZip -PathType Leaf) { $origemManuaisZip = $candidatoZip }
+        elseif (Test-Path -LiteralPath $candidatoDir -PathType Container) { $origemManuaisDir = $candidatoDir }
+    }
+
+    if ($origemManuaisZip -and (Test-Path -LiteralPath $origemManuaisZip -PathType Leaf)) {
+        Write-Passo ("Expandindo manuais {0} -> {1}" -f $origemManuaisZip, $pastaManuais)
+        # Portavel para PowerShell 4.0 (Server 2012 R2). Sobrescreve o destino (idempotente).
+        Expand-ZipPortavel -ZipPath $origemManuaisZip -Destino $pastaManuais -WhatIf:$WhatIfPreference
+        Write-Passo ("Manuais copiados para: {0}" -f $pastaManuais) -Nivel Ok
+    } elseif ($origemManuaisDir -and (Test-Path -LiteralPath $origemManuaisDir -PathType Container)) {
+        Write-Passo ("Copiando manuais {0} -> {1}" -f $origemManuaisDir, $pastaManuais)
+        if ($PSCmdlet.ShouldProcess($pastaManuais, 'Copiar manuais')) {
+            Copy-Item -Path (Join-Path $origemManuaisDir '*') -Destination $pastaManuais -Recurse -Force
+            Write-Passo ("Manuais copiados para: {0}" -f $pastaManuais) -Nivel Ok
+        }
+    } else {
+        Write-Passo ('Origem dos manuais nao encontrada (-ManuaisZip/-ManuaisDir ou pasta irma da release); manuais NAO copiados.') -Nivel Alerta
+    }
+} else {
+    Write-Passo 'Copia dos manuais desativada (-CopiarManuais $false).' -Nivel Info
+}
 
 # --- 5. Criar/atualizar o servico NSSM (idempotente) ---
 Write-Passo 'Configurando servico NSSM...'
