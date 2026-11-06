@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-06</span>
-    <span>Vers&atilde;o: 2026.11.06-c03449d</span>
+    <span>Vers&atilde;o: 2026.11.06-a12f378</span>
   </div>
 </section>
   <header class="hd">
@@ -124,6 +124,7 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 </ol>
 <ul>
 <li><a href="#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro">8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></a></li>
+<li><a href="#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo">8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</a></li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -218,7 +219,12 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <td>Logs do serviço</td>
 <td><code>C:\Friozem\importacao_notas\logs\worker.out.log</code> e <code>worker.err.log</code></td>
 </tr>
+<tr>
+<td>Manuais (cópia no servidor)</td>
+<td><code>C:\Friozem\importacao_notas\manuais</code> (cópia feita na instalação)</td>
+</tr>
 </tbody></table>
+<p>Os <strong>manuais</strong> (este Manual Técnico e o Manual do Usuário, em HTML e PDF) ficam no servidor em <code>C:\Friozem\importacao_notas\manuais</code> — uma cópia feita na instalação, para consulta local sem precisar do repositório.</p>
 <p>No servidor, os scripts de operação ficam de forma <strong>permanente</strong> em <code>C:\Friozem\importacao_notas\tools\deploy</code> (fonte de verdade; <code>instalar.ps1</code> os replica para lá e <code>publicar-release.ps1</code> os atualiza a cada release). Opere sempre a partir dessa pasta. Defaults já embutidos em todos eles: <code>-RaizInstalacao C:\Friozem\importacao_notas</code>, <code>-NomeServico Friozem-ImportacaoNotas</code>, <code>-NssmPath C:\Friozem\Gestao_Enderecos\tools\nssm.exe</code>. Os scripts que escrevem aceitam <code>-WhatIf</code> (simula sem alterar nada).</p>
 <p>O diagrama abaixo resume a implantação no servidor: o serviço NSSM, o share <code>kitbrf</code> (com <code>Processados\</code>, <code>Erro\</code> e <code>relatorios\</code> dentro), a pasta <code>data\</code> (Estado + telemetria) <strong>fora</strong> do share, a <code>config\</code> com segredos e ACL restrita, e as saídas HTTPS (WMS) e SMTP (e-mail).</p>
 <figure class="diagrama"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Arquitetura de implantacao no servidor SRVAPPALC02">
@@ -587,6 +593,32 @@ gestor@friozem.com.br</code></pre>
 powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1 -WhatIf
 powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></pre>
 <p>Ele só remove pastas cujo nome-folha seja exatamente <code>ExtensaoInvalida</code> <strong>dentro</strong> de <code>&lt;Entrada&gt;\Erro</code>, com guardas de caminho (recusa raiz de drive, não segue junctions/symlinks), suporta <code>-WhatIf</code> (lista sem apagar) e pede confirmação <code>s/n</code> quando não usa <code>-Force</code>. Parâmetros: <code>-Caminho</code> (entrada, default <code>C:\Friozem\kitbrf</code>), <code>-NomePastaErro</code> (default <code>Erro</code>), <code>-NomeCategoria</code> (default <code>ExtensaoInvalida</code>) e <code>-Force</code> (pula a confirmação).</p>
+<h3>8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</h3>
+<p>O integrador pode enviar ao WMS, no payload <strong>I50</strong>, a <strong>placa do veículo de transporte</strong> lida do XML da nota em <strong><code>transp/veicTransp/placa</code></strong>. Esse envio é controlado pela chave <strong><code>I50:EnviarPlacaVeiculo</code></strong> na config não-secreta <code>C:\Friozem\importacao_notas\config\appsettings.Production.json</code>:</p>
+<table>
+<thead><tr>
+<th>Valor</th>
+<th>Efeito</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>true</code> (<strong>padrão</strong>)</td>
+<td>Envia a placa exatamente como está no XML (<code>transp/veicTransp/placa</code>).</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>Envia a placa <strong>em branco</strong> (<code>placaVeiculo = ""</code>), como no comportamento anterior.</td>
+</tr>
+</tbody></table>
+<p>A placa é enviada <strong>como está</strong> no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras transformações além do básico.</p>
+<p>Para <strong>desligar</strong> o envio, edite o arquivo e deixe a chave em <code>false</code>:</p>
+<pre><code>"I50": {
+  "EnviarPlacaVeiculo": false
+}</code></pre>
+<p>Para <strong>religar</strong>, volte a chave para <code>true</code> (ou remova-a: o padrão é <code>true</code>).</p>
+<blockquote><p>A chave também pode ser sobrescrita por <strong>variável de ambiente de máquina</strong> <code>I50__EnviarPlacaVeiculo</code> (dois underscores). Na dúvida, prefira editar o <code>appsettings.Production.json</code>.</p></blockquote>
+<blockquote><p><strong>Só envia se existir no XML.</strong> A placa só vai preenchida quando a nota traz <code>transp/veicTransp/placa</code>. Se o XML não tiver esse campo, a placa vai <strong>em branco</strong> mesmo com a chave em <code>true</code> (não é erro).</p></blockquote>
+<blockquote><p><strong>Depois de editar, REINICIE o serviço</strong> para a mudança valer:  ```powershell cd C:\Friozem\importacao_notas\tools\deploy powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart ```</p></blockquote>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -690,6 +722,11 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <tr>
 <td>Janela de coleta / limpeza (10 dias)</td>
 <td><code>config\appsettings.Production.json</code>: <code>Pacote:JanelaColetaSegundos</code> / <code>Limpeza:DiasRetencao</code></td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Ligar/desligar envio da placa do veículo</td>
+<td>editar <code>I50:EnviarPlacaVeiculo</code> em <code>config\appsettings.Production.json</code></td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
