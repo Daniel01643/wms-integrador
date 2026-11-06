@@ -65,6 +65,7 @@ C:\Friozem\importacao_notas\          (APP — binários, config, logs)
 ├── data\                    (conveniência; a Entrada real fica em C:\Friozem\kitbrf)
 ├── logs\                    (worker.out.log / worker.err.log, rotação pelo NSSM)
 ├── backups\                 (zips do current anterior antes de cada virada)
+├── manuais\                 (cópia dos manuais .md/.html/.pdf para consulta do técnico por RDP)
 └── tools\
     └── deploy\              (FONTE DE VERDADE dos scripts .ps1 de operação no servidor — RDP)
 
@@ -176,6 +177,13 @@ logado. A partir daí, **opere o dia a dia a partir de `tools\deploy`** (não ma
 Parâmetros: `-CopiarScripts $false` desliga a cópia; `-PastaScriptsDestino <pasta>` muda o destino
 (default `<RaizInstalacao>\tools\deploy`). Só essa subpasta de `tools\` é gerenciada; o resto de
 `tools\` não é tocado.
+
+`instalar.ps1` **também copia os manuais** para `C:\Friozem\importacao_notas\manuais` (fora de
+`app\current`), para o técnico tê-los à mão por RDP — coerente com o pacote gerado por
+`publicar.ps1` (`artifacts\<versao>\manuais\` e `artifacts\<versao>\manuais.zip`). É idempotente
+(sobrescreve a cada execução). Parâmetros: `-CopiarManuais $false` desliga; `-ManuaisDir <pasta>`
+ou `-ManuaisZip <zip>` indicam a origem explicitamente (por padrão, procura uma pasta/zip `manuais`
+irmã da release). Se a origem não for encontrada, apenas alerta e segue.
 
 ### 3.4b Compartilhar a pasta de entrada na rede (SMB)
 ```powershell
