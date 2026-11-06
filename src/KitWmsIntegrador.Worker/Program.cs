@@ -97,7 +97,20 @@ builder.Services.AddHttpClient<IClienteWms, ClienteWmsHttp>((sp, http) =>
     }
 
     http.Timeout = TimeSpan.FromSeconds(opcoes.TimeoutSegundos);
-});
+})
+.ConfigurePrimaryHttpMessageHandler(() =>
+    // Windows Server 2012 R2: o WMS de producao exige TLS 1.2. Forcamos o protocolo no
+    // handler para nao depender do SChannel/registro do SO (que negociava de forma
+    // intermitente, causando 401 no GetToken). TLS 1.2 e TLS 1.3 quando disponivel.
+    new System.Net.Http.SocketsHttpHandler
+    {
+        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+        {
+            EnabledSslProtocols =
+                System.Security.Authentication.SslProtocols.Tls12 |
+                System.Security.Authentication.SslProtocols.Tls13
+        }
+    });
 
 // Etapa 7: watcher de pasta + pacote + movimentação + limpeza + e-mail.
 // Pastas: "Pastas:Entrada" vazia herda o legado "Entrada:PastaEntrada".
