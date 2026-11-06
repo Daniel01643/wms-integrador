@@ -45,4 +45,12 @@ public sealed class OpcoesI50
     /// "E" embalagens/caixas. Configurável; BRF confirmado = <c>E</c> (caixas).
     /// </summary>
     public string QtdMandante { get; set; } = "E";
+
+    /// <summary>
+    /// Liga/desliga o envio da placa do veículo lida do XML (<c>transp/veicTransp/placa</c>)
+    /// no campo <c>placaVeiculo</c> da I50. <c>true</c> (default) = envia a placa como está no
+    /// XML; <c>false</c> = envia <c>placaVeiculo</c> em branco. Override por env
+    /// <c>I50__EnviarPlacaVeiculo</c>.
+    /// </summary>
+    public bool EnviarPlacaVeiculo { get; set; } = true;
 }
