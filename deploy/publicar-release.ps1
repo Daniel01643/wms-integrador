@@ -19,6 +19,15 @@
 .PARAMETER RaizInstalacao / NomeServico / NssmPath
     Defaults da casa.
 
+.PARAMETER CopiarScripts
+    Se $true (default), atualiza (idempotente) os scripts de deploy na pasta PERMANENTE do servidor
+    (ver -PastaScriptsDestino) ao promover a release, para os scripts acompanharem a versao. Passe
+    $false para desligar. Quando este script ja roda de dentro da pasta permanente, a copia e no-op.
+
+.PARAMETER PastaScriptsDestino
+    Pasta PERMANENTE de destino dos scripts de deploy (default <RaizInstalacao>\tools\deploy).
+    So essa subpasta de tools\ e gerenciada; o resto de tools\ (ex. nssm.exe) nao e tocado.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\publicar-release.ps1 -ReleaseZip C:\temp\rel.zip -Versao 2026.02.01-1
 #>
@@ -31,7 +40,9 @@ param(
     [int]    $ManterUltimas = 5,
     [string] $RaizInstalacao = 'C:\Friozem\importacao_notas',
     [string] $NomeServico = 'Friozem-ImportacaoNotas',
-    [string] $NssmPath = 'C:\Friozem\Gestao_Enderecos\tools\nssm.exe'
+    [string] $NssmPath = 'C:\Friozem\Gestao_Enderecos\tools\nssm.exe',
+    [bool]   $CopiarScripts = $true,
+    [string] $PastaScriptsDestino
 )
 
 Set-StrictMode -Version Latest
@@ -116,6 +127,15 @@ if ($releases.Count -gt $ManterUltimas) {
             Write-Passo ("Release antiga removida: {0}" -f $r.Name) -Nivel Info
         }
     }
+}
+
+# --- 5. Atualizar os scripts de deploy na pasta permanente (idempotente) ---
+# Mantem os scripts de operacao no servidor acompanhando a release promovida, para o tecnico operar
+# direto do servidor (RDP) a partir de tools\deploy. So gerencia essa subpasta de tools\.
+if (-not $PastaScriptsDestino) { $PastaScriptsDestino = Join-Path $RaizInstalacao 'tools\deploy' }
+if ($CopiarScripts) {
+    Write-Passo ("Atualizando scripts de deploy na pasta permanente: {0}" -f $PastaScriptsDestino)
+    Copy-ScriptsDeployParaServidor -PastaOrigem $PSScriptRoot -PastaDestino $PastaScriptsDestino -WhatIf:$WhatIfPreference
 }
 
 Write-Passo ("Promocao concluida. Releases mantidas (ate {0}): verifique app\releases." -f $ManterUltimas) -Nivel Ok
