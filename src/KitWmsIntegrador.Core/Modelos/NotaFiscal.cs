@@ -51,6 +51,9 @@ public record NotaFiscal
     /// <summary>CNPJ da transportadora — <c>transp/transporta/CNPJ</c>.</summary>
     public string? TransportadoraCnpj { get; init; }
 
+    /// <summary>Placa do veiculo de transporte - transp/veicTransp/placa. Vazia quando o XML nao traz veicTransp/placa.</summary>
+    public string PlacaVeiculo { get; init; } = string.Empty;
+
     /// <summary>Protocolo de autorização — <c>protNFe/infProt/nProt</c>.</summary>
     public string? Protocolo { get; init; }
 
