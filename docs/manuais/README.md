@@ -3,7 +3,7 @@
 Documentação de uso e operação do KitWms Integrador, dividida por público. Cada manual é mantido
 em **Markdown** (fonte) e, para os manuais de pessoas, também publicado em **HTML** e **PDF** com a
 identidade visual Friozem (paleta azul `#17479E` / ciano `#54B6E7` / verde `#009A83`, logo e
-cabeçalho do deck).
+cabeçalho da apresentação, `docs\apresentacao\apresentacao.html`).
 
 Os HTML/PDF de pessoas (Usuário e Técnico) abrem com uma **capa ilustrada** (nome do agente
 "Integrador Notas Fiscais KIT → WMS", subtítulo, tipo do manual, data de geração e versão) e trazem
@@ -30,7 +30,7 @@ Os HTML e PDF dos manuais de pessoas (Usuário e Técnico) são **gerados** a pa
 edite os `.html` à mão. A geração usa um script PowerShell autocontido (sem pandoc, sem internet,
 sem dotnet) e o Microsoft Edge em modo headless.
 
-1. **Gerar os HTML** a partir dos Markdown (extrai a logo base64 do deck e aplica o template
+1. **Gerar os HTML** a partir dos Markdown (extrai a logo base64 de `docs\apresentacao\apresentacao.html` e aplica o template
    Friozem):
 
    ```powershell

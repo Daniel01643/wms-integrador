@@ -3,6 +3,11 @@
 Desenho de fluxo de comunicação. **Sem código de produção** — base para revisão e
 iteração. Ver `BRIEFING.md` para as regras de negócio.
 
+> **Estado atual (09/11/2026):** este documento descreve o desenho original (I50 → I60). Em
+> produção a **I60 está desativada por flag** (`I60:Habilitada=false`); o código da I60 foi mantido
+> e pode ser reativado com `I60__Habilitada=true`. Os trechos abaixo que citam a I60 valem apenas
+> se a flag for ligada. Ver `ENCERRAMENTO.md` e `OPERACAO.md`.
+
 ---
 
 ## 1. Contexto
