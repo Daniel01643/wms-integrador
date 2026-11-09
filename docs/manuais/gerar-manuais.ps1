@@ -6,10 +6,10 @@
 .DESCRIPTION
   Gera docs/manuais/MANUAL-USUARIO.html e docs/manuais/MANUAL-TECNICO.html a partir
   dos respectivos arquivos .md, aplicando o template Friozem (paleta/cabecalho/rodape/
-  tabelas do deck.html, com a logo embutida em base64). O HTML resultante nao referencia
-  nenhum recurso externo (sem <link rel=stylesheet>, sem <script src>, sem url() externa).
+  tabelas de docs/apresentacao/apresentacao.html, com a logo embutida em base64). O HTML
+  resultante nao referencia nenhum recurso externo (sem <link rel=stylesheet>, sem <script src>, sem url() externa).
 
-  A logo base64 e extraida da linha 125 (indice 124) de docs/apresentacao/deck.html.
+  A logo base64 e extraida da linha 125 (indice 124) de docs/apresentacao/apresentacao.html.
   O MANUAL-AGENTE-IA.md NAO e convertido (permanece so em Markdown).
 
   Os PDFs sao gerados fora deste script, via Microsoft Edge headless (ver README.md e FEAT-002).
@@ -30,7 +30,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $docsDir   = Split-Path -Parent $scriptDir
 $repoDir   = Split-Path -Parent $docsDir
-$deckPath  = Join-Path $docsDir 'apresentacao\deck.html'
+$deckPath  = Join-Path $docsDir 'apresentacao\apresentacao.html'
 $assetsDir = Join-Path $scriptDir 'assets'
 
 # ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ function Get-LogoBase64 {
     param([string]$DeckHtmlPath)
 
     if (-not (Test-Path -LiteralPath $DeckHtmlPath)) {
-        throw "deck.html nao encontrado em: $DeckHtmlPath"
+        throw "apresentacao.html nao encontrado em: $DeckHtmlPath"
     }
     $deck = Get-Content -LiteralPath $DeckHtmlPath
     $regex = 'data:image/png;base64,([A-Za-z0-9+/=]+)'
