@@ -23,7 +23,7 @@ Documento curto para quem voltar ao tema. Data do fechamento: 09/11/2026.
 | Destinatários / telemetria | modelos em `deploy\config-exemplo` e `docs\exemplos` | `config\destinatarios-resumo.txt`, `data\telemetria\` |
 | Manuais | `docs\manuais` | `C:\Friozem\importacao_notas\manuais` |
 | Apresentação | `docs\apresentacao\apresentacao.html` e `.pdf` | — |
-| Histórico e horas | `docs\diario`, `docs\controle`, `docs\CONTROLE-FINANCEIRO.md` | — |
+| Histórico e horas | `docs\diario`, `docs\controle`, `docs\CONTROLE-ESFORCO.md` (só horas) | — |
 
 ## 3. Dia a dia
 

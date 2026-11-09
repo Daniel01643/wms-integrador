@@ -1,7 +1,7 @@
 # Controle Semanal — Integrador WMS (KitWmsIntegrador)
 
 Consolida horas (humanas e IA) e marcos por semana. Atualizar ao fechar cada semana.
-Detalhe diário em `docs/diario/`; registro mestre em `docs/CONTROLE-FINANCEIRO.md`.
+Detalhe diário em `docs/diario/`; registro mestre em `docs/CONTROLE-ESFORCO.md` (esforço só em horas).
 
 ---
 

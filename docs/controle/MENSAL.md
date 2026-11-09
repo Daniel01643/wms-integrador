@@ -1,7 +1,7 @@
 # Controle Mensal — Integrador WMS (KitWmsIntegrador)
 
 Consolida horas (humanas e IA) e marcos por mês. Atualizar ao fechar cada mês.
-Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-FINANCEIRO.md`.
+Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-ESFORCO.md` (esforço só em horas).
 
 ---
 
@@ -24,7 +24,7 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-FINAN
 - Cadeia de pré-condições mapeada: empresa (I10) + produtos (I30) antes de I50/I60.
 - Chamado aberto no fornecedor para a conferência de quantidade da I60.
 
-**Custo do mês:** _a definir_ (depende do valor/hora IA e humana — ver CONTROLE-FINANCEIRO.md).
+**Esforço do mês:** em horas — ver `docs/CONTROLE-ESFORCO.md`.
 
 ---
 
