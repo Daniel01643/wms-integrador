@@ -56,6 +56,23 @@ Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treiname
 O grosso do custo é a **hora humana**; a IA é o **multiplicador de produtividade**, não
 uma linha de custo relevante por hora.
 
+## Comparativo de custo (ilustrativo)
+
+Ordem de grandeza da economia frente a referências de mercado. Comparação ilustrativa
+do escopo deste integrador — **não** uma equivalência exata.
+
+| Abordagem                       | Esforço  | Custo aprox.  | Observação                                              |
+|---------------------------------|----------|---------------|---------------------------------------------------------|
+| Desenvolvimento tradicional     | ~180 h   | a partir de ~R$ 80 mil | Projeto sob medida no Brasil, prazo de meses (estimativa de mercado, 2026) |
+| Assistido por IA (mercado)      | ~110 h   | —             | Ganho típico documentado de ~30 a 55% em tarefas de código |
+| **Este projeto (Kiro + 1 pessoa)** | **~26 h** humanas | **~R$ 767** | Do desenho à produção, com validação real              |
+
+> **Metodologia do comparativo**: as horas de referência das abordagens tradicional
+> (~180 h) e assistida por IA (~110 h) são **estimativas de mercado**; apenas as
+> **~26 h humanas deste projeto são medidas** (ver "Registro de horas"). O valor de
+> R$ 80 mil do desenvolvimento tradicional é estimativa de referência de mercado (2026).
+> A comparação mostra a **ordem de grandeza da economia**, não uma equivalência exata.
+
 ## Notas metodológicas
 
 - **Salário não é exposto**: o valor/hora humano (R$ 28,70) deriva do salário mensal
