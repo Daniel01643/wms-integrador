@@ -1,0 +1,9 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    "Fallback de mapeamento por documento (possible, nao bloqueante): em MapearResposta, quando nenhum retorno casa com a nota, todos os retornos sao consolidados e uma nota omitida pelo WMS pode herdar o sucesso das demais. Considerar marcar erro quando houver retornos com documento que nao incluam a nota.",
+    "Mensagem de excecao exposta ao navegador (possible, nao bloqueante): ex.Message do cliente WMS e exibida na tela e na auditoria; trocar por texto generico e manter o detalhe so no log se puder conter URL ou infraestrutura.",
+    "Evidencia de build/testes vem do relatorio do coder (451 aprovados, 0 falhas, 9 ignorados; 0 avisos/0 erros Debug e Release), nao reexecutada nesta revisao. Sem acao."
+  ],
+  "reviewDoc": "c:\\wms-integrador\\.agents\\tasks\\plano-b-fase2-review.md"
+}
