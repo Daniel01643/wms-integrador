@@ -153,7 +153,7 @@ TI para incluir seu endereço.
 O sistema **não** integra arquivos que não sejam `.xml`. Ele move o arquivo para
 `Erro\pacote_<data_hora>\ExtensaoInvalida` e registra no relatório como
 **"Arquivo ignorado (não é XML)"** (status cinza, aviso — não é falha de nota). Esse arquivo é
-removido automaticamente depois de **10 dias**, junto com o restante do pacote. Para evitar isso,
+removido automaticamente depois de **60 dias**, junto com o restante do pacote. Para evitar isso,
 deposite **apenas arquivos `.xml`** de nota fiscal na pasta de entrada.
 Arquivos que ainda estão sendo copiados (com extensão temporária como `.tmp`, `.part`,
 `.crdownload` etc.) são **deixados em paz**: o sistema não os processa nem os move, espera a cópia

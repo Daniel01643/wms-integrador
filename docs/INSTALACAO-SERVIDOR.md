@@ -299,7 +299,7 @@ release, para acompanharem a versão (`instalar.ps1` faz o mesmo). Se os scripts
 ### 3.11 Limpeza forçada das pastas `ExtensaoInvalida` (NÃO-XML)
 Os arquivos que **não são XML** recusados na detecção vão para
 `C:\Friozem\kitbrf\Erro\<pacote_...>\ExtensaoInvalida`. Eles são removidos **automaticamente** pela
-limpeza de 10 dias (junto com a subpasta do pacote). Quando o operador quiser **esvaziar os NÃO-XML
+limpeza de 60 dias (junto com a subpasta do pacote). Quando o operador quiser **esvaziar os NÃO-XML
 antes** desse prazo (limpeza forçada sob demanda), use o `limpar-extensao-invalida.ps1`:
 
 ```powershell

@@ -122,7 +122,7 @@ vale o primeiro registrado. Uma nota em voo na queda ainda pode ser reenviada um
 existe", ela segue para `Processados` e a mensagem começa com "Já existia no WMS (reprocesso)".
 ## 3. Limpeza
 
-`Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **10**). Roda na partida e a cada 24 h.
+`Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **60**; o Plano B precisa achar o XML da venda original por até 60 dias). Roda na partida e a cada 24 h.
 A limpeza opera por **subpasta de pacote**: cada subpasta imediata de `Processados`/`Erro` é removida
 **por inteiro** quando toda ela está vencida, usando a **maior** (`LastWriteTimeUtc` mais recente) data
 do seu conteúdo — assim um pacote que ainda tenha qualquer arquivo dentro do prazo é preservado inteiro.
@@ -207,7 +207,7 @@ SChannel do sistema (validar no servidor).
     "IntervaloVarreduraSegundos": 5, "EstabilizacaoSegundos": 3, "JanelaColetaSegundos": 10,
     "TimeoutArquivoSegundos": 300, "BackoffMaximoSegundos": 120, "MaxTransportesConcorrentes": 1
   },
-  "Limpeza": { "Habilitada": true, "DiasRetencao": 10 }
+  "Limpeza": { "Habilitada": true, "DiasRetencao": 60 }
 }
 ```
 

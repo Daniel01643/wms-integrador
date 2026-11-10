@@ -43,9 +43,9 @@ public sealed class LimpadorPastasTests : IDisposable
     [Fact]
     public void ApagaSubpastasVencidasPreservaRecentes()
     {
-        var velhoP = Arq("Processados/pacote_velho/a.xml", 11);
-        var novoP = Arq("Processados/pacote_novo/b.xml", 9);
-        var velhoE = Arq("Erro/pacote_velho/Outro/c.xml", 11);
+        var velhoP = Arq("Processados/pacote_velho/a.xml", 61);
+        var novoP = Arq("Processados/pacote_novo/b.xml", 59);
+        var velhoE = Arq("Erro/pacote_velho/Outro/c.xml", 61);
         var novoE = Arq("Erro/pacote_novo/Outro/d.xml", 1);
 
         var r = Criar().Limpar();
@@ -61,8 +61,8 @@ public sealed class LimpadorPastasTests : IDisposable
     [Fact]
     public void RemoveSubpastaVaziaMasNaoAsRaizes()
     {
-        Arq("Erro/Categoria/c.xml", 30);
-        Arq("Processados/a.xml", 30);
+        Arq("Erro/Categoria/c.xml", 90);
+        Arq("Processados/a.xml", 90);
 
         var r = Criar().Limpar();
 
@@ -107,6 +107,25 @@ public sealed class LimpadorPastasTests : IDisposable
 
         Assert.NotEmpty(r.Erros);
         Assert.True(File.Exists(arq));
+    }
+
+    [Fact]
+    public void DiasRetencao_PadraoE60()
+    {
+        // Plano B precisa achar o XML da venda original por até 60 dias.
+        Assert.Equal(60, new OpcoesLimpeza().DiasRetencao);
+    }
+
+    [Fact]
+    public void DiasRetencao_PadraoPreservaAte60DiasERemoveDepois()
+    {
+        var com59 = Arq("Processados/pacote_59/a.xml", 59);
+        var com61 = Arq("Processados/pacote_61/a.xml", 61);
+
+        Criar().Limpar();
+
+        Assert.True(File.Exists(com59));
+        Assert.False(File.Exists(com61));
     }
 
     [Fact]

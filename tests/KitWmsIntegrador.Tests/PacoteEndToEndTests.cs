@@ -137,8 +137,8 @@ public sealed class PacoteEndToEndTests : IDisposable
         Assert.Contains("XMLs inválidos", email.CorpoHtml);
         Assert.Contains("Transportes", email.CorpoHtml);
 
-        // Limpeza posterior com relógio +11 dias remove tudo de Processados/Erro.
-        _amb.Clock.Avancar(TimeSpan.FromDays(11));
+        // Limpeza posterior com relógio +61 dias remove tudo de Processados/Erro.
+        _amb.Clock.Avancar(TimeSpan.FromDays(61));
         var limpador = new LimpadorPastas(
             _amb.Clock, Options.Create(_amb.Pastas), Options.Create(new OpcoesLimpeza()),
             NullLogger<LimpadorPastas>.Instance);

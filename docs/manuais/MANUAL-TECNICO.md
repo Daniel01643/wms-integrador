@@ -313,7 +313,7 @@ Todas na config não-secreta (`appsettings.Production.json`), reinicie o serviç
 | Hora do resumo semanal | `Monitoramento:Hora` | `"12:00"` |
 | Janela de coleta do pacote | `Pacote:JanelaColetaSegundos` | `10` |
 | Limpeza ligada/desligada | `Limpeza:Habilitada` | `true` |
-| Dias de retenção (limpeza) | `Limpeza:DiasRetencao` | `10` |
+| Dias de retenção (limpeza) | `Limpeza:DiasRetencao` | `60` |
 
 Outras chaves de `Pacote` úteis: `IntervaloVarreduraSegundos` (5), `EstabilizacaoSegundos` (3),
 `TimeoutArquivoSegundos` (300), `BackoffMaximoSegundos` (120), `MaxTransportesConcorrentes` (1).
@@ -321,7 +321,7 @@ Outras chaves de `Pacote` úteis: `IntervaloVarreduraSegundos` (5), `Estabilizac
 A limpeza roda na partida e a cada 24 h, atua **apenas** nas subpastas de `Processados` e `Erro`,
 e **nunca** toca a entrada, o `Estado`, a telemetria ou os `relatorios`. Como a subpasta
 `Erro\<pacote>\ExtensaoInvalida` (arquivos não-XML; ver seção 8.1) fica dentro de `Erro`, ela
-**já é coberta** por essa limpeza de 10 dias — a pasta inteira do pacote é removida no vencimento,
+**já é coberta** por essa limpeza de 60 dias — a pasta inteira do pacote é removida no vencimento,
 sem configuração extra.
 
 ### 8.1. Arquivos não-XML (ExtensaoInvalida) e a flag `Pastas:TratarNaoXmlComoErro`
@@ -358,7 +358,7 @@ envia e-mail** (o log registra que o pacote não tinha notas, apenas arquivos ig
 aparecem no relatório e no corpo do e-mail.
 
 **Limpeza forçada sob demanda** — `limpar-extensao-invalida.ps1`: para apagar as pastas
-`ExtensaoInvalida` **sem esperar** o ciclo de 10 dias, use esse script a partir de
+`ExtensaoInvalida` **sem esperar** o ciclo de 60 dias, use esse script a partir de
 `C:\Friozem\importacao_notas\tools\deploy` (ele é replicado para lá pelo `instalar.ps1`):
 
 ```powershell
@@ -516,7 +516,7 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Destinatários do fechamento | editar o TXT `config\destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
 | Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
-| Janela de coleta / limpeza (10 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
+| Janela de coleta / limpeza (60 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
 | Ligar/desligar envio da placa do veículo | editar `I50:EnviarPlacaVeiculo` em `config\appsettings.Production.json` | **Sim** |
 | Limpar já as pastas de não-XML (ExtensaoInvalida) | `tools\deploy\limpar-extensao-invalida.ps1` (`-WhatIf` simula) | Não (só apaga as pastas `ExtensaoInvalida`) |
 | Publicar nova versão | `tools\deploy\publicar-release.ps1` (o `.zip` vem da máquina de build) | Automático (o script reinicia) |

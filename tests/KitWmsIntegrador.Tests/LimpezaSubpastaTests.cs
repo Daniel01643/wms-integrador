@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace KitWmsIntegrador.Tests;
 
 /// <summary>
-/// Limpeza de 10 dias da Etapa 7c: a subpasta de pacote vencida é removida por INTEIRO (idade pela
+/// Limpeza de 60 dias da Etapa 7c: a subpasta de pacote vencida é removida por INTEIRO (idade pela
 /// MAIOR LastWriteTimeUtc do seu conteúdo); subpastas dentro do prazo e as pastas protegidas
 /// (Entrada/Estado/Relatórios) ficam intactas; config perigosa é recusada.
 /// </summary>
@@ -48,8 +48,8 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void SubpastaDePacoteVencida_ERemovidaPorInteiro()
     {
-        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 15);
-        Arquivo(Path.Combine("Processados", "pacote_antigo", "b.xml"), diasAtras: 20);
+        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 65);
+        Arquivo(Path.Combine("Processados", "pacote_antigo", "b.xml"), diasAtras: 70);
 
         var r = Criar().Limpar();
 
@@ -74,7 +74,7 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void SubpastaComArquivoRecente_EPreservadaInteira()
     {
-        Arquivo(Path.Combine("Processados", "pacote_misto", "velho.xml"), diasAtras: 30);
+        Arquivo(Path.Combine("Processados", "pacote_misto", "velho.xml"), diasAtras: 90);
         Arquivo(Path.Combine("Processados", "pacote_misto", "recente.xml"), diasAtras: 1);
 
         var r = Criar().Limpar();
@@ -88,8 +88,8 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void SubpastaDeErroVencida_ERemovidaComCategoria()
     {
-        Arquivo(Path.Combine("Erro", "pacote_antigo", "ProdutoNaoCadastrado", "a.xml"), diasAtras: 15);
-        Arquivo(Path.Combine("Erro", "pacote_antigo", "ProdutoNaoCadastrado", "a.xml.motivo.txt"), diasAtras: 15);
+        Arquivo(Path.Combine("Erro", "pacote_antigo", "ProdutoNaoCadastrado", "a.xml"), diasAtras: 65);
+        Arquivo(Path.Combine("Erro", "pacote_antigo", "ProdutoNaoCadastrado", "a.xml.motivo.txt"), diasAtras: 65);
 
         var r = Criar().Limpar();
 
@@ -101,8 +101,8 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void SubpastaDeErroExtensaoInvalidaVencida_ERemovida()
     {
-        Arquivo(Path.Combine("Erro", "pacote_antigo", "ExtensaoInvalida", "doc.pdf"), diasAtras: 12);
-        Arquivo(Path.Combine("Erro", "pacote_antigo", "ExtensaoInvalida", "doc.pdf.motivo.txt"), diasAtras: 12);
+        Arquivo(Path.Combine("Erro", "pacote_antigo", "ExtensaoInvalida", "doc.pdf"), diasAtras: 62);
+        Arquivo(Path.Combine("Erro", "pacote_antigo", "ExtensaoInvalida", "doc.pdf.motivo.txt"), diasAtras: 62);
 
         var r = Criar().Limpar();
 
@@ -114,20 +114,20 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void NaoTocaEntradaEstadoNemRelatorios()
     {
-        var entradaXml = Arquivo("na_entrada.xml", diasAtras: 30);
+        var entradaXml = Arquivo("na_entrada.xml", diasAtras: 90);
         var estadoArq = Path.Combine(_entrada, "Estado", "pacote-atual.jsonl");
         Directory.CreateDirectory(Path.GetDirectoryName(estadoArq)!);
         File.WriteAllText(estadoArq, "linha");
-        File.SetLastWriteTimeUtc(estadoArq, _clock.UtcNow.UtcDateTime.AddDays(-30));
+        File.SetLastWriteTimeUtc(estadoArq, _clock.UtcNow.UtcDateTime.AddDays(-90));
 
         var relatorios = Path.Combine(_raiz, "relatorios");
         Directory.CreateDirectory(relatorios);
         var relatorioArq = Path.Combine(relatorios, "pacote_antigo.html");
         File.WriteAllText(relatorioArq, "<html/>");
-        File.SetLastWriteTimeUtc(relatorioArq, _clock.UtcNow.UtcDateTime.AddDays(-30));
+        File.SetLastWriteTimeUtc(relatorioArq, _clock.UtcNow.UtcDateTime.AddDays(-90));
 
         // Também cria conteúdo vencido em Processados para comprovar que SÓ ele é limpo.
-        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 30);
+        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 90);
 
         var r = Criar().Limpar();
 
@@ -143,7 +143,7 @@ public sealed class LimpezaSubpastaTests : IDisposable
     public void RecusaConfigPerigosa()
     {
         var pastas = new OpcoesPasta { Entrada = _entrada, Processados = _entrada };
-        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 30);
+        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 90);
 
         var r = Criar(pastas: pastas).Limpar();
 
@@ -155,7 +155,7 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void ArquivoSoltoAntigoNaRaiz_ERemovido()
     {
-        Arquivo(Path.Combine("Processados", "solto.xml"), diasAtras: 30);
+        Arquivo(Path.Combine("Processados", "solto.xml"), diasAtras: 90);
         Arquivo(Path.Combine("Processados", "recente_solto.xml"), diasAtras: 1);
 
         var r = Criar().Limpar();
@@ -170,7 +170,7 @@ public sealed class LimpezaSubpastaTests : IDisposable
     [Fact]
     public void RaizNuncaERemovida()
     {
-        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 30);
+        Arquivo(Path.Combine("Processados", "pacote_antigo", "a.xml"), diasAtras: 90);
 
         Criar().Limpar();
 

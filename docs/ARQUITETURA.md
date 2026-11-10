@@ -211,7 +211,7 @@ trava real é do WMS. Consequência no reprocesso de um grupo falho:
 2. **Fase 2 — alertas**: notificador por e-mail nas exceções definidas.
 3. **Fase 3 — automação total**: watcher contínuo da pasta, concorrência ajustada.
    *Implementada na Etapa 7* (ver §2.1 e `docs/OPERACAO.md`): watcher por polling,
-   pacote com início/fim, movimentação, limpeza de 10 dias e e-mail com PDF.
+   pacote com início/fim, movimentação, limpeza de 60 dias (era 10; ampliada em 09/11 para o Plano B) e e-mail com PDF.
 
 ---
 

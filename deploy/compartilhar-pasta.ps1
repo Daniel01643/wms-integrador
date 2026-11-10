@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Cria/atualiza (idempotente) o compartilhamento SMB da pasta LOCAL de entrada de XMLs.
 
@@ -117,7 +117,7 @@ if ($temSmbCmdlets) {
 # --- 3. ACL NTFS da pasta: escrita SEM exclusao para o gravador (usuarios nao apagam) ---
 # Por padrao os usuarios podem LER e GRAVAR (criar arquivos/pastas, anexar), mas NAO EXCLUIR.
 # O servico roda como SYSTEM e, junto com Administradores, mantem controle total pela heranca,
-# entao a movimentacao para Processados/Erro e a limpeza de 10 dias seguem funcionando.
+# entao a movimentacao para Processados/Erro e a limpeza de 60 dias seguem funcionando.
 # Use -PermitirExclusao para dar Modify (inclui apagar), se algum dia for necessario.
 if ($PermitirExclusao) {
     Write-Passo ("Ajustando ACL NTFS de {0} ({1}: Modify, COM exclusao)..." -f $CaminhoLocal, $GravadoresShare)

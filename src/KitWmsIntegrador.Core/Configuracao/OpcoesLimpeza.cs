@@ -12,6 +12,6 @@ public sealed class OpcoesLimpeza
     /// <summary>Liga/desliga a limpeza.</summary>
     public bool Habilitada { get; set; } = true;
 
-    /// <summary>Arquivos mais antigos que este número de dias são removidos.</summary>
-    public int DiasRetencao { get; set; } = 10;
+    /// <summary>Padrão 60 dias (o Plano B precisa achar o XML da venda original). Arquivos mais antigos que este número de dias são removidos.</summary>
+    public int DiasRetencao { get; set; } = 60;
 }

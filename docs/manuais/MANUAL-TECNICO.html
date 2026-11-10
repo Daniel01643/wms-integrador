@@ -570,11 +570,11 @@ gestor@friozem.com.br</code></pre>
 <tr>
 <td>Dias de retenção (limpeza)</td>
 <td><code>Limpeza:DiasRetencao</code></td>
-<td><code>10</code></td>
+<td><code>60</code></td>
 </tr>
 </tbody></table>
 <p>Outras chaves de <code>Pacote</code> úteis: <code>IntervaloVarreduraSegundos</code> (5), <code>EstabilizacaoSegundos</code> (3), <code>TimeoutArquivoSegundos</code> (300), <code>BackoffMaximoSegundos</code> (120), <code>MaxTransportesConcorrentes</code> (1).</p>
-<p>A limpeza roda na partida e a cada 24 h, atua <strong>apenas</strong> nas subpastas de <code>Processados</code> e <code>Erro</code>, e <strong>nunca</strong> toca a entrada, o <code>Estado</code>, a telemetria ou os <code>relatorios</code>. Como a subpasta <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> (arquivos não-XML; ver seção 8.1) fica dentro de <code>Erro</code>, ela <strong>já é coberta</strong> por essa limpeza de 10 dias — a pasta inteira do pacote é removida no vencimento, sem configuração extra.</p>
+<p>A limpeza roda na partida e a cada 24 h, atua <strong>apenas</strong> nas subpastas de <code>Processados</code> e <code>Erro</code>, e <strong>nunca</strong> toca a entrada, o <code>Estado</code>, a telemetria ou os <code>relatorios</code>. Como a subpasta <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> (arquivos não-XML; ver seção 8.1) fica dentro de <code>Erro</code>, ela <strong>já é coberta</strong> por essa limpeza de 60 dias — a pasta inteira do pacote é removida no vencimento, sem configuração extra.</p>
 <h3>8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></h3>
 <p>Quando um arquivo depositado na entrada <strong>não</strong> é <code>.xml</code>, ele não é uma nota: o sistema <strong>não</strong> chama o WMS para ele. A separação acontece <strong>na detecção</strong> (ao listar os candidatos do pacote), em três grupos:</p>
 <ul>
@@ -588,7 +588,7 @@ gestor@friozem.com.br</code></pre>
 <li><strong><code>StatusLinhaRelatorio.ArquivoIgnorado</code></strong>: novo status, com <strong>cor neutra/cinza</strong> (<code>#6B7280</code>, fora da paleta da marca) e rótulo <strong>"Arquivo ignorado (não é XML)"</strong>. No resumo do relatório e do e-mail há um contador próprio <strong>"Arquivos ignorados"</strong>. Esse status é um <strong>aviso</strong>, não uma falha de WMS: não conta como nota real (não infla <code>Total</code> nem <code>Não integradas</code>).</li>
 </ul>
 <p><strong>Regra de e-mail do pacote 100% não-XML</strong>: um pacote que só tem arquivos ignorados (nenhuma nota real, XML válido ou inválido-de-conteúdo) <strong>gera o relatório</strong> HTML + PDF normalmente, mas **não envia e-mail** (o log registra que o pacote não tinha notas, apenas arquivos ignorados). Um pacote <strong>misto</strong> (ao menos uma nota real) segue a política de e-mail normal, e os arquivos ignorados aparecem no relatório e no corpo do e-mail.</p>
-<p><strong>Limpeza forçada sob demanda</strong> — <code>limpar-extensao-invalida.ps1</code>: para apagar as pastas <code>ExtensaoInvalida</code> <strong>sem esperar</strong> o ciclo de 10 dias, use esse script a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code> (ele é replicado para lá pelo <code>instalar.ps1</code>):</p>
+<p><strong>Limpeza forçada sob demanda</strong> — <code>limpar-extensao-invalida.ps1</code>: para apagar as pastas <code>ExtensaoInvalida</code> <strong>sem esperar</strong> o ciclo de 60 dias, use esse script a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code> (ele é replicado para lá pelo <code>instalar.ps1</code>):</p>
 <pre><code>cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1 -WhatIf
 powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></pre>
@@ -720,7 +720,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
-<td>Janela de coleta / limpeza (10 dias)</td>
+<td>Janela de coleta / limpeza (60 dias)</td>
 <td><code>config\appsettings.Production.json</code>: <code>Pacote:JanelaColetaSegundos</code> / <code>Limpeza:DiasRetencao</code></td>
 <td><strong>Sim</strong></td>
 </tr>
