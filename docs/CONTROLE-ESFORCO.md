@@ -30,20 +30,22 @@ pelo tempo de execução/sessão do agente.
 | Planejada  | Humana  | 1,00  | Apresentação e treinamento                                                                    |
 | 2026-11-09 | Humana  | 4,90  | Apresentação (nome, "Aprox.", só horas), resumo semanal no servidor, encerramento, I60 Plano A no homolog |
 | 2026-11-09 | IA      | 4,00  | Ajustes do deck, diagnóstico WinRM, encerramento, I60 (código customizado, qtdeVolume, testes, envio manual) — estimado |
+| 2026-11-10 | Humana  | 3,50  | I60 Plano A no homolog (testes do código customizado), decisão de pausar, início do Plano B (I40) |
+| 2026-11-10 | IA      | 2,50  | Aprox.: apoio aos testes do Plano A, documentação das tentativas, perguntas ao fornecedor — estimado |
 
 Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**
-(entrega inicial, até a produção). Com 09/11: **31,15 h**.
+(entrega inicial, até a produção). Com 09/11: **31,15 h**. Com 10/11: **34,65 h**.
 
 ## Totais
 
-| Tipo                 | Entrega inicial (até 06/11) | Com 09/11        |
-|----------------------|-----------------------------|------------------|
-| Humana               | **26,25**                   | **31,15**        |
-| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 18,40** |
-| **Total de esforço** | **aprox. 40,65**            | **aprox. 49,55** |
+| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-10/11) |
+|----------------------|-----------------------------|-------------------------|
+| Humana               | **26,25**                   | **34,65**               |
+| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 20,90**        |
+| **Total de esforço** | **aprox. 40,65**            | **aprox. 55,55**        |
 
 O comparativo abaixo e a apresentação usam a **entrega inicial** (do desenho à produção).
-09/11 é acabamento e a retomada da I60.
+09/11 e 10/11 são acabamento e a retomada da I60 (Plano A pausado; início do Plano B).
 
 O grosso do esforço humano está em decisões, validação e operação; a IA atua como
 multiplicador de produtividade na escrita de código, testes e documentação.

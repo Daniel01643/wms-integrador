@@ -44,3 +44,16 @@ quantidade da I60 (retomar terça 03/11).
   é lido em unidades e convertido pela embalagem do produto. A confirmar no cadastro.
 
 **Pendência que atravessa a semana:** I60 (conferência de caixa por item e teste com `IMP`).
+
+---
+
+## Semana 2026-W46 (10/nov a 16/nov) — em aberto
+
+| Data | Humana | IA | Total | Marcos |
+|------|--------|-----|-------|--------|
+| 2026-11-10 | 3,5 | 2,5 | 6,0 | I60 Plano A pausado (aguarda fornecedor); início do Plano B (I40) |
+| **Total parcial** | **3,5** | **2,5** | **6,0** | |
+
+**Resumo parcial:**
+- Plano A (I60 automática) testado no homolog e pausado: ver `docs/wms-codigo-customizado/HISTORICO-PLANO-A.md`.
+- Plano B (devolução pela I40) em início: testar variantes invertido e não invertido, ICD, placa obrigatória.

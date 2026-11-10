@@ -33,7 +33,8 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-ESFOR
 | Semana | Período | Humana | IA | Total |
 |--------|---------|--------|-----|-------|
 | W45 | 03/11–09/11 | 23,15 | 16,0 | 39,15 |
-| **Total parcial do mês** | | **23,15** | **16,0** | **39,15** |
+| W46 (parcial) | 10/11– | 3,5 | 2,5 | 6,0 |
+| **Total parcial do mês** | | **26,65** | **18,5** | **45,15** |
 
 **Realizado em novembro até agora:**
 - Etapa 5: I50 enriquecida com dados fiscais, flag para desligar I60, relatório HTML/PDF.

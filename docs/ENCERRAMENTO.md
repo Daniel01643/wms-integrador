@@ -54,7 +54,8 @@ rollback, segredos).
 | Repositório sem remote: o histórico existe só nesta máquina (fazer backup/push) | Usuário |
 | Testes não puderam ser executados na revisão de 09/11 (bloqueio de Controle de Aplicativo do Windows); na etapa I60 (mesmo dia) rodaram: 367 aprovados, 0 falhas, 9 ignorados | Usuário / TI |
 | Teste I50 + I60 em homolog após gravar o PL/SQL de QTD_VOLUMES (roteiro em `docs\wms-codigo-customizado\ROTEIRO-TESTE-HOMOLOG.md`); depois promover por `publicar-release.ps1` | Usuário |
-| Plano B (devolução pela I40) arquitetado, não implementado: ver `docs\ARQUITETURA-PLANO-B-I40.md` (perguntas em aberto P1 a P9) | Usuário |
+| **Plano A (I60 automática) PAUSADO, aguardando o fornecedor** (10/11): ver `docs\wms-codigo-customizado\HISTORICO-PLANO-A.md` (tentativas e perguntas prontas para enviar). I60 segue desligada | Usuário / fornecedor WMS |
+| **Plano B (devolução pela I40) em desenvolvimento** (10/11): arquitetura em `docs\ARQUITETURA-PLANO-B-I40.md`; decisões: testar invertido e não invertido antes de montar a tela, ICD, placa obrigatória, motorista fixo a cadastrar no WMS. Diário em `docs\diario\2026-11-10.md` | Usuário / IA |
 | Confirmar o tipo de operação da I60 (`I60:TipoOperacaoNota`; o manual do repo cita IMB/INE/IMP, não INV) | Usuário / fornecedor WMS |
 
 ## 6. Como retomar

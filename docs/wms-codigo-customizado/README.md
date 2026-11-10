@@ -1,5 +1,16 @@
 # Código Customizado WMS: QTD_VOLUMES do DocCarga
 
+## Status (10/11/2026)
+
+| Código | Status |
+|---|---|
+| `doccarga-qtd-volumes.sql` | **Ativo em homolog** (POS-processamento; roda sem erro). Não resolveu a conferência da I60 |
+| `notavenda-vincula-itemdoccarga.sql` | **Pausado**: ORA-20901 em todas as versões; aguarda o fornecedor |
+
+Plano A (I60 automática) pausado. Registro técnico e perguntas ao fornecedor em
+`HISTORICO-PLANO-A.md`. O texto abaixo descreve a primeira versão (PRE); a versão ativa roda no
+POS-processamento, com `EXECUTE IMMEDIATE` e erros `QTDVOL-POS`.
+
 Arquivo: `doccarga-qtd-volumes.sql`
 
 ## Onde cadastrar
