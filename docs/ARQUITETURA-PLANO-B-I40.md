@@ -1,6 +1,8 @@
-# Arquitetura do Plano B: devolução pela I40 (somente desenho, nada implementado)
+# Arquitetura do Plano B: devolução pela I40
 
-Data: 2026-11-09. Status: proposta para aprovação. Nenhum código foi escrito para o Plano B.
+Data: 2026-11-09 (desenho). Atualizado após a fase 1 (seções 9 a 11). Status: fase 1 (construtor
+e envio manual de teste) implementada; fase 2 (tela web) pendente. O teste ao vivo no homolog
+está descrito em `docs/ROTEIRO-TESTE-I40.md`.
 
 ## 1. Objetivo
 
@@ -196,3 +198,65 @@ Referência já comunicada: 8 h humanas e 6 h de IA. Refinada após ler o códig
 
 O valor de IA sobe 0,5 h sobre a referência por causa do Parser+ e dos testes do localizador;
 as horas humanas dependem sobretudo das respostas do WMS e do teste ao vivo.
+
+## 9. Perguntas respondidas (decisões do usuário e consequências)
+
+| Pergunta | Decisão | Consequência no código/config |
+|---|---|---|
+| P1. Inverter emitente/destinatário? | Testar as DUAS variantes (invertido e não invertido) no homolog; a resposta do WMS decide o default. "Testar antes de montar." | `Devolucao:InverterPartes` (default atual `false`). Roteiro em `docs/ROTEIRO-TESTE-I40.md`. O default só muda após o teste ao vivo. |
+| P2. CFOP | CFOP da venda, sem conversão. | `codNatOperacaoFiscal` = `Itens[0].Cfop` da nota. |
+| P3. `tipoOperacaoNota` | `ICD` (gera chegada de veículo e descarga). | `Devolucao:TipoOperacaoNota`, default `ICD`. |
+| P6. Placa e motorista | Placa obrigatória (a tela deve pedir) e nome de motorista FIXO, cadastrado no WMS. | Placa vai em `placaVeiculoPrevistoNota` (maiúscula, obrigatória). `Devolucao:NomeMotorista` configurável e obrigatório; o construtor falha com mensagem clara se vazio. |
+| P9. Dependência da I60 | A devolução NÃO depende da I60 (Plano A). | Notas anteriores ao Plano A também servem. |
+
+Continuam em aberto: P4 (porta e firewall, fase 2), P5 (`formaTransporte`/`codSituacaoTributaria`
+usam PR e 040 até confirmação), P7 (duplicidade; o WMS decide, a validar no homolog) e P8 (lote
+de 30 notas por chamada).
+
+## 10. Pontos a confirmar no teste ao vivo
+
+- **Nome da interface:** `InterfaceWms.I40` usa o identificador `WEBAPI-I40-Json`. O nome
+  é **a confirmar** no teste; se o WMS recusar, corrigir em `ParaIdentificador`.
+- **`ITEM_NOTA_FISCAL` como ARRAY:** o layout diz "looping 1-990", mas o exemplo do manual
+  mostra um objeto. Foi implementado como array. Se o WMS recusar, o teste ao vivo dirá e o
+  serializador será ajustado.
+
+## 11. O que a fase 1 entregou
+
+Implementado e com testes unitários (commits locais `feat(i40)`):
+
+- `OpcoesDevolucao` (seção `Devolucao`: `Habilitada`, `TipoOperacaoNota`, `TipoNota`,
+  `NomeMotorista`, `InverterPartes`, `FormaTransporte`, `CodSituacaoTributaria`, `Porta`) com
+  override por ambiente (`Devolucao__...`).
+- `InterfaceWms.I40` (`WEBAPI-I40-Json`, nome a confirmar).
+- `PayloadI40` e `ConstrutorI40`/`IConstrutorI40`: `tipoNota=DE`, `tipoOperacaoNota=ICD`,
+  placa e motorista obrigatórios, `InverterPartes`, CFOP da venda.
+- `LocalizadorXmlDevolucao`: acha `NFE<chave>.XML` em `Processados\pacote_*` (o mais recente) e
+  valida a chave (44 dígitos e dígito verificador).
+- Modo manual de teste no Worker: `--enviar-i40 --chave <44 dígitos> --placa <placa> [--xml <caminho>]`
+  (`EnvioManualI40`). Envia SOMENTE a I40 e grava JSON e resposta em
+  `bin\Release\net8.0\envio-manual-i40\`.
+
+Não faz parte da fase 1: tela web, porta HTTP, publicação como serviço e relatório de devolução.
+
+## 12. Estimativa da fase 2 (tela web), em horas
+
+**Estimativa, não registro de esforço.** Escopo: tela de chaves (digitar/bipar), placa
+obrigatória, validações, porta HTTP embutida no Worker, publicação como serviço no servidor,
+testes e manuais. Sem login (decisão do usuário).
+
+| Etapa | Horas humanas | Horas de IA |
+|---|---:|---:|
+| Kestrel embutido no Worker (`Microsoft.AspNetCore.App`), porta e flag `Devolucao:Habilitada`, isolamento de falhas | 0,5 | 0,7 |
+| `ServicoDevolucao`: lote de até 30 chaves, duplicadas, dígito verificador, resultado por chave, testes | 0,5 | 1,5 |
+| Endpoints (`GET /`, `POST /api/devolucao`, `GET /api/saude`) e página (campo de chaves com Enter do leitor, placa obrigatória, resultado por chave) | 1,0 | 1,5 |
+| Publicação no servidor (serviço NSSM, regra de firewall na porta, release e rollback) | 1,5 | 0,5 |
+| Testes no homolog e no servidor, ajustes após o retorno do WMS | 2,0 | 0,5 |
+| Manuais do colaborador e atualização da documentação/deck | 0,5 | 0,8 |
+| **Total estimado** | **6,0** | **5,5** |
+
+Justificativa: o grosso do código de negócio (construtor, localizador, envio) já existe da
+fase 1, então a IA concentra esforço em serviço, endpoints e página. As horas humanas dependem
+sobretudo de publicação no servidor, firewall e testes ao vivo, que não são automatizáveis.
+O valor pode subir se o WMS exigir ajustes de layout (ex.: itens como objeto) ou se o Parser+
+(campos fiscais adicionais) for necessário.
