@@ -46,3 +46,8 @@ deploy/tools/nssm.exe
 # config REAL com segredos, se alguem copiar para o repo por engano (o molde SEM segredos
 # fica em deploy/config-exemplo/ e E versionado)
 deploy/config/
+
+# Testes locais em homolog: email.settings desativado temporariamente (contém segredos)
+# e relatórios gerados ao rodar o Worker de dentro do projeto.
+*.off-teste
+src/KitWmsIntegrador.Worker/relatorios/
