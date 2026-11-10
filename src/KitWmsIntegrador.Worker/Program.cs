@@ -2,6 +2,7 @@ using KitWmsIntegrador.Core.Agrupamento;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
+using KitWmsIntegrador.Core.Devolucao;
 using KitWmsIntegrador.Core.Email;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Monitoramento;
@@ -12,6 +13,7 @@ using KitWmsIntegrador.Core.Relatorio;
 using KitWmsIntegrador.Core.Tempo;
 using KitWmsIntegrador.Worker;
 using KitWmsIntegrador.Worker.Configuracao;
+using KitWmsIntegrador.Worker.TelaDevolucao;
 
 // Smoke test manual do cliente WMS (fora do fluxo padrão, NÃO roda em CI/testes).
 // Aciona um GetToken real + POST contra o homolog usando WMS__Usuario/WMS__Senha.
@@ -182,6 +184,12 @@ builder.Services.AddSingleton<DiarioPacote>();
 builder.Services.AddSingleton<ProcessadorLote>();
 builder.Services.AddSingleton<FechadorPacote>();
 builder.Services.AddSingleton<GerenciadorPacote>();
+
+// Tela de devolução (Plano B fase 2). O servidor só liga com Devolucao:Habilitada=true e roda
+// isolado: qualquer falha dele é logada e não afeta o Worker.
+builder.Services.AddSingleton<AuditoriaDevolucao>();
+builder.Services.AddSingleton<IServicoDevolucao, ServicoDevolucao>();
+builder.Services.AddHostedService<ServidorTelaDevolucao>();
 
 builder.Services.AddHostedService<Worker>();
 

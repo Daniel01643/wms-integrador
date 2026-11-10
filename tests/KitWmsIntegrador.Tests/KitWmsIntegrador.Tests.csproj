@@ -22,6 +22,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\KitWmsIntegrador.Core\KitWmsIntegrador.Core.csproj" />
+    <!-- Worker: testa o mesmo WebApplication da tela de devolução, sem pacote novo
+         (sem TestHost/Mvc.Testing): sobe em porta efêmera e usa HttpClient real. -->
+    <ProjectReference Include="..\..\src\KitWmsIntegrador.Worker\KitWmsIntegrador.Worker.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>

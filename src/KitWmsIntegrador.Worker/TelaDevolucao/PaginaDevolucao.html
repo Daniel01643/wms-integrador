@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Devolução: envio de chaves | Friozem</title>
+<style>
+  * { box-sizing: border-box; }
+  html { font-size: 100%; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #333333; background: #F3F6FA; line-height: 1.45; }
+  .hd { background: #17479E; border-bottom: 4px solid #54B6E7; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 32px; }
+  .hd h1 { margin: 0; color: #FFFFFF; font-size: 1.5rem; font-weight: 700; }
+  .hd img { width: 176px; max-width: 40%; height: auto; display: block; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  .card { background: #FFFFFF; border: 1px solid #C1C1C1; border-radius: 8px; padding: 20px 24px; margin-bottom: 20px; }
+  h2 { margin: 0 0 12px; color: #17479E; font-size: 1.2rem; }
+  p.ajuda { margin: 0 0 12px; color: #444444; }
+  label { display: block; font-weight: 700; margin-bottom: 4px; }
+  input[type="text"] { width: 100%; font: inherit; font-size: 1.1rem; padding: 10px 12px; border: 2px solid #6B7280; border-radius: 6px; background: #FFFFFF; color: #222222; }
+  .linha { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .linha .campo { flex: 1 1 360px; }
+  button { font: inherit; font-weight: 700; padding: 10px 20px; border-radius: 6px; border: 2px solid #17479E; background: #17479E; color: #FFFFFF; cursor: pointer; min-height: 44px; }
+  button.sec { background: #FFFFFF; color: #17479E; }
+  button:disabled { background: #D9DEE6; border-color: #8A93A1; color: #4B5563; cursor: not-allowed; }
+  button:hover:not(:disabled) { background: #0F3578; border-color: #0F3578; color: #FFFFFF; }
+  button.sec:hover:not(:disabled) { background: #E8EEF8; color: #17479E; }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 3px solid #17479E; outline-offset: 2px; box-shadow: 0 0 0 6px #54B6E7;
+  }
+  .contador { margin: 12px 0 8px; font-weight: 700; color: #17479E; }
+  ul.chaves { list-style: none; margin: 0; padding: 0; }
+  ul.chaves li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border-bottom: 1px solid #E1E5EB; }
+  ul.chaves li:nth-child(even) { background: #F3F6FA; }
+  ul.chaves code { font-family: Consolas, "Courier New", monospace; font-size: 1.05rem; letter-spacing: 0.5px; word-break: break-all; }
+  ul.chaves button { padding: 4px 12px; min-height: 36px; }
+  .vazio { color: #4B5563; font-style: italic; }
+  .placa-opcao { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+  .placa-opcao input { width: 22px; height: 22px; }
+  .placa-opcao label { margin: 0; }
+  #bloco-placa { max-width: 280px; margin-bottom: 8px; }
+  #bloco-placa[hidden] { display: none; }
+  .aviso { margin: 12px 0 0; padding: 10px 14px; border-radius: 6px; border: 1px solid; }
+  .aviso:empty { display: none; }
+  .aviso.erro { background: #FDECEA; border-color: #8A1C1C; color: #7A1717; }
+  .aviso.info { background: #E8F3FB; border-color: #17479E; color: #0F3578; }
+  .acoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  caption { text-align: left; font-weight: 700; color: #17479E; padding-bottom: 6px; }
+  th { background: #17479E; color: #FFFFFF; text-align: left; padding: 8px 10px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #E1E5EB; vertical-align: top; }
+  td.chave { font-family: Consolas, "Courier New", monospace; word-break: break-all; }
+  .st { display: inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+  .st.ok { background: #E3F4F0; border-color: #00594A; color: #00594A; }
+  .st.err { background: #FDECEA; border-color: #8A1C1C; color: #7A1717; }
+  .st.warn { background: #FFF4DB; border-color: #7A4B00; color: #6B4100; }
+  #resumo { font-weight: 700; margin: 4px 0 0; }
+  .rodape { color: #4B5563; font-size: 0.9rem; text-align: center; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 640px) { .hd { padding: 12px 16px; } .hd h1 { font-size: 1.15rem; } .card { padding: 16px; } }
+</style>
+</head>
+<body>
+<header class="hd">
+  <h1>Devolução: envio de chaves</h1>
+  <img src="data:image/png;base64,{{LOGO_BASE64}}" alt="Friozem">
+</header>
+<main>
+  <section class="card" aria-labelledby="t-chaves">
+    <h2 id="t-chaves">1. Chaves de acesso das notas de venda</h2>
+    <p class="ajuda">Digite ou bipe a chave de 44 números e tecle Enter. Pode colar várias chaves de uma vez.</p>
+    <div class="linha">
+      <div class="campo">
+        <label for="chave">Chave de acesso (44 dígitos)</label>
+        <input type="text" id="chave" inputmode="numeric" autocomplete="off" autofocus aria-describedby="msg-chave">
+      </div>
+      <button type="button" id="adicionar">Adicionar</button>
+    </div>
+    <div id="msg-chave" class="aviso" role="alert"></div>
+    <p class="contador" id="contador" aria-live="polite"></p>
+    <ul class="chaves" id="lista" aria-label="Chaves adicionadas"></ul>
+  </section>
+
+  <section class="card" aria-labelledby="t-envio">
+    <h2 id="t-envio">2. Envio</h2>
+    <div class="placa-opcao">
+      <input type="checkbox" id="enviar-placa" aria-controls="bloco-placa">
+      <label for="enviar-placa">Enviar placa do veículo</label>
+    </div>
+    <div id="bloco-placa" hidden>
+      <label for="placa">Placa do veículo (obrigatória)</label>
+      <input type="text" id="placa" maxlength="8" autocomplete="off" aria-describedby="msg-placa">
+    </div>
+    <div id="msg-placa" class="aviso" role="alert"></div>
+    <div class="acoes">
+      <button type="button" id="enviar" disabled>Enviar</button>
+      <button type="button" id="limpar" class="sec">Limpar lista</button>
+    </div>
+    <div id="msg-envio" class="aviso" role="alert"></div>
+  </section>
+
+  <section class="card" aria-labelledby="t-res">
+    <h2 id="t-res">3. Resultado</h2>
+    <div aria-live="polite" id="area-resultado">
+      <p class="vazio" id="sem-resultado">Nenhum envio feito ainda.</p>
+      <p id="resumo"></p>
+      <table id="tabela" hidden>
+        <caption>Resultado do envio por chave</caption>
+        <thead><tr><th scope="col">Chave</th><th scope="col">Nota</th><th scope="col">Situação</th><th scope="col">Mensagem</th></tr></thead>
+        <tbody id="corpo"></tbody>
+      </table>
+    </div>
+  </section>
+  <p class="rodape">Friozem. Tela interna de devolução, sem login. Use apenas na rede da empresa.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var maxChaves = 30;
+  var chaves = [];
+  var enviando = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var campo = $('chave'), lista = $('lista'), contador = $('contador');
+  var btnEnviar = $('enviar'), btnAdd = $('adicionar'), btnLimpar = $('limpar');
+  var chkPlaca = $('enviar-placa'), blocoPlaca = $('bloco-placa'), campoPlaca = $('placa');
+
+  var ROTULOS = {
+    Enviada: ['Enviada com sucesso', 'ok', '\u2714 '],
+    ErroWms: ['Erro do WMS', 'err', '\u2716 '],
+    XmlNaoEncontrado: ['XML não encontrado (retenção de 60 dias)', 'warn', '\u26A0 '],
+    ChaveInvalida: ['Chave inválida', 'err', '\u2716 '],
+    ErroInterno: ['Erro ao ler o XML', 'err', '\u2716 ']
+  };
+
+  // Dígito verificador da chave (módulo 11), igual ao do servidor.
+  function chaveValida(c) {
+    if (!/^\d{44}$/.test(c)) { return 'A chave deve ter 44 números.'; }
+    var soma = 0, peso = 2;
+    for (var i = 42; i >= 0; i--) {
+      soma += (c.charCodeAt(i) - 48) * peso;
+      peso = peso === 9 ? 2 : peso + 1;
+    }
+    var resto = soma % 11, dv = resto < 2 ? 0 : 11 - resto;
+    return dv === c.charCodeAt(43) - 48 ? null : 'Dígito verificador inválido (confira a chave).';
+  }
+
+  function aviso(id, texto, tipo) {
+    var el = $(id);
+    el.textContent = texto || '';
+    el.className = 'aviso' + (texto ? ' ' + (tipo || 'erro') : '');
+  }
+
+  function atualizar() {
+    lista.textContent = '';
+    if (chaves.length === 0) {
+      var vazio = document.createElement('li');
+      vazio.className = 'vazio';
+      vazio.textContent = 'Nenhuma chave na lista.';
+      lista.appendChild(vazio);
+    }
+    chaves.forEach(function (c, i) {
+      var li = document.createElement('li');
+      var code = document.createElement('code');
+      code.textContent = c;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sec';
+      b.textContent = 'Remover';
+      b.setAttribute('aria-label', 'Remover a chave ' + c);
+      b.addEventListener('click', function () {
+        chaves.splice(i, 1);
+        atualizar();
+        campo.focus();
+      });
+      li.appendChild(code);
+      li.appendChild(b);
+      lista.appendChild(li);
+    });
+    contador.textContent = chaves.length + ' de ' + maxChaves + ' chaves';
+    btnEnviar.disabled = enviando || chaves.length === 0;
+  }
+
+  function adicionar(texto) {
+    var partes = texto.split(/[\s,;]+/).filter(function (p) { return p.length > 0; });
+    var problemas = [];
+    partes.forEach(function (p) {
+      var erro = chaveValida(p);
+      if (erro) { problemas.push(p + ': ' + erro); return; }
+      if (chaves.indexOf(p) >= 0) { return; }
+      if (chaves.length >= maxChaves) {
+        if (problemas.indexOf('limite') < 0) { problemas.push('limite'); }
+        return;
+      }
+      chaves.push(p);
+    });
+    problemas = problemas.map(function (p) {
+      return p === 'limite' ? 'Limite de ' + maxChaves + ' chaves por envio. Envie estas e depois adicione as demais.' : p;
+    });
+    aviso('msg-chave', problemas.join(' | '), 'erro');
+    atualizar();
+  }
+
+  function submeterCampo() {
+    var t = campo.value.trim();
+    if (t === '') { return; }
+    adicionar(t);
+    campo.value = '';
+    campo.focus();
+  }
+
+  campo.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); submeterCampo(); }
+  });
+  campo.addEventListener('paste', function () { setTimeout(submeterCampo, 0); });
+  btnAdd.addEventListener('click', submeterCampo);
+
+  chkPlaca.addEventListener('change', function () {
+    blocoPlaca.hidden = !chkPlaca.checked;
+    aviso('msg-placa', '');
+    if (chkPlaca.checked) { campoPlaca.focus(); }
+  });
+
+  btnLimpar.addEventListener('click', function () {
+    chaves = [];
+    aviso('msg-chave', '');
+    aviso('msg-envio', '');
+    atualizar();
+    campo.focus();
+  });
+
+  function mostrarResultado(r) {
+    $('sem-resultado').hidden = true;
+    var corpo = $('corpo');
+    corpo.textContent = '';
+    (r.resultados || []).forEach(function (x) {
+      var tr = document.createElement('tr');
+      var rot = ROTULOS[x.status] || [x.status, 'err', ''];
+      var tdC = document.createElement('td'); tdC.className = 'chave'; tdC.textContent = x.chave;
+      var tdN = document.createElement('td'); tdN.textContent = x.nota || '-';
+      var tdS = document.createElement('td');
+      var sp = document.createElement('span'); sp.className = 'st ' + rot[1]; sp.textContent = rot[2] + rot[0];
+      tdS.appendChild(sp);
+      var tdM = document.createElement('td'); tdM.textContent = x.mensagem || '';
+      tr.appendChild(tdC); tr.appendChild(tdN); tr.appendChild(tdS); tr.appendChild(tdM);
+      corpo.appendChild(tr);
+    });
+    $('tabela').hidden = false;
+    var txt = r.enviadas + ' de ' + r.total + ' enviada(s) com sucesso.';
+    if (r.transacao) { txt += ' Transação do WMS: ' + r.transacao + '.'; }
+    $('resumo').textContent = txt;
+  }
+
+  btnEnviar.addEventListener('click', function () {
+    aviso('msg-envio', '');
+    aviso('msg-placa', '');
+    if (chaves.length === 0) { return; }
+    var placa = campoPlaca.value.trim();
+    if (chkPlaca.checked && placa === '') {
+      aviso('msg-placa', 'Informe a placa do veículo ou desmarque "Enviar placa do veículo".', 'erro');
+      campoPlaca.focus();
+      return;
+    }
+    enviando = true;
+    btnEnviar.disabled = true;
+    btnEnviar.textContent = 'Enviando...';
+    aviso('msg-envio', 'Enviando ao WMS, aguarde.', 'info');
+
+    fetch('/api/devolucao/enviar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chaves: chaves, enviarPlaca: chkPlaca.checked, placa: chkPlaca.checked ? placa : '' })
+    }).then(function (resp) {
+      return resp.json().catch(function () { return {}; }).then(function (dados) {
+        return { ok: resp.ok, dados: dados };
+      });
+    }).then(function (res) {
+      if (!res.ok) {
+        aviso('msg-envio', res.dados.erro || 'Não foi possível concluir o envio. Tente novamente.', 'erro');
+        return;
+      }
+      aviso('msg-envio', '');
+      mostrarResultado(res.dados);
+      // Mantém na lista só o que não foi enviado, para reenviar sem digitar de novo.
+      var ok = {};
+      (res.dados.resultados || []).forEach(function (x) { if (x.sucesso) { ok[x.chave] = true; } });
+      chaves = chaves.filter(function (c) { return !ok[c]; });
+    }).catch(function () {
+      aviso('msg-envio', 'Sem conexão com o serviço. Verifique a rede e tente novamente.', 'erro');
+    }).then(function () {
+      enviando = false;
+      btnEnviar.textContent = 'Enviar';
+      atualizar();
+      campo.focus();
+    });
+  });
+
+  atualizar();
+
+  fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
+    if (cfg && cfg.maxChaves > 0) { maxChaves = cfg.maxChaves; }
+    if (cfg && cfg.enviarPlacaPadrao) { chkPlaca.checked = true; blocoPlaca.hidden = false; }
+    atualizar();
+  }).catch(function () { /* mantém os padrões */ });
+})();
+</script>
+</body>
+</html>

@@ -12,6 +12,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Kestrel da tela de devolução (Plano B fase 2). Vem do shared framework do SDK, sem pacote
+         NuGet novo; o publish self-contained inclui o ASP.NET Core automaticamente. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Página única e logo embutidas no assembly: nenhum arquivo solto no publish. -->
+    <EmbeddedResource Include="TelaDevolucao\PaginaDevolucao.html" LogicalName="PaginaDevolucao.html" />
+    <EmbeddedResource Include="TelaDevolucao\logo-friozem.b64.txt" LogicalName="logo-friozem.b64.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\KitWmsIntegrador.Core\KitWmsIntegrador.Core.csproj" />
   </ItemGroup>
 </Project>
