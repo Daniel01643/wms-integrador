@@ -124,14 +124,14 @@ Justificativa:
 - **NSSM** apenas supervisiona o executável; uma porta a mais não muda nada. Reinício e logs
   (`worker.out.log`) continuam iguais.
 
-Custo e mitigação: o Worker passa a usar `Microsoft.AspNetCore.App` (troca do SDK
+Ponto de atenção e mitigação: o Worker passa a usar `Microsoft.AspNetCore.App` (troca do SDK
 `Microsoft.NET.Sdk.Worker` para `Microsoft.NET.Sdk.Web` ou `FrameworkReference`), o que aumenta
 o pacote self-contained. Falha no endpoint não pode derrubar o ciclo de pacotes: tratar
 exceções por requisição e manter o Kestrel opcional por flag (`Devolucao:Habilitada`,
 default `false`, para publicar o código sem expor a porta).
 
 Alternativa descartada: processo separado (outro serviço NSSM). Só vale se a equipe quiser
-ciclo de release independente da integração; hoje o custo operacional é maior que o ganho.
+ciclo de release independente da integração; hoje a carga operacional é maior que o ganho.
 
 ### Configuração prevista
 

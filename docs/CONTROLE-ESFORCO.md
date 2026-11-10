@@ -29,6 +29,10 @@ pelo tempo de execução/sessão do agente.
 | 2026-11-06 | IA      | 4,50  | Correções TLS/GetToken, tratamento não-XML, placa no XML→WMS, manuais embarcados, releases     |
 | Planejada  | Humana  | 1,00  | Apresentação e treinamento                                                                    |
 | 2026-11-09 | —       | —     | Não contabilizado (decisão do usuário)                                                        |
+| 2026-11-09 | Humana  | a informar | Etapa I60 (Plano A e Plano B): decisões e validações; a informar pelo usuário |
+| 2026-11-09 | IA      | 1,50  | Etapa I60: qtdeVolume pela soma, tipo de operação configurável, retenção 60 dias, arquitetura do Plano B, roteiro de homolog (estimado) |
+
+> As linhas de 09/11 da etapa I60 não entram nos totais abaixo até o usuário informar as horas humanas; as horas de IA (1,50 h) são estimativa.
 
 Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**.
 

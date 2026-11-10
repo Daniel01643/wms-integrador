@@ -7,6 +7,15 @@ iteração. Ver `BRIEFING.md` para as regras de negócio.
 > produção a **I60 está desativada por flag** (`I60:Habilitada=false`); o código da I60 foi mantido
 > e pode ser reativado com `I60__Habilitada=true`. Os trechos abaixo que citam a I60 valem apenas
 > se a flag for ligada. Ver `ENCERRAMENTO.md` e `OPERACAO.md`.
+>
+> **Atualização (09/11/2026, Plano A):** a I60 está **em preparação para reativação** via código
+> customizado do WMS (`docs/wms-codigo-customizado`): o PL/SQL grava `QTD_VOLUMES` do DocCarga como
+> a soma de `qtd_informada_cxs` dos itens, e a I60 envia `qtdeVolume` com a mesma regra (soma das
+> caixas dos itens, não mais `transp/vol/qVol`). Em produção continua desligada; o teste é em
+> homolog (`docs/wms-codigo-customizado/ROTEIRO-TESTE-HOMOLOG.md`). O tipo de operação da I60 é
+> configurável (`I60:TipoOperacaoNota`, padrão `INE`). A retenção de `Processados`/`Erro` passou
+> para 60 dias. O Plano B (devolução pela I40) está arquitetado em `ARQUITETURA-PLANO-B-I40.md`
+> (não implementado).
 
 ---
 
