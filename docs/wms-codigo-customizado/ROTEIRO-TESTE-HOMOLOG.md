@@ -76,7 +76,9 @@ instância de homolog. Não ligue essa variável na instância de produção.
 
 ## 4. O que conferir no WMS
 
-Na tela do WMS (sem consultas manuais ao banco; o código customizado roda na importação):
+Na tela do WMS (o código customizado roda na importação). Opcionalmente, quem tem acesso ao
+banco do homolog pode rodar a query de conferência somente leitura do `README.md` desta pasta
+(`diferenca` deve ser 0):
 
 1. **DocCarga do teste**: o número do pedido é o nº da nota (nNF). Confira que o campo
    `QTD_VOLUMES` está preenchido com a soma das quantidades em caixas dos itens

@@ -45,7 +45,7 @@ BEGIN
   vMsgErro := 'Erro PtoFuncao QTDVOL-PRE:3 ';   
   BEGIN  
     UPDATE solwms.i_doccarga d  
-       SET d.qtd_volumes = vQtdVolumes  
+       SET d.qtd_volumes = vQtdVolumes  -- CONFIRMAR NO HOMOLOG: nome da coluna QTD_VOLUMES (ou QTDVOLUMES)  
      WHERE d.iddoccarga = pIdDocCarga;  
   
     IF SQL%ROWCOUNT = 0 THEN  

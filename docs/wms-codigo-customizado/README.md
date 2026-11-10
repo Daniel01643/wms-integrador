@@ -34,5 +34,25 @@ Nada da lógica da Unidasul foi mantida.
 ## Confirmar no homolog
 - Nome da coluna: `QTD_VOLUMES` ou `QTDVOLUMES`. Se for o segundo, trocar só na linha do `SET`.
 
+## Query de conferência (somente leitura)
+Depois da importação da I50, compara o total gravado com a soma dos itens. A coluna
+`diferenca` deve ser 0. Trocar `qtd_volumes` por `qtdvolumes` se o nome da coluna for o outro.
+
+```sql
+SELECT d.iddoccarga,
+       d.qtd_volumes,
+       SUM(NVL(i.qtd_informada_cxs, 0))                  AS soma_caixas_itens,
+       d.qtd_volumes - SUM(NVL(i.qtd_informada_cxs, 0))  AS diferenca
+  FROM solwms.i_doccarga d
+  JOIN solwms.i_itemdoccarga i ON i.iddoccarga = d.iddoccarga
+ WHERE d.iddoccarga = :iddoccarga
+ GROUP BY d.iddoccarga, d.qtd_volumes;
+```
+
+## Decisão pendente: soma zero ou sem itens
+O código aborta a importação (`QTDVOL-PRE:2`) quando não há itens ou a soma de caixas é
+zero. Isso é mais que gravar QTD_VOLUMES: bloqueia o DocCarga. Confirmar com o usuário que
+é o desejado; se não for, trocar o `raise_application_error` por gravar 0 e seguir.
+
 ## Como reverter
 Desativar o código customizado no cadastro do depositante.

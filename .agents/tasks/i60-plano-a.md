@@ -72,7 +72,7 @@ testar `I60__TipoOperacaoNota=INV` em homolog; se aceito e associar, definir com
 - Grep: `DiasRetencao` 60 em código, appsettings, molde e `OPERACAO.md`; não restam "10 dias" de
   retenção em src, deploy, OPERACAO, INSTALACAO-SERVIDOR, ARQUITETURA e manuais. Restam menções
   históricas em diários, planos antigos e `controle\MENSAL.md` (registro do que foi feito na época).
-- Nenhum valor monetário adicionado; nenhum segredo impresso; sem query de conferência no roteiro.
+- Nenhum valor monetário adicionado; nenhum segredo impresso.
 
 ## Perguntas em aberto
 
@@ -81,10 +81,18 @@ testar `I60__TipoOperacaoNota=INV` em homolog; se aceito e associar, definir com
 3. Se o WMS fizer conferência de caixa por item, o teste de homolog mostrará; tratar então.
 4. Plano B: perguntas P1 a P9 em `docs\ARQUITETURA-PLANO-B-I40.md` (inversão de emitente/destinatário,
    CFOP, `tipoOperacaoNota` da I40, porta, duplicidade, entre outras).
-5. Horas humanas da etapa: a informar pelo usuário.
+5. PL/SQL aborta a importação (QTDVOL-PRE:2) com doccarga sem itens ou soma zero: confirmar com o usuário que é desejado.
+6. Horas humanas da etapa: a informar pelo usuário.
 
 ## Horas
 
-- Horas de IA: aprox. 1,5 h (estimadas pelo tempo de execução da etapa).
+- Horas de IA: aprox. 1,6 h (1,5 h da etapa + 0,1 h da iteração de revisão).
+
+## Iteração de revisão (i60-review.json)
+
+- Achado 1: query de conferência somente leitura adicionada ao README do código customizado e citada (opcional) no roteiro.
+- Achado 2: marca 'CONFIRMAR NO HOMOLOG' na linha do SET do SQL.
+- Achado 3: decisão pendente registrada no README e nas perguntas em aberto (sem mudar comportamento).
+- Achados 4 e 5: informativos, sem ação. Alteração só de docs/comentário SQL: build e testes não reexecutados.
 - Horas humanas: a informar pelo usuário (não inventadas).
 - Estimativa do Plano B (implementação): 8,0 h humanas e 6,5 h de IA.
