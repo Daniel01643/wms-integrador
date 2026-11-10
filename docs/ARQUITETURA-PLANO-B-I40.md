@@ -1,8 +1,14 @@
 # Arquitetura do Plano B: devolução pela I40
 
-Data: 2026-11-09 (desenho). Atualizado após a fase 1 (seções 9 a 11). Status: fase 1 (construtor
-e envio manual de teste) implementada; fase 2 (tela web) pendente. O teste ao vivo no homolog
-está descrito em `docs/ROTEIRO-TESTE-I40.md`.
+Data: 2026-11-09 (desenho). Atualizado após a fase 1 (seções 9 a 11) e após o teste real no
+homolog e a fase 2 (seções 13 a 18). Status: fase 1 (construtor e envio manual) e fase 2 (tela
+web no Worker) implementadas e testadas com fakes; **a tela está desligada**
+(`Devolucao:Habilitada=false`) e nada foi ligado em produção. O roteiro de teste no homolog está
+em `docs/ROTEIRO-TESTE-I40.md`.
+
+> Atenção: as seções 9 a 12 registram o estado **antes** do teste real. Onde divergem das
+> seções 13 a 18 (tipo de operação ICD por padrão, placa sempre obrigatória, `POST /api/devolucao`),
+> valem as seções 13 a 18.
 
 ## 1. Objetivo
 
@@ -103,7 +109,7 @@ com mensagem clara (a tela divide em lotes de 30).
 | `InterfaceWms.I40` | Core, `ClienteWms` | Novo valor no enum e em `ParaIdentificador` (`WEBAPI-I40-Json`; confirmar o sufixo exato no manual da I40). |
 | `LocalizadorXml` | Core, `Devolucao` | Busca `NFE<chave>.XML` em `Processados\pacote_*`. Somente leitura. |
 | `ServicoDevolucao` | Core, `Devolucao` | Orquestra: localizar, ler, construir, enviar, classificar. Reusa `IClienteWms` e `ClassificadorRetorno`. |
-| Endpoints HTTP + página estática | Worker | `GET /` (tela), `POST /api/devolucao`, `GET /api/saude`. |
+| Endpoints HTTP + página estática | Worker | `GET /` (tela), `POST /api/devolucao/enviar`, `GET /api/config`, `GET /api/saude` (nomes finais na seção 15). |
 | Relatório da devolução | Core | Reaproveita o gerador de relatório (HTML/PDF) e o e-mail de fechamento, com um bloco/lote próprio "Devolução" (opcional, fase 2). |
 
 ### Onde hospedar: recomendação
@@ -146,8 +152,9 @@ ciclo de release independente da integração; hoje a carga operacional é maior
 }
 ```
 
-Porta e `TipoOperacaoNota` são valores a definir (P3, P4). Override por variável de ambiente
-(`Devolucao__Habilitada=true`), no mesmo padrão da I60.
+Previsão do desenho inicial. Os valores finais (`TipoOperacaoNota` = IMP, `TipoOperacaoNotaComPlaca`
+= ICD, `EnviarPlacaPadrao` = false, `Porta` = 8085) estão na seção 14. Override por variável de
+ambiente (`Devolucao__Habilitada=true`), no mesmo padrão da I60.
 
 ## 5. Reuso
 
@@ -260,3 +267,135 @@ fase 1, então a IA concentra esforço em serviço, endpoints e página. As hora
 sobretudo de publicação no servidor, firewall e testes ao vivo, que não são automatizáveis.
 O valor pode subir se o WMS exigir ajustes de layout (ex.: itens como objeto) ou se o Parser+
 (campos fiscais adicionais) for necessário.
+
+## 13. Resultados reais do teste no homolog (10/11/2026)
+
+Nota 15671241, chave `35251201838723009850550060156712411843547443`, enviada pelo modo manual
+`--enviar-i40` ao WMS de **homologação**. Nada foi enviado à produção.
+
+| # | Hora | Tipo de operação | Placa | Resultado do WMS |
+|---|---|---|---|---|
+| 1 | 15:01 | ICD | ABC1D23 | Recusou a placa (não cadastrada). O nome da interface `WEBAPI-I40-Json` e o `ITEM_NOTA_FISCAL` como **array** foram **aceitos**. |
+| 2 | 15:04 | ICD | EPR7871 (cadastrada), motorista `DANIEL SILVA`, transportadora 03.639.682/0001-75, doca vazia | "Erro na criacao do controlador de veiculo". |
+| 3 | 15:08 | IMP, `InverterPartes=false`, placa EPR7871 | EPR7871 | **"Registrado com sucesso"** (transação 4042207). O usuário fez o **recebimento no WMS do início ao fim**: o formato está correto. |
+
+Conclusões:
+
+- Os pontos em aberto da seção 10 estão resolvidos: nome da interface e array de itens estão certos.
+- A variante com partes invertidas **não foi necessária**.
+- O ICD ainda não funciona no homolog. A causa provável é cadastro (transportadora, motorista ou
+  doca), não o formato da mensagem. Por isso a placa começa **desligada** na tela.
+
+## 14. Decisões A a D (fechadas pelo usuário)
+
+| Id | Decisão | Onde está no código/config |
+|---|---|---|
+| A | `InverterPartes` padrão **false**. A variante invertida não é necessária; a opção continua existindo e está documentada como validada. | `Devolucao:InverterPartes` |
+| B | `tipoOperacaoNota` padrão passa de ICD para **IMP**. | `Devolucao:TipoOperacaoNota` = `IMP` |
+| C | A **tela tem um flag** "Enviar placa do veículo", que começa **desligado**. Placa desligada: `tipoOperacaoNota` = `TipoOperacaoNota` (IMP), `placaVeiculoPrevistoNota` e `nomeMotorista` em branco, sem exigir placa nem motorista. Placa ligada: `tipoOperacaoNota` = `TipoOperacaoNotaComPlaca` (ICD), placa obrigatória e `nomeMotorista` = `Devolucao:NomeMotorista` (obrigatório configurar). | `Devolucao:EnviarPlacaPadrao` (estado inicial do checkbox) = `false`, `Devolucao:TipoOperacaoNotaComPlaca` = `ICD`, `Devolucao:NomeMotorista` |
+| D | CFOP da venda, `tipoNota` DE, sem login na tela. Retenção de 60 dias (`Limpeza:DiasRetencao`) já existente. | `ConstrutorI40`; `Devolucao:TipoNota` = `DE` |
+
+## 15. Estado da fase 2 (tela web no Worker)
+
+Implementada, com testes automatizados e **desligada** por padrão. Não foi enviado nada ao WMS
+pela tela e o servidor SRVAPPALC02 não foi acessado.
+
+### Componentes (nomes reais do código)
+
+| Componente | Projeto | Função |
+|---|---|---|
+| `OpcoesDevolucao` | Core, `Configuracao` | Seção `Devolucao` (ver tabela de chaves abaixo). |
+| `ConstrutorI40.Construir(nota, enviarPlaca, placa)` | Core, `Construtores` | Aplica a regra da placa (decisão C). |
+| `ValidadorChavesDevolucao` | Core, `Devolucao` | Normaliza (espaços e quebras), remove duplicadas mantendo a ordem, valida 44 dígitos e dígito verificador (módulo 11) e normaliza a placa. |
+| `ServicoDevolucao` / `IServicoDevolucao` | Core, `Devolucao` | Valida o pedido, localiza o XML de cada chave, monta a I40, envia **uma requisição** com todas as notas válidas (até 30) pelo `IClienteWms` existente e mapeia a resposta por documento (número da nota). Chave inválida ou sem XML não bloqueia as demais. |
+| `AuditoriaDevolucao` | Core, `Devolucao` | Grava o arquivo de auditoria (abaixo). |
+| `TelaDevolucaoApp` | Worker, `TelaDevolucao` | Monta o Kestrel com os endpoints. |
+| `ServidorTelaDevolucao` | Worker, `TelaDevolucao` | `BackgroundService` que liga a tela só se `Devolucao:Habilitada=true`. |
+| `PaginaDevolucao.html` + logo | Worker, `TelaDevolucao` | Página única embutida no executável (recurso embutido), sem CDN nem arquivo solto. |
+
+### Chaves de configuração (seção `Devolucao`)
+
+| Chave | Padrão | Uso |
+|---|---|---|
+| `Habilitada` | `false` | Liga a tela. Com `false` a porta não abre. |
+| `Porta` | `8085` | Porta HTTP da tela. |
+| `TipoOperacaoNota` | `IMP` | Tipo de operação com a placa desligada. |
+| `TipoOperacaoNotaComPlaca` | `ICD` | Tipo de operação com a placa ligada. |
+| `EnviarPlacaPadrao` | `false` | Estado inicial do checkbox da placa (também usado pelo modo manual). |
+| `NomeMotorista` | vazio | Motorista fixo cadastrado no WMS; exigido só com a placa ligada. |
+| `MaxChavesPorEnvio` | `30` | Limite de chaves por envio. |
+| `PastaAuditoria` | vazio | Vazio = `<Estado>\devolucao`. |
+| `TipoNota`, `InverterPartes`, `FormaTransporte`, `CodSituacaoTributaria` | `DE`, `false`, `PR`, `040` | Como na fase 1. |
+
+Override por variável de ambiente: `Devolucao__Habilitada`, `Devolucao__Porta`,
+`Devolucao__NomeMotorista`, `Devolucao__EnviarPlacaPadrao` etc.
+
+### Endpoints
+
+| Método e caminho | Resposta |
+|---|---|
+| `GET /` | A página HTML única. |
+| `GET /api/config` | `{ "enviarPlacaPadrao": false, "maxChaves": 30 }` |
+| `GET /api/saude` | `{ "status": "ok" }` |
+| `POST /api/devolucao/enviar` | Corpo `{ "chaves": [...], "enviarPlaca": false, "placa": "" }`. Resposta 200 com `enviarPlaca`, `total`, `enviadas`, `transacao` e `resultados[]` (`chave`, `nota`, `status`, `sucesso`, `mensagem`). |
+
+`status`: `Enviada`, `ErroWms` (texto do WMS sem alteração), `XmlNaoEncontrado` ("XML não encontrado
+na retenção de 60 dias."), `ChaveInvalida` e `ErroInterno`. Erros do pedido: **400** (corpo
+inválido, lista vazia, mais chaves que o máximo, placa ausente com o flag ligado), **503**
+(`Devolucao:NomeMotorista` ou `Pastas:Entrada` não configurados) e **500** genérico, sem detalhe
+interno, para falha inesperada (o detalhe vai para o log). O corpo aceito tem no máximo 64 KB. A
+resposta traz cabeçalhos de segurança (`Cache-Control: no-store`, política de conteúdo restrita
+ao próprio endereço).
+
+### Auditoria
+
+Um arquivo por dia, `devolucao_yyyyMMdd.log`, em `Devolucao:PastaAuditoria` ou, se vazio, em
+`<Estado>\devolucao` (no servidor, a pasta de estado do serviço). Uma linha por chave, separada
+por `;`: `data;ip;placa;chave;nota;status;transacao;mensagem`. Não grava credenciais nem o JSON
+enviado. Falha ao gravar só gera aviso no log. Cada chave também é registrada no log do Worker.
+
+### Isolamento
+
+A tela roda num host Kestrel próprio, criado dentro do `ServidorTelaDevolucao`. Qualquer falha
+(porta ocupada, opção inválida, exceção) é registrada e encerra só a tela; o ciclo de pacotes
+continua. Com `Habilitada=false` o servidor nem é criado.
+
+## 16. Verificação de viabilidade: Windows Server 2012 R2 e NSSM
+
+Verificação documental e de projeto (o servidor **não foi acessado**).
+
+- **Hospedagem:** o Worker continua com o SDK `Microsoft.NET.Sdk.Worker` e ganhou
+  `FrameworkReference Microsoft.AspNetCore.App`. Isso usa o Kestrel que já vem no SDK/shared
+  framework; **nenhum pacote NuGet novo** foi adicionado. O publish self-contained
+  (`win-x64`, como em `deploy\publicar.ps1`) leva o ASP.NET Core junto.
+- **.NET 8 no 2012 R2:** o .NET 8 consta entre os sistemas suportados e o Worker atual já roda
+  assim no servidor (`docs/AMBIENTE-SERVIDOR.md`). O Kestrel usa sockets, **sem IIS, sem HTTP.sys
+  e sem `netsh http add urlacl`**, então não pede recurso do Windows.
+- **NSSM:** só supervisiona o executável; uma porta a mais não muda nada. Logs e reinício
+  continuam iguais.
+- **Impedimento técnico concreto:** nenhum encontrado.
+- **Riscos residuais (não bloqueiam):**
+  - R1. O 2012 R2 está em atualizações estendidas (ESU). Não foi testado no servidor; o primeiro
+    teste real da tela lá fica para o usuário.
+  - R2. O pacote self-contained cresce com o ASP.NET Core. O tamanho não foi medido neste registro.
+  - R3. O `ServicoDevolucao` e o orquestrador têm, cada um, a sua instância do cliente WMS, ou seja,
+    dois tokens JWT da mesma conta. Aceito (o pedido do token já tem nova tentativa). Se
+    aparecer 401 intermitente, compartilhar a instância numa mudança separada.
+  - R4. Porta aberta **sem login** na rede interna. Mitigação: flag desligada por padrão, firewall
+    restrito à rede interna e auditoria com o IP de origem (ver `docs/INSTALACAO-SERVIDOR.md`).
+
+## 17. Testes
+
+Última execução local: 451 aprovados, 0 falhas, 9 ignorados (stress). Cobrem a regra da placa no
+construtor, validação de chave, montagem do lote, mapeamento da resposta por documento (com
+cliente WMS falso) e os endpoints. O envio real ao WMS pela tela **não foi testado**.
+
+## 18. O que falta para ligar em produção
+
+1. Cadastrar no WMS o motorista fixo e resolver o cadastro que causa o erro do ICD (transportadora,
+   motorista, doca), se for desejado o envio com placa.
+2. Testar a tela no homolog nesta máquina (`docs/ROTEIRO-TESTE-I40.md`).
+3. Publicar a versão e testar no servidor (2012 R2) com `Habilitada` ainda `false`.
+4. Criar a regra de firewall restrita à rede interna e só então ligar `Devolucao__Habilitada=true`
+   (procedimento em `docs/INSTALACAO-SERVIDOR.md`).
+5. Decisão em aberto: evitar devolução em duplicidade (P7). O WMS é quem decide; não há histórico local.
