@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-10</span>
-    <span>Vers&atilde;o: 2026.11.10-e3210a4</span>
+    <span>Vers&atilde;o: 2026.11.10-df9a83f</span>
   </div>
 </section>
   <header class="hd">
@@ -125,6 +125,7 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <ul>
 <li><a href="#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro">8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></a></li>
 <li><a href="#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo">8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</a></li>
+<li><a href="#84-devolução-i40-tela-de-chaves-desligada-em-produção">8.4. Devolução (I40): tela de chaves, desligada em produção</a></li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -627,6 +628,75 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li><strong>Enviar só a I60 de um XML:</strong> <code>--enviar-i60 &lt;xml&gt;</code> no Worker; mostra o JSON e grava envio e resposta em <code>envio-manual-i60\</code>.</li>
 <li><strong>Em produção, mantenha <code>I60__Habilitada=false</code>.</strong></li>
 </ul>
+<h3>8.4. Devolução (I40): tela de chaves, desligada em produção</h3>
+<p>Plano B da devolução: uma página web, hospedada pelo próprio serviço, onde o colaborador digita ou bipa as chaves de NF-e; o sistema acha o XML em <code>Processados</code>, monta a I40 e envia ao WMS. Está <strong>desligada</strong> (<code>Devolucao:Habilitada=false</code>) e <strong>nada foi ligado em produção</strong>. No homolog (10/11), a I40 como IMP sem placa deu "Registrado com sucesso" e o recebimento foi concluído.</p>
+<p><strong>Habilitar (somente com OK do responsável e depois do firewall, ver <code>INSTALACAO-SERVIDOR.md</code>):</strong></p>
+<ol>
+<li>Defina <code>Devolucao__Habilitada=true</code> (variável de ambiente do serviço) ou <code>Devolucao:Habilitada</code> em <code>config\appsettings.Production.json</code>.</li>
+<li>Reinicie o serviço. No <code>logs\worker.out.log</code> deve aparecer "Tela de devolução ligada na porta 8085".</li>
+<li>Teste <code>http://&lt;servidor&gt;:8085/api/saude</code> (responde <code>{"status":"ok"}</code>).</li>
+</ol>
+<p><strong>Chaves (seção <code>Devolucao</code>):</strong></p>
+<table>
+<thead><tr>
+<th>Chave</th>
+<th>Padrão</th>
+<th>O que faz</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>Habilitada</code></td>
+<td><code>false</code></td>
+<td>Liga a tela. <code>false</code>: a porta não abre.</td>
+</tr>
+<tr>
+<td><code>Porta</code></td>
+<td><code>8085</code></td>
+<td>Porta HTTP (escuta em todas as interfaces; <strong>sem login</strong>).</td>
+</tr>
+<tr>
+<td><code>EnviarPlacaPadrao</code></td>
+<td><code>false</code></td>
+<td>Estado inicial do checkbox "Enviar placa do veículo".</td>
+</tr>
+<tr>
+<td><code>TipoOperacaoNota</code></td>
+<td><code>IMP</code></td>
+<td>Tipo de operação com a placa desligada (sem placa nem motorista).</td>
+</tr>
+<tr>
+<td><code>TipoOperacaoNotaComPlaca</code></td>
+<td><code>ICD</code></td>
+<td>Tipo com a placa ligada. No homolog ainda deu "Erro na criacao do controlador de veiculo" (provável cadastro de transportadora, motorista ou doca).</td>
+</tr>
+<tr>
+<td><code>NomeMotorista</code></td>
+<td>vazio</td>
+<td>Motorista fixo cadastrado no WMS. Obrigatório só com a placa ligada; vazio devolve erro 503.</td>
+</tr>
+<tr>
+<td><code>MaxChavesPorEnvio</code></td>
+<td><code>30</code></td>
+<td>Limite por envio.</td>
+</tr>
+<tr>
+<td><code>PastaAuditoria</code></td>
+<td>vazio</td>
+<td>Vazio = <code>&lt;Estado&gt;\devolucao</code>.</td>
+</tr>
+<tr>
+<td><code>InverterPartes</code></td>
+<td><code>false</code></td>
+<td>Validado no homolog; a variante invertida não é necessária.</td>
+</tr>
+</tbody></table>
+<p><strong>Regra da placa:</strong> desligada, <code>tipoOperacaoNota</code> = <code>TipoOperacaoNota</code>, <code>placaVeiculoPrevistoNota</code> e <code>nomeMotorista</code> em branco. Ligada, <code>tipoOperacaoNota</code> = <code>TipoOperacaoNotaComPlaca</code>, placa obrigatória (informada na tela) e <code>nomeMotorista</code> = <code>NomeMotorista</code>.</p>
+<p><strong>Firewall:</strong> a tela não tem login. Libere a porta <strong>somente para a rede interna</strong> (comando de exemplo em <code>INSTALACAO-SERVIDOR.md</code>, seção 3.12).</p>
+<p><strong>Auditoria:</strong> um arquivo por dia, <code>devolucao_yyyyMMdd.log</code>, em <code>Devolucao:PastaAuditoria</code> ou <code>&lt;Estado&gt;\devolucao</code>. Uma linha por chave: <code>data;ip;placa;chave;nota;status;transacao;mensagem</code>. Sem senha nem JSON. Cada envio também aparece em <code>logs\worker.out.log</code>.</p>
+<p><strong>Isolamento:</strong> a tela tem o próprio servidor web dentro do serviço. Se a porta estiver ocupada ou houver erro, o log registra "Tela de devolução falhou e foi desligada" e a integração das notas continua normalmente.</p>
+<p><strong>Erros da API:</strong> 400 (pedido inválido: lista vazia, mais de 30 chaves, placa ausente com o flag ligado), 503 (<code>NomeMotorista</code> ou <code>Pastas:Entrada</code> não configurados), 500 (erro inesperado; veja o log).</p>
+<p><strong>Para desligar:</strong> <code>Devolucao__Habilitada=false</code> e reiniciar o serviço.</p>
+<p><strong>Teste no homolog nesta máquina:</strong> <code>docs\ROTEIRO-TESTE-I40.md</code>.</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -736,6 +806,16 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td>Ligar/desligar envio da placa do veículo</td>
 <td>editar <code>I50:EnviarPlacaVeiculo</code> em <code>config\appsettings.Production.json</code></td>
 <td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Ligar/desligar a tela de devolução (I40)</td>
+<td><code>Devolucao__Habilitada</code> / <code>Devolucao:Habilitada</code> (e firewall, ver seção 8.4)</td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Ver a auditoria da devolução</td>
+<td><code>&lt;Estado&gt;\devolucao\devolucao_&lt;data&gt;.log</code></td>
+<td>Não</td>
 </tr>
 <tr>
 <td>Limpar já as pastas de não-XML (ExtensaoInvalida)</td>

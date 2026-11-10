@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-10</span>
-    <span>Vers&atilde;o: 2026.11.10-e3210a4</span>
+    <span>Vers&atilde;o: 2026.11.10-df9a83f</span>
   </div>
 </section>
   <header class="hd">
@@ -117,6 +117,7 @@
 <li><a href="#7-boas-práticas">Boas práticas</a></li>
 <li><a href="#8-como-reenviar-uma-nota-corrigida">Como reenviar uma nota corrigida</a></li>
 <li><a href="#9-perguntas-frequentes">Perguntas frequentes</a></li>
+<li><a href="#10-devolução-tela-de-chaves">Devolução: tela de chaves</a></li>
 </ol>
 <hr />
 <h2>1. O que o sistema faz</h2>
@@ -350,6 +351,80 @@
 <p><strong>O que é "Integrada — revisar produto"?</strong> A nota entrou no WMS normalmente, mas há um produto provisório que alguém precisa revisar depois no WMS. A integração em si deu certo.</p>
 <p><strong>Não recebi o e-mail de fechamento.</strong> O envio depende de você estar na lista de destinatários e do e-mail estar configurado. Fale com a TI para incluir seu endereço.</p>
 <p><strong>E se eu colocar um arquivo que não é XML?</strong> O sistema <strong>não</strong> integra arquivos que não sejam <code>.xml</code>. Ele move o arquivo para <code>Erro\pacote_&lt;data_hora&gt;\ExtensaoInvalida</code> e registra no relatório como <strong>"Arquivo ignorado (não é XML)"</strong> (status cinza, aviso — não é falha de nota). Esse arquivo é removido automaticamente depois de <strong>60 dias</strong>, junto com o restante do pacote. Para evitar isso, deposite <strong>apenas arquivos <code>.xml</code></strong> de nota fiscal na pasta de entrada. Arquivos que ainda estão sendo copiados (com extensão temporária como <code>.tmp</code>, <code>.part</code>, <code>.crdownload</code> etc.) são <strong>deixados em paz</strong>: o sistema não os processa nem os move, espera a cópia terminar. Quando a cópia acaba e o arquivo vira <code>.xml</code>, ele entra no fluxo normal.</p>
+<hr />
+<h2>10. Devolução: tela de chaves</h2>
+<blockquote><p><strong>Atenção:</strong> esta tela só funciona depois que a TI ligar o recurso. Enquanto isso não for feito, o endereço não abre. A TI informa o endereço quando estiver pronto.</p></blockquote>
+<p>Quando um cliente devolve mercadoria, você usa uma tela simples para avisar o WMS. Você só digita ou bipa a <strong>chave de acesso</strong> (os 44 números) da nota de venda original. O sistema acha o XML da nota sozinho e envia a devolução ao WMS.</p>
+<h3>Antes de começar</h3>
+<ul>
+<li>A nota de venda precisa ter sido integrada pelo sistema <strong>nos últimos 60 dias</strong>. Depois disso o XML é apagado e a tela avisa que não encontrou.</li>
+<li>Você não precisa de login nem senha.</li>
+<li>Use o computador ligado à rede da Friozem.</li>
+</ul>
+<h3>Passo a passo</h3>
+<ol>
+<li>Abra o navegador (Edge ou Chrome) e digite o endereço da tela que a TI informou. Aparece a página <strong>"Devolução: envio de chaves"</strong>, com o logo da Friozem.</li>
+<li>Clique no campo <strong>"Chave de acesso (44 dígitos)"</strong>. Ele já vem selecionado ao abrir a página.</li>
+<li><strong>Digite</strong> a chave ou <strong>bipe</strong> o código de barras da nota com o leitor, e tecle <strong>Enter</strong> (o leitor já faz isso sozinho). A chave entra na lista.</li>
+</ol>
+<ul>
+<li>Você também pode <strong>colar várias chaves de uma vez</strong>, uma por linha.</li>
+<li>O limite é <strong>30 chaves por envio</strong>. O contador mostra quantas você já colocou.</li>
+<li>Se a chave tiver número errado ou faltando, a tela avisa na hora e <strong>não</strong> coloca na lista.</li>
+<li>Se você colocar a mesma chave duas vezes, a tela guarda só uma.</li>
+<li>Para tirar uma chave da lista, clique em <strong>Remover</strong> ao lado dela.</li>
+</ul>
+<ol>
+<li><strong>Placa do veículo:</strong> por padrão a opção <strong>"Enviar placa do veículo"</strong> vem <strong>desmarcada</strong>, e isso é o normal. Deixe assim, a menos que a sua chefia peça para enviar a placa.</li>
+</ol>
+<ul>
+<li>Se precisar enviar a placa, <strong>marque</strong> a opção. Aparece o campo **"Placa do veículo (obrigatória)"**: digite a placa (por exemplo, ABC1D23).</li>
+</ul>
+<ol>
+<li>Clique em <strong>Enviar</strong>. O botão fica desativado até ter pelo menos uma chave e, enquanto o envio acontece, não clique de novo.</li>
+<li>Veja o quadro <strong>"3. Resultado"</strong>. Cada chave aparece numa linha, com a nota, a situação e a mensagem do WMS.</li>
+</ol>
+<h3>O que cada situação significa</h3>
+<table>
+<thead><tr>
+<th>Situação</th>
+<th>O que quer dizer</th>
+<th>O que fazer</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Enviada com sucesso</strong> (verde)</td>
+<td>O WMS registrou a devolução.</td>
+<td>Nada. Siga o recebimento no WMS.</td>
+</tr>
+<tr>
+<td><strong>Erro do WMS</strong> (vermelho)</td>
+<td>O WMS recusou. A mensagem explica o motivo.</td>
+<td>Leia a mensagem. Se não entender, chame a TI e informe a nota e a mensagem.</td>
+</tr>
+<tr>
+<td><strong>XML não encontrado (retenção de 60 dias)</strong> (amarelo)</td>
+<td>O sistema não achou o XML dessa nota. A venda pode ser mais antiga que 60 dias, ou a nota nunca foi integrada.</td>
+<td>Confira a chave. Se a venda for antiga, a devolução precisa ser feita direto no WMS.</td>
+</tr>
+<tr>
+<td><strong>Chave inválida</strong> (vermelho)</td>
+<td>A chave não tem 44 números ou algum número está errado.</td>
+<td>Digite ou bipe de novo.</td>
+</tr>
+<tr>
+<td><strong>Erro ao ler o XML</strong> (vermelho)</td>
+<td>O arquivo existe, mas não foi possível ler.</td>
+<td>Chame a TI.</td>
+</tr>
+</tbody></table>
+<p>Uma chave com problema <strong>não impede</strong> as outras: as demais do mesmo envio seguem normalmente.</p>
+<h3>Dicas</h3>
+<ul>
+<li>Para reenviar só as chaves com problema, use <strong>Limpar lista</strong>, digite novamente apenas as que precisam e envie.</li>
+<li>Não precisa de mouse: use <strong>Tab</strong> para passar de um campo para o outro e <strong>Enter</strong> para adicionar a chave.</li>
+<li>Se a página não abrir ou der erro de conexão, avise a TI. Isso não afeta o envio normal das notas.</li>
+</ul>
 
   </main>
   <footer class="ft">
