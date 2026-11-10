@@ -35,8 +35,8 @@ $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
 try { $env:WMS__Senha = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
 finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 
-# URL do HOMOLOG (preencha com a URL de homolog; NAO a de producao)
-$env:WMS__BaseUrl = '<url-base-da-api-do-homolog>'
+# URL do HOMOLOG (porta 8888). A de producao NAO tem a porta :8888.
+$env:WMS__BaseUrl = 'https://friozem.assistsoftware.com.br:8888/wmsapi/api'
 
 # Pasta onde estao os XMLs de teste (o padrao do appsettings aponta para outra pasta)
 $env:Pastas__Entrada = 'C:\wms-teste\entrada'
