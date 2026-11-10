@@ -36,5 +36,13 @@ public sealed class OpcoesI60
     /// Troca sem release: variável de ambiente <c>I60__TipoOperacaoNota</c>.
     /// </summary>
     public string TipoOperacaoNota { get; set; } = TipoOperacaoNotaPadrao;
+
+    /// <summary>
+    /// Diagnóstico de homolog: quando <c>true</c>, a I60 envia <c>qtdeVolume = 0</c> em vez da
+    /// soma das caixas dos itens. Serve para testar se a conferência de volume do WMS passa
+    /// com o valor que ele lê hoje (0) e expor a próxima conferência. Default <c>false</c>
+    /// (envia a soma). Troca sem release: variável de ambiente <c>I60__QtdeVolumeZero</c>.
+    /// </summary>
+    public bool QtdeVolumeZero { get; set; } = false;
 }
 

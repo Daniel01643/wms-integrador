@@ -45,7 +45,8 @@ public sealed class ConstrutorI60 : IConstrutorI60
         // qtdeVolume = soma das quantidades em caixas dos itens (a mesma quantidade que a I50
         // envia por item e que o código customizado do WMS soma em QTD_VOLUMES do DocCarga).
         // NÃO usa transp/vol/qVol do XML: assim I50 -> PL/SQL e I60 batem por construção.
-        var qtdeVolume = CalcularQtdeVolume(nota);
+        // Diagnóstico (I60:QtdeVolumeZero=true): envia 0 para testar a conferência do WMS.
+        var qtdeVolume = _i60.QtdeVolumeZero ? 0m : CalcularQtdeVolume(nota);
 
         var itens = new List<ItemNotaVendaI60>(nota.Itens.Count);
         for (var i = 0; i < nota.Itens.Count; i++)

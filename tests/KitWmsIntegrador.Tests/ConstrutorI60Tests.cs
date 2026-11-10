@@ -211,6 +211,27 @@ public class ConstrutorI60Tests
         Assert.Contains("\"tipoOperacaoNota\":\"INV\"", construtor.ConstruirJson(LerXml1()));
     }
 
+    [Fact]
+    public void QtdeVolumeZero_Ligado_EnviaZeroEMantemQtdeTotal()
+    {
+        var construtor = Criar(i60: new OpcoesI60 { QtdeVolumeZero = true });
+
+        var nv = Assert.Single(construtor.Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal(0m, nv.QtdeVolume);
+        Assert.Equal(36m, nv.QtdeTotalNota); // so o volume zera; o resto do payload segue igual
+    }
+
+    [Fact]
+    public void QtdeVolumeZero_PadraoDesligado_EnviaSomaDasCaixas()
+    {
+        Assert.False(new OpcoesI60().QtdeVolumeZero);
+
+        var nv = Assert.Single(Criar(i60: new OpcoesI60()).Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal(36m, nv.QtdeVolume);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
