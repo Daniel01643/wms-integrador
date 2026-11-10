@@ -51,8 +51,11 @@ quantidade da I60 (retomar terça 03/11).
 
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
-| 2026-11-10 | 3,5 | 2,5 | 6,0 | I60 Plano A pausado (aguarda fornecedor); início do Plano B (I40) |
-| **Total parcial** | **3,5** | **2,5** | **6,0** | |
+| 2026-11-10 | 4,5 | 7,5 | 12,0 | I60 Plano A pausado (aguarda fornecedor); I40 validada no homolog e tela de devolução implementada |
+| **Total parcial** | **4,5** | **7,5** | **12,0** | |
+
+**Projeto pausado em 10/11.** I60 (Plano A) aguarda o fornecedor; I40 (Plano B) com formato validado
+no homolog e tela de devolução pronta e desligada, aguardando teste da tela no homolog.
 
 **Resumo parcial:**
 - Plano A (I60 automática) testado no homolog e pausado: ver `docs/wms-codigo-customizado/HISTORICO-PLANO-A.md`.
