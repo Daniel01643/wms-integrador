@@ -20,6 +20,12 @@ if (args.Contains(SmokeTestWms.Argumento))
     return await SmokeTestWms.ExecutarAsync(args);
 }
 
+// Envio manual de diagnóstico: só a I60 a partir de um XML (fora do fluxo padrão).
+if (args.Contains(EnvioManualI60.Argumento))
+{
+    return await EnvioManualI60.ExecutarAsync(args);
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
 // Config de e-mail dedicada (opcional, ignorada pelo git): email.settings.json ao lado do exe.
