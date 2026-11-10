@@ -305,3 +305,27 @@ falhar, o resumo **não falha**: o HTML e o PDF são gravados em `<telemetria>\r
 - `Pastas:Estado` e `Relatorio:PastaSaida` não podem ficar iguais nem dentro de `Processados`/`Erro` (a limpeza apagaria o diário e os relatórios); o serviço não inicia nesse caso (erro no log).
 - Valores padrão de janela de coleta, backoff e timeout são estimativas a validar em operação.
 - Não validado contra WMS ou SMTP reais (somente testes automatizados com fakes).
+
+## 8. Devolução pela I40: tela de chaves (Plano B)
+
+Recurso **desligado** (`Devolucao:Habilitada=false`). Nada foi ligado em produção. Quando ligado, o
+Worker abre uma página web simples na porta `Devolucao:Porta` (padrão 8085), sem login, onde o
+colaborador digita ou bipa chaves de NF-e (até 30 por envio). O sistema localiza o XML da venda em
+`Processados` (retenção de 60 dias), monta a I40 (`tipoNota=DE`) e envia ao WMS, mostrando o
+resultado por chave.
+
+- **Placa:** o checkbox "Enviar placa do veículo" começa desmarcado (`Devolucao:EnviarPlacaPadrao=false`).
+  Desmarcado, o envio vai como `IMP`, sem placa nem motorista (validado no homolog: "Registrado com
+  sucesso" e recebimento concluído). Marcado, vai como `ICD`, com a placa informada na tela e o
+  motorista fixo `Devolucao:NomeMotorista`; o ICD ainda deu "Erro na criacao do controlador de veiculo"
+  no homolog.
+- **Auditoria:** `<Estado>\devolucao\devolucao_yyyyMMdd.log` (ou `Devolucao:PastaAuditoria`), uma linha por
+  chave com data, IP de origem, placa, chave, nota, status, transação e mensagem. Sem senha.
+  Cada chave também aparece em `logs\worker.out.log`.
+- **Sem estado:** a tela não guarda histórico além da auditoria. Se a mesma nota for enviada duas
+  vezes, quem decide é o WMS.
+- **Isolamento:** falha da tela (porta ocupada, erro) é registrada e não derruba o ciclo de pacotes.
+- **Segurança:** não há login. Libere a porta no firewall **somente para a rede interna**
+  (`docs/INSTALACAO-SERVIDOR.md`, seção 3.12).
+- **Ligar/desligar:** `Devolucao__Habilitada=true|false` e reiniciar o serviço (Manual Técnico, seção 8.4).
+- **Verificar:** `GET http://<servidor>:<porta>/api/saude` deve responder `{"status":"ok"}`.

@@ -323,6 +323,39 @@ drive, ignora junctions/symlinks e nunca toca em nada fora de `Erro` nem em outr
 
 ---
 
+### 3.12 Tela de devolução (I40): firewall restrito e como ligar em produção
+A tela de devolução está **desligada** por padrão (`Devolucao:Habilitada=false` no `appsettings.json` e no
+`appsettings.Production.json` de exemplo). **Nada deste item é executado pela instalação**: o procedimento
+abaixo é para quando o responsável autorizar. A tela não tem login; o controle de acesso é o firewall.
+
+**Viabilidade (2012 R2 / NSSM):** o Kestrel usa sockets e dispensa IIS, HTTP.sys e `netsh http add urlacl`.
+O .NET 8 self-contained já roda neste servidor sob NSSM; uma porta a mais não muda o NSSM. Não houve
+impedimento técnico; o teste real no servidor ainda não foi feito.
+
+**Ordem para ligar (somente com OK do responsável):**
+1. Publique a versão nova (itens 3.2 a 3.9) **com a tela ainda desligada** e confirme que o serviço
+   sobe normalmente.
+2. Crie a regra de firewall restrita à rede interna (no servidor, PowerShell como administrador;
+   o cmdlet existe no 2012 R2). Substitua `<REDE_INTERNA>` pela sub-rede que usa a tela (ex.: a faixa
+   da matriz) e mantenha a porta igual a `Devolucao:Porta`:
+   ```powershell
+   # EXEMPLO - NAO executado pela instalacao. Ajuste a sub-rede antes de rodar.
+   New-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)' -Direction Inbound -Protocol TCP `
+       -LocalPort 8085 -RemoteAddress '<REDE_INTERNA>' -Action Allow -Profile Domain
+   ```
+   Não use `-RemoteAddress Any`. Para remover: `Remove-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)'`.
+3. Em `config\appsettings.Production.json` (bloco `Devolucao`) defina `"Habilitada": true`. Para a placa,
+   defina também `"NomeMotorista"` (motorista fixo cadastrado no WMS) e deixe `"EnviarPlacaPadrao": false`.
+   Alternativa: variável de ambiente `Devolucao__Habilitada=true`.
+4. Reinicie o serviço (`.\servico.ps1 -Acao Restart`) e confira no `logs\worker.out.log` a linha
+   "Tela de devolução ligada na porta 8085".
+5. De uma máquina da rede interna, abra `http://SRVAPPALC02:8085/api/saude` (deve responder
+   `{"status":"ok"}`) e depois a página `http://SRVAPPALC02:8085/`.
+6. Um teste com **uma** nota real só depois de combinar com o responsável do WMS.
+
+**Para desligar:** `Habilitada` volta a `false`, reinicie o serviço e, se quiser, remova a regra de firewall.
+A auditoria fica em `<Estado>\devolucao\` (pasta de estado do serviço).
+
 ## 4. Conta do serviço
 
 Por padrão o serviço roda como **LocalSystem** (`NT AUTHORITY\SYSTEM`). Como a pasta de entrada é
