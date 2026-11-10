@@ -413,6 +413,20 @@ Para **religar**, volte a chave para `true` (ou remova-a: o padrão é `true`).
 > powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart
 > ```
 
+### 8.3. I60 (associação automática da nota de venda): desligada em produção
+
+Situação: a I60 está **desligada em produção** (`I60:Habilitada=false`, padrão). O Plano A (a I60
+associar sozinha a nota de venda ao DocCarga criado pela I50) foi **testado no WMS de homologação em
+09/11 e 10/11 e está pausado, aguardando o fornecedor do WMS**. Nada foi para produção. Histórico
+completo em `docs\wms-codigo-customizado\HISTORICO-PLANO-A.md`.
+
+- **Como ligar (somente em teste/homologação, com OK do responsável):** defina `I60__Habilitada=true`
+  (variável de ambiente, ou `I60:Habilitada` no `appsettings`) e reinicie o serviço.
+- **Opções de diagnóstico (teste):** `I60__TipoOperacaoNota` (padrão `INE`) e `I60__QtdeVolumeZero`
+  (`true` envia `qtdeVolume = 0`, usado só para isolar a conferência de volumes).
+- **Enviar só a I60 de um XML:** `--enviar-i60 <xml>` no Worker; mostra o JSON e grava envio e resposta
+  em `envio-manual-i60\`.
+- **Em produção, mantenha `I60__Habilitada=false`.**
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -544,7 +558,7 @@ Antes de aceitar qualquer sugestão da IA, confira estes **guarda-rails**:
 
 - **Não versione nem exponha segredos** do WMS/SMTP (as env `WMS__*` e o `email.settings.json`
   continuam sensíveis; nada de colar senha em prompt, log ou resposta).
-- **Não ligue a I60** (`I60:Habilitada` deve seguir `false`; os dados fiscais vão na I50).
+- **Não ligue a I60 em produção** (`I60:Habilitada` deve seguir `false`; testada no homolog, pausada aguardando o fornecedor; ver seção 8.3). Os dados fiscais vão na I50.
 - **Valide mudança de código** com build + test **no repositório, fora de produção**, antes de
   promover.
 - **Não rode teste de carga** em produção ou homologação sem o **OK do responsável**.

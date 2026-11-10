@@ -121,7 +121,7 @@ para a entrada real nem credenciais reais em testes exploratórios.
 
 - **Não** altere as decisões do Orquestrador (I50/I10/I30, nº de tentativas, classificação de erro)
   sem necessidade comprovada e aprovação — é o núcleo do comportamento de integração.
-- **Não** ligue a I60 (`I60:Habilitada` deve seguir `false`; a I60 está descontinuada e os dados
+- **Não** ligue a I60 (`I60:Habilitada` deve seguir `false`; a I60 foi testada no homolog e está pausada aguardando o fornecedor; os dados
   fiscais vão na I50).
 - **Não** versione, imprima em log ou cole em respostas segredos (WMS/SMTP). Trate `email.settings.json`
   e as env `WMS__*` como sensíveis.

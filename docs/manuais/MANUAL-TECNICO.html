@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-06</span>
-    <span>Vers&atilde;o: 2026.11.06-a12f378</span>
+    <span>Gerado em: 2026-11-10</span>
+    <span>Vers&atilde;o: 2026.11.10-e3210a4</span>
   </div>
 </section>
   <header class="hd">
@@ -619,6 +619,14 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <blockquote><p>A chave também pode ser sobrescrita por <strong>variável de ambiente de máquina</strong> <code>I50__EnviarPlacaVeiculo</code> (dois underscores). Na dúvida, prefira editar o <code>appsettings.Production.json</code>.</p></blockquote>
 <blockquote><p><strong>Só envia se existir no XML.</strong> A placa só vai preenchida quando a nota traz <code>transp/veicTransp/placa</code>. Se o XML não tiver esse campo, a placa vai <strong>em branco</strong> mesmo com a chave em <code>true</code> (não é erro).</p></blockquote>
 <blockquote><p><strong>Depois de editar, REINICIE o serviço</strong> para a mudança valer:  ```powershell cd C:\Friozem\importacao_notas\tools\deploy powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart ```</p></blockquote>
+<h3>8.3. I60 (associação automática da nota de venda): desligada em produção</h3>
+<p>Situação: a I60 está <strong>desligada em produção</strong> (<code>I60:Habilitada=false</code>, padrão). O Plano A (a I60 associar sozinha a nota de venda ao DocCarga criado pela I50) foi **testado no WMS de homologação em 09/11 e 10/11 e está pausado, aguardando o fornecedor do WMS**. Nada foi para produção. Histórico completo em <code>docs\wms-codigo-customizado\HISTORICO-PLANO-A.md</code>.</p>
+<ul>
+<li><strong>Como ligar (somente em teste/homologação, com OK do responsável):</strong> defina <code>I60__Habilitada=true</code> (variável de ambiente, ou <code>I60:Habilitada</code> no <code>appsettings</code>) e reinicie o serviço.</li>
+<li><strong>Opções de diagnóstico (teste):</strong> <code>I60__TipoOperacaoNota</code> (padrão <code>INE</code>) e <code>I60__QtdeVolumeZero</code> (<code>true</code> envia <code>qtdeVolume = 0</code>, usado só para isolar a conferência de volumes).</li>
+<li><strong>Enviar só a I60 de um XML:</strong> <code>--enviar-i60 &lt;xml&gt;</code> no Worker; mostra o JSON e grava envio e resposta em <code>envio-manual-i60\</code>.</li>
+<li><strong>Em produção, mantenha <code>I60__Habilitada=false</code>.</strong></li>
+</ul>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -772,7 +780,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <p>Antes de aceitar qualquer sugestão da IA, confira estes <strong>guarda-rails</strong>:</p>
 <ul>
 <li><strong>Não versione nem exponha segredos</strong> do WMS/SMTP (as env <code>WMS__*</code> e o <code>email.settings.json</code> continuam sensíveis; nada de colar senha em prompt, log ou resposta).</li>
-<li><strong>Não ligue a I60</strong> (<code>I60:Habilitada</code> deve seguir <code>false</code>; os dados fiscais vão na I50).</li>
+<li><strong>Não ligue a I60 em produção</strong> (<code>I60:Habilitada</code> deve seguir <code>false</code>; testada no homolog, pausada aguardando o fornecedor; ver seção 8.3). Os dados fiscais vão na I50.</li>
 <li><strong>Valide mudança de código</strong> com build + test <strong>no repositório, fora de produção</strong>, antes de promover.</li>
 <li><strong>Não rode teste de carga</strong> em produção ou homologação sem o <strong>OK do responsável</strong>.</li>
 <li><strong>Config antes de código</strong>: prefira ajustar configuração (JSON e os TXT de destinatários) a mexer no código; e deixe a <strong>execução no servidor</strong> (restart, publicar, rollback) para o técnico humano.</li>
