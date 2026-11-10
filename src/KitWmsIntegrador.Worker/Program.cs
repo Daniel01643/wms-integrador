@@ -26,6 +26,12 @@ if (args.Contains(EnvioManualI60.Argumento))
     return await EnvioManualI60.ExecutarAsync(args);
 }
 
+// Envio manual de teste da I40 (devolução, Plano B fase 1): chave + placa (+ --xml opcional).
+if (args.Contains(EnvioManualI40.Argumento))
+{
+    return await EnvioManualI40.ExecutarAsync(args);
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
 // Config de e-mail dedicada (opcional, ignorada pelo git): email.settings.json ao lado do exe.
@@ -60,6 +66,12 @@ builder.Services
     .AddOptions<OpcoesI60>()
     .Bind(builder.Configuration.GetSection(OpcoesI60.Secao));
 
+// Devolução pela I40 (Plano B, seção "Devolucao"). Desligada por padrão; na fase 1 só o modo
+// manual --enviar-i40 usa estas opções (tela web na fase 2).
+builder.Services
+    .AddOptions<OpcoesDevolucao>()
+    .Bind(builder.Configuration.GetSection(OpcoesDevolucao.Secao));
+
 // Relatório de erros/pendências (HTML + PDF). Pasta de saída vem da seção "Relatorio"
 // (override por env Relatorio__PastaSaida). Sem rede — só monta e grava arquivos.
 builder.Services
@@ -73,6 +85,7 @@ builder.Services.AddSingleton<IConstrutorI50, ConstrutorI50>();
 builder.Services.AddSingleton<IConstrutorI60, ConstrutorI60>();
 builder.Services.AddSingleton<IConstrutorI10, ConstrutorI10>();
 builder.Services.AddSingleton<IConstrutorI30, ConstrutorI30>();
+builder.Services.AddSingleton<IConstrutorI40, ConstrutorI40>();
 
 // Classificador de retorno do WMS (por texto). Peça pura, sem rede — consumida pelo
 // Orquestrador (FEAT-002) para decidir pré-condições e tentativas.
