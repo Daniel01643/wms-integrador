@@ -27,4 +27,25 @@ public class OpcoesI60Tests
         Assert.NotNull(opcoes);
         Assert.True(opcoes!.Habilitada);
     }
+
+    [Fact]
+    public void TipoOperacaoNota_DefaultEIne()
+    {
+        Assert.Equal("INE", new OpcoesI60().TipoOperacaoNota);
+    }
+
+    [Fact]
+    public void Bind_LeTipoOperacaoNota()
+    {
+        var configuracao = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[]
+            {
+                new KeyValuePair<string, string?>("I60:TipoOperacaoNota", "INV"),
+            })
+            .Build();
+
+        var opcoes = configuracao.GetSection(OpcoesI60.Secao).Get<OpcoesI60>();
+
+        Assert.Equal("INV", opcoes!.TipoOperacaoNota);
+    }
 }

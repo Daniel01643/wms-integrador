@@ -23,9 +23,22 @@ public class ConstrutorI60Tests
         CnpjDepositante = "01.838.723/0098-50",
     };
 
-    private static ConstrutorI60 Criar(OpcoesOperacionais? op = null) =>
-        new(Options.Create(op ?? OperacionalPadrao()));
+    private static ConstrutorI60 Criar(OpcoesOperacionais? op = null, OpcoesI60? i60 = null) =>
+        new(Options.Create(op ?? OperacionalPadrao()), Options.Create(i60 ?? new OpcoesI60()));
 
+    private static NotaFiscal NotaComQuantidades(string? qVolXml, params decimal[] quantidades) =>
+        LerXml1() with
+        {
+            Volumes = new VolumeTransporte
+            {
+                QuantidadeVolumes = qVolXml,
+                PesoBruto = 10m,
+                PesoLiquido = 9m,
+            },
+            Itens = quantidades
+                .Select((q, i) => new ItemNota { CodigoProduto = $"P{i + 1}", Quantidade = q })
+                .ToList(),
+        };
     [Fact]
     public void Construir_UmaNota_GeraUmaUnicaNotaVenda()
     {
@@ -111,10 +124,115 @@ public class ConstrutorI60Tests
 
         Assert.Equal(275.640m, nv.PesoLiquidoKg);
         Assert.Equal(302.675m, nv.PesoBrutoKg);
-        Assert.Equal(36m, nv.QtdeVolume);
+        Assert.Equal(36m, nv.QtdeVolume); // soma dos itens (12 + 24), igual ao qVol deste XML
         Assert.Equal(12644.40m, nv.ValorTotal);
     }
 
+    [Fact]
+    public void QtdeVolume_VariosItens_ESomaDasQuantidades()
+    {
+        var nota = NotaComQuantidades("5", 12m, 24m, 3m, 1m);
+
+        var nv = Assert.Single(Criar().Construir(nota).NotasVenda);
+
+        Assert.Equal(40m, nv.QtdeVolume);
+        Assert.Equal(40m, nv.QtdeTotalNota);
+    }
+
+    [Fact]
+    public void QtdeVolume_QVolDoXmlDifere_PrevaleceASoma()
+    {
+        // qVol do XML = 7, mas a soma das caixas dos itens = 36: deve prevalecer a soma.
+        var nota = NotaComQuantidades("7", 12m, 24m);
+
+        var nv = Assert.Single(Criar().Construir(nota).NotasVenda);
+
+        Assert.Equal(36m, nv.QtdeVolume);
+    }
+
+    [Fact]
+    public void QtdeVolume_SemVolumesNoXml_UsaSomaDosItens()
+    {
+        var nota = NotaComQuantidades(null, 12m, 24m) with { Volumes = null };
+
+        var nv = Assert.Single(Criar().Construir(nota).NotasVenda);
+
+        Assert.Equal(36m, nv.QtdeVolume);
+    }
+
+    [Fact]
+    public void QtdeVolume_BateComSomaEnviadaNaI50()
+    {
+        // Por construção: soma da QuantidadeProduto por item da I50 == qtdeVolume da I60.
+        var nota = NotaComQuantidades("99", 12m, 24m, 5m);
+
+        var i50 = new ConstrutorI50(Options.Create(OperacionalPadrao()), Options.Create(new OpcoesI50()));
+        var somaI50 = Assert.Single(i50.Construir(nota, "123").Pedido)
+            .ItemPedido.Sum(i => i.QuantidadeProduto);
+        var nv = Assert.Single(Criar().Construir(nota).NotasVenda);
+
+        Assert.Equal(somaI50, nv.QtdeVolume);
+    }
+
+    [Theory]
+    [InlineData("36.4", 36)]   // fração < 0,5 -> para baixo
+    [InlineData("36.5", 37)]   // meio -> para longe de zero
+    [InlineData("36.6", 37)]   // fração > 0,5 -> para cima
+    public void QtdeVolume_SomaComFracao_ArredondaParaInteiro(string soma, decimal esperado)
+    {
+        var total = decimal.Parse(soma, System.Globalization.CultureInfo.InvariantCulture);
+        var nota = NotaComQuantidades("1", total - 10m, 10m);
+
+        var nv = Assert.Single(Criar().Construir(nota).NotasVenda);
+
+        Assert.Equal(esperado, nv.QtdeVolume);
+        Assert.Equal(total, nv.QtdeTotalNota); // qtdeTotalNota segue sem arredondar
+    }
+
+    [Fact]
+    public void TipoOperacaoNota_PadraoEIne_NosDoisCampos()
+    {
+        var nv = Assert.Single(Criar().Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal("INE", nv.TipoOperacaoNota);
+        Assert.Equal("INE", nv.Tpsit);
+    }
+
+    [Fact]
+    public void TipoOperacaoNota_Configurado_AplicaEmTpsitETipoOperacaoNota()
+    {
+        var construtor = Criar(i60: new OpcoesI60 { TipoOperacaoNota = " INV " });
+
+        var nv = Assert.Single(construtor.Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal("INV", nv.TipoOperacaoNota);
+        Assert.Equal("INV", nv.Tpsit);
+        Assert.Contains("\"Tpsit\":\"INV\"", construtor.ConstruirJson(LerXml1()));
+        Assert.Contains("\"tipoOperacaoNota\":\"INV\"", construtor.ConstruirJson(LerXml1()));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void TipoOperacaoNota_Vazio_VoltaAoPadrao(string valor)
+    {
+        var construtor = Criar(i60: new OpcoesI60 { TipoOperacaoNota = valor });
+
+        var nv = Assert.Single(construtor.Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal("INE", nv.TipoOperacaoNota);
+        Assert.Equal("INE", nv.Tpsit);
+    }
+
+    [Fact]
+    public void ConstrutorI60_SemOpcoesI60_UsaPadrao()
+    {
+        var construtor = new ConstrutorI60(Options.Create(OperacionalPadrao()));
+
+        var nv = Assert.Single(construtor.Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal("INE", nv.Tpsit);
+    }
     [Fact]
     public void Construir_Itens_MapeiamQCom()
     {

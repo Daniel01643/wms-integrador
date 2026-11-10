@@ -24,4 +24,17 @@ public sealed class OpcoesI60
     /// Etapa 5 deve consultar esta flag antes de montar/enviar a I60.
     /// </summary>
     public bool Habilitada { get; set; } = false;
+
+    /// <summary>Valor padrão de <see cref="TipoOperacaoNota"/> (o do template atual).</summary>
+    public const string TipoOperacaoNotaPadrao = "INE";
+
+    /// <summary>
+    /// Tipo de operação da nota na I60: preenche <c>tipoOperacaoNota</c> e <c>Tpsit</c> com o
+    /// mesmo valor (como nos JSONs do chamado). Default <c>INE</c> (vincula sem gerar
+    /// embarque). Valores citados na documentação do repo: IMB, INE, IMP. "INV" NÃO consta
+    /// em nenhum documento versionado: trocar só após confirmação do fornecedor/homolog.
+    /// Troca sem release: variável de ambiente <c>I60__TipoOperacaoNota</c>.
+    /// </summary>
+    public string TipoOperacaoNota { get; set; } = TipoOperacaoNotaPadrao;
 }
+

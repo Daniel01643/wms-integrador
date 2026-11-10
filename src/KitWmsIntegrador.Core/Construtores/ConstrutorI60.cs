@@ -15,10 +15,17 @@ namespace KitWmsIntegrador.Core.Construtores;
 public sealed class ConstrutorI60 : IConstrutorI60
 {
     private readonly OpcoesOperacionais _operacional;
+    private readonly OpcoesI60 _i60;
 
-    public ConstrutorI60(IOptions<OpcoesOperacionais> operacional)
+    /// <param name="operacional">CNPJs/depósito operacionais.</param>
+    /// <param name="i60">
+    /// Opções da I60 (tipo de operação). Opcional: sem ela vale o default de
+    /// <see cref="OpcoesI60"/>.
+    /// </param>
+    public ConstrutorI60(IOptions<OpcoesOperacionais> operacional, IOptions<OpcoesI60>? i60 = null)
     {
         _operacional = operacional.Value;
+        _i60 = i60?.Value ?? new OpcoesI60();
     }
 
     /// <inheritdoc />
@@ -34,8 +41,11 @@ public sealed class ConstrutorI60 : IConstrutorI60
             : nota.TransportadoraCnpj!;
 
         var volumes = nota.Volumes;
-        var qtdeVolume = ParseDecimalOuZero(volumes?.QuantidadeVolumes);
         var qtdeTotal = nota.Itens.Sum(i => i.Quantidade);
+        // qtdeVolume = soma das quantidades em caixas dos itens (a mesma quantidade que a I50
+        // envia por item e que o código customizado do WMS soma em QTD_VOLUMES do DocCarga).
+        // NÃO usa transp/vol/qVol do XML: assim I50 -> PL/SQL e I60 batem por construção.
+        var qtdeVolume = CalcularQtdeVolume(nota);
 
         var itens = new List<ItemNotaVendaI60>(nota.Itens.Count);
         for (var i = 0; i < nota.Itens.Count; i++)
@@ -56,6 +66,10 @@ public sealed class ConstrutorI60 : IConstrutorI60
                 DataValidade = FormatoWms.Data(item.Validade) ?? string.Empty,
             });
         }
+
+        var tipoOperacao = string.IsNullOrWhiteSpace(_i60.TipoOperacaoNota)
+            ? OpcoesI60.TipoOperacaoNotaPadrao
+            : _i60.TipoOperacaoNota.Trim();
 
         var notaVenda = new NotaVendaI60
         {
@@ -86,8 +100,11 @@ public sealed class ConstrutorI60 : IConstrutorI60
             Pedidos = new[] { nota.Numero },
 
             ItemNotaVenda = itens,
-            // Campos fixos (tipoNota="AR", formaTransporte="PR", tpacao="I",
-            // Tpsit="INE", Tpnota="NV", tipoOperacaoNota="INE") vêm dos defaults do DTO.
+            // Tipo de operação: configurável (I60:TipoOperacaoNota), sem release.
+            Tpsit = tipoOperacao,
+            TipoOperacaoNota = tipoOperacao,
+            // Campos fixos (tipoNota="AR", formaTransporte="PR", tpacao="I", Tpnota="NV")
+            // vêm dos defaults do DTO.
         };
 
         return new PayloadI60 { NotasVenda = new[] { notaVenda } };
@@ -97,12 +114,13 @@ public sealed class ConstrutorI60 : IConstrutorI60
     public string ConstruirJson(NotaFiscal nota) =>
         JsonSerializer.Serialize(Construir(nota), JsonWms.Opcoes);
 
-    private static decimal ParseDecimalOuZero(string? raw) =>
-        decimal.TryParse(
-            raw,
-            System.Globalization.NumberStyles.Number,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out var value)
-            ? value
-            : 0m;
+    /// <summary>
+    /// Regra do <c>qtdeVolume</c> (inteiro no WMS: 12 posições, 0 decimais): soma das
+    /// quantidades dos itens (caixas). Se a soma tiver fração (incomum, pois a nota está em
+    /// caixas), arredonda ao inteiro mais próximo, meio para longe de zero
+    /// (<see cref="MidpointRounding.AwayFromZero"/>). Atenção: o PL/SQL grava a soma sem
+    /// arredondar; com fração a I60 pode divergir do DocCarga.
+    /// </summary>
+    internal static decimal CalcularQtdeVolume(NotaFiscal nota) =>
+        Math.Round(nota.Itens.Sum(i => i.Quantidade), 0, MidpointRounding.AwayFromZero);
 }

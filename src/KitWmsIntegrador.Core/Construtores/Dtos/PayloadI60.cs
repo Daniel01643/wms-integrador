@@ -83,7 +83,11 @@ public sealed record NotaVendaI60
     [JsonPropertyName("pesoLiquidoKg")]
     public decimal PesoLiquidoKg { get; init; }
 
-    /// <summary>Qtd de volumes — <c>transp/vol/qVol</c>.</summary>
+    /// <summary>
+    /// Qtd de volumes — soma das quantidades (caixas) dos itens, igual ao que o código
+    /// customizado do WMS grava em QTD_VOLUMES do DocCarga (NÃO usa <c>transp/vol/qVol</c>).
+    /// Inteiro no WMS; fração é arredondada (ver ConstrutorI60.CalcularQtdeVolume).
+    /// </summary>
     [JsonPropertyName("qtdeVolume")]
     public decimal QtdeVolume { get; init; }
 
@@ -140,7 +144,10 @@ public sealed record NotaVendaI60
     [JsonPropertyName("numeroDoca")]
     public string NumeroDoca { get; init; } = string.Empty;
 
-    /// <summary>Tipo de operação da nota — fixo "INE" (template). A CONFIRMAR p/ BRF.</summary>
+    /// <summary>
+    /// Tipo de operação da nota. Default "INE" (template); o ConstrutorI60 sobrescreve com
+    /// <c>I60:TipoOperacaoNota</c>. A CONFIRMAR p/ BRF (ver OpcoesI60).
+    /// </summary>
     [JsonPropertyName("tipoOperacaoNota")]
     public string TipoOperacaoNota { get; init; } = "INE";
 
@@ -172,8 +179,9 @@ public sealed record NotaVendaI60
     public string Tpsep { get; init; } = string.Empty;
 
     /// <summary>
-    /// Tipo de situação — fixo "INE" (template): IMB gera embarque / INE vincula sem
-    /// gerar embarque. A CONFIRMAR (IMB vs INE p/ BRF).
+    /// Tipo de situação — default "INE" (template): IMB gera embarque / INE vincula sem
+    /// gerar embarque. O ConstrutorI60 sobrescreve com <c>I60:TipoOperacaoNota</c>.
+    /// A CONFIRMAR (IMB vs INE p/ BRF).
     /// </summary>
     [JsonPropertyName("Tpsit")]
     public string Tpsit { get; init; } = "INE";
