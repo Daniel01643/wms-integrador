@@ -15,6 +15,18 @@ de volume entre DocCarga e nota de venda bate.
 Mantém o esqueleto do código original (cabeçalho, `DECLARE` com os três parâmetros
 `:pIdDoc1`, `:pIdDoc2`, `:pIdDoc3`, `BEGIN ... END`). Só o miolo, marcado como CORAÇÃO, é novo.
 
+## Erros (raise_application_error -20200)
+Seguem o padrão dos códigos customizados da casa (`vMsgErro` com ponto de função):
+
+| Código | Quando |
+|---|---|
+| `QTDVOL-PRE:1` | Falha não tratada ao somar as caixas dos itens |
+| `QTDVOL-PRE:2` | Doccarga sem itens, ou com soma de caixas igual a zero |
+| `QTDVOL-PRE:3` | Doccarga não encontrada ao gravar, ou falha não tratada no UPDATE |
+
+Qualquer um desses erros aborta a importação daquele DocCarga. O integrador recebe a
+mensagem do WMS e a nota aparece como não integrada no relatório do pacote, com o motivo.
+
 ## O que não faz
 Não altera itens, onda (`nroagrupseparacao`), observação, atributos nem quantidades.
 Nada da lógica da Unidasul foi mantida.
