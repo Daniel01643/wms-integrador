@@ -62,6 +62,9 @@ public static class EnvioManualI60
             var payload = construtor.Construir(nota);
             var nv = payload.NotasVenda[0];
 
+            // Mostra o JSON exato que vai no POST (sem credenciais: o corpo não as contém).
+            logger.LogInformation("JSON da I60:{NovaLinha}{Json}", Environment.NewLine, construtor.ConstruirJson(nota));
+
             logger.LogInformation(
                 "I60 manual: nota={Nota} pedidos={Pedidos} tipoOperacaoNota={Tipo} qtdeVolume={Volume} itens={Itens} destino={Url}",
                 nv.NumeroNota, string.Join(",", nv.Pedidos), nv.TipoOperacaoNota, nv.QtdeVolume,
@@ -85,6 +88,27 @@ public static class EnvioManualI60
                     "Retorno: documento={Documento} sucesso={Sucesso} mensagem={Mensagem}",
                     r.Documento, r.Sucesso, r.Mensagem);
             }
+
+            // Grava o envio e a resposta num arquivo, para leitura posterior (sem credenciais).
+            var pasta = Path.Combine(AppContext.BaseDirectory, "envio-manual-i60");
+            Directory.CreateDirectory(pasta);
+            var arquivo = Path.Combine(pasta, $"i60_{nv.NumeroNota}_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+            var texto = new System.Text.StringBuilder()
+                .AppendLine($"Data: {DateTime.Now:dd/MM/yyyy HH:mm:ss}")
+                .AppendLine($"XML: {caminho}")
+                .AppendLine($"Destino: {wms.BaseUrl}")
+                .AppendLine($"tipoOperacaoNota={nv.TipoOperacaoNota} qtdeVolume={nv.QtdeVolume} qtdeTotalNota={nv.QtdeTotalNota}")
+                .AppendLine()
+                .AppendLine("JSON enviado:")
+                .AppendLine(construtor.ConstruirJson(nota))
+                .AppendLine()
+                .AppendLine($"Resposta: transacao={resposta.Transacao} sucesso={resposta.Sucesso}");
+            foreach (var r in resposta.Retornos)
+            {
+                texto.AppendLine($"Retorno: documento={r.Documento} sucesso={r.Sucesso} mensagem={r.Mensagem}");
+            }
+            File.WriteAllText(arquivo, texto.ToString(), new System.Text.UTF8Encoding(false));
+            logger.LogInformation("Envio e resposta gravados em {Arquivo}", arquivo);
 
             return 0;
         }
