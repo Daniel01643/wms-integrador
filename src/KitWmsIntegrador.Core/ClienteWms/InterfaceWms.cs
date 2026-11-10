@@ -18,6 +18,12 @@ public enum InterfaceWms
 
     /// <summary>Cadastro de produto (contenção) — <c>WEBAPI-I30-Json</c>.</summary>
     I30,
+
+    /// <summary>
+    /// Nota fiscal de entrada/devolução (função EDI_JS_IMP_I40) — <c>WEBAPI-I40-Json</c>.
+    /// Nome exato A CONFIRMAR no teste ao vivo (segue o padrão das demais interfaces).
+    /// </summary>
+    I40,
 }
 
 /// <summary>
@@ -33,6 +39,7 @@ public static class InterfaceWmsExtensions
         InterfaceWms.I60 => "WEBAPI-I60-Json",
         InterfaceWms.I10 => "WEBAPI-I10-Json",
         InterfaceWms.I30 => "WEBAPI-I30-Json",
+        InterfaceWms.I40 => "WEBAPI-I40-Json", // nome exato a confirmar no teste ao vivo
         _ => throw new ArgumentOutOfRangeException(nameof(interfaceWms), interfaceWms, "Interface WMS desconhecida."),
     };
 }
