@@ -24,7 +24,7 @@ quantidade da I60 (retomar terça 03/11).
 
 ---
 
-## Semana 2026-W45 (03/nov a 09/nov) — em aberto
+## Semana 2026-W45 (03/nov a 09/nov) — FECHADA
 
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
@@ -32,4 +32,15 @@ quantidade da I60 (retomar terça 03/11).
 | 2026-11-04 | 4,5 | 2,5 | 7,0 | Etapas 8, 7, 7b, 7c; e-mail visual; validação REAL no homolog (até 1196 notas) |
 | 2026-11-05 | 4,75 | 3,5 | 8,25 | Etapa 9 (instalação NSSM no servidor + validação 50 notas); monitoramento; e-mail configurável; Etapa 10 (manuais) |
 | 2026-11-06 | 6,0 | 4,5 | 10,5 | Virada e validação em PRODUÇÃO; não-XML; placa na I50; correções TLS 1.2 e GetToken; manuais no servidor; 5 releases |
-| **Total parcial** | **18,25** | **12,0** | **30,25** | |
+| 2026-11-09 | 4,9 | 4,0 | 8,9 | Acabamento da apresentação; resumo semanal no servidor; encerramento; I60 Plano A testado no homolog |
+| **Total** | **23,15** | **16,0** | **39,15** | |
+
+**Resumo da semana:**
+- Do Orquestrador à produção: watcher, pacote, relatório, e-mail, instalação NSSM, manuais e
+  virada em produção (06/11), com centenas de notas reais integradas.
+- 09/11: apresentação final (só horas, sem valores), retenção de 60 dias e retomada da I60.
+- I60 no homolog: a conferência de volume passou com `qtdeVolume = 0`; o bloqueio agora é a
+  conferência de caixas por item (WMS lê 0 caixas na nota de venda). Hipótese: `qtdeProduto`
+  é lido em unidades e convertido pela embalagem do produto. A confirmar no cadastro.
+
+**Pendência que atravessa a semana:** I60 (conferência de caixa por item e teste com `IMP`).

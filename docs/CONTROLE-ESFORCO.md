@@ -28,21 +28,22 @@ pelo tempo de execução/sessão do agente.
 | 2026-11-06 | Humana  | 6,00  | Virada em PRODUÇÃO, não-XML, placa na I50, TLS 1.2, GetToken resiliente, 5 releases            |
 | 2026-11-06 | IA      | 4,50  | Correções TLS/GetToken, tratamento não-XML, placa no XML→WMS, manuais embarcados, releases     |
 | Planejada  | Humana  | 1,00  | Apresentação e treinamento                                                                    |
-| 2026-11-09 | —       | —     | Não contabilizado (decisão do usuário)                                                        |
-| 2026-11-09 | Humana  | a informar | Etapa I60 (Plano A e Plano B): decisões e validações; a informar pelo usuário |
-| 2026-11-09 | IA      | 1,50  | Etapa I60: qtdeVolume pela soma, tipo de operação configurável, retenção 60 dias, arquitetura do Plano B, roteiro de homolog (estimado) |
+| 2026-11-09 | Humana  | 4,90  | Apresentação (nome, "Aprox.", só horas), resumo semanal no servidor, encerramento, I60 Plano A no homolog |
+| 2026-11-09 | IA      | 4,00  | Ajustes do deck, diagnóstico WinRM, encerramento, I60 (código customizado, qtdeVolume, testes, envio manual) — estimado |
 
-> As linhas de 09/11 da etapa I60 não entram nos totais abaixo até o usuário informar as horas humanas; as horas de IA (1,50 h) são estimativa.
-
-Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**.
+Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**
+(entrega inicial, até a produção). Com 09/11: **31,15 h**.
 
 ## Totais
 
-| Tipo                | Horas          |
-|---------------------|----------------|
-| Humana              | **26,25**      |
-| IA (ferramenta)     | **aprox. 14,40** |
-| **Total de esforço** | **aprox. 40,65** |
+| Tipo                 | Entrega inicial (até 06/11) | Com 09/11        |
+|----------------------|-----------------------------|------------------|
+| Humana               | **26,25**                   | **31,15**        |
+| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 18,40** |
+| **Total de esforço** | **aprox. 40,65**            | **aprox. 49,55** |
+
+O comparativo abaixo e a apresentação usam a **entrega inicial** (do desenho à produção).
+09/11 é acabamento e a retomada da I60.
 
 O grosso do esforço humano está em decisões, validação e operação; a IA atua como
 multiplicador de produtividade na escrita de código, testes e documentação.

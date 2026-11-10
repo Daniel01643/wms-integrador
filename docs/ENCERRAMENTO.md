@@ -50,7 +50,7 @@ rollback, segredos).
 | Apresentação e treinamento de 1h | Usuário |
 | Atualizar o SO do servidor (2012 R2 fora de suporte) | TI |
 | Arquivo local `~/.srv-cred.xml` (credencial WinRM cifrada por DPAPI): apagar ou manter ciente | Usuário |
-| Horas de 09/11 não contabilizadas (decisão do usuário; nada a lançar em `docs\controle`) | — |
+| I60 em homolog: conferência de caixa por item, teste com `IMP` e espera do DocCarga (ver `docs\diario\2026-11-09-i60.md`) | Usuário / IA |
 | Repositório sem remote: o histórico existe só nesta máquina (fazer backup/push) | Usuário |
 | Testes não puderam ser executados na revisão de 09/11 (bloqueio de Controle de Aplicativo do Windows); na etapa I60 (mesmo dia) rodaram: 367 aprovados, 0 falhas, 9 ignorados | Usuário / TI |
 | Teste I50 + I60 em homolog após gravar o PL/SQL de QTD_VOLUMES (roteiro em `docs\wms-codigo-customizado\ROTEIRO-TESTE-HOMOLOG.md`); depois promover por `publicar-release.ps1` | Usuário |
