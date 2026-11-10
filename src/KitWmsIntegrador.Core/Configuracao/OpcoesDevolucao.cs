@@ -12,8 +12,20 @@ public sealed class OpcoesDevolucao
     /// <summary>Nome da seção de configuração.</summary>
     public const string Secao = "Devolucao";
 
-    /// <summary>Valor padrão de <see cref="TipoOperacaoNota"/>: ICD gera chegada de veículo e descarga.</summary>
-    public const string TipoOperacaoNotaPadrao = "ICD";
+    /// <summary>Valor padrão de <see cref="TipoOperacaoNota"/> (placa desligada): IMP, sem chegada de veículo.</summary>
+    public const string TipoOperacaoNotaPadrao = "IMP";
+
+    /// <summary>
+    /// Valor padrão de <see cref="TipoOperacaoNotaComPlaca"/> (placa ligada): ICD gera chegada de
+    /// veículo e descarga.
+    /// </summary>
+    public const string TipoOperacaoNotaComPlacaPadrao = "ICD";
+
+    /// <summary>Porta HTTP padrão da tela.</summary>
+    public const int PortaPadrao = 8085;
+
+    /// <summary>Máximo padrão de chaves por envio.</summary>
+    public const int MaxChavesPorEnvioPadrao = 30;
 
     /// <summary>Valor padrão de <see cref="TipoNota"/>: devolução.</summary>
     public const string TipoNotaPadrao = "DE";
@@ -30,22 +42,47 @@ public sealed class OpcoesDevolucao
     /// </summary>
     public bool Habilitada { get; set; } = false;
 
-    /// <summary><c>tipoOperacaoNota</c> da I40 (IMC/ICD/IMP). Default ICD.</summary>
+    /// <summary>
+    /// <c>tipoOperacaoNota</c> da I40 (IMC/ICD/IMP) quando a placa NÃO é enviada. Default IMP
+    /// (validado no homolog: "Registrado com sucesso" e recebimento concluído).
+    /// </summary>
     public string TipoOperacaoNota { get; set; } = TipoOperacaoNotaPadrao;
+
+    /// <summary>
+    /// <c>tipoOperacaoNota</c> quando a placa É enviada. Default ICD (gera chegada de veículo;
+    /// no homolog ainda deu "Erro na criacao do controlador de veiculo", por isso a placa
+    /// começa desligada).
+    /// </summary>
+    public string TipoOperacaoNotaComPlaca { get; set; } = TipoOperacaoNotaComPlacaPadrao;
+
+    /// <summary>
+    /// Estado inicial do checkbox "Enviar placa do veículo" na tela (e do envio manual).
+    /// Default <c>false</c>.
+    /// </summary>
+    public bool EnviarPlacaPadrao { get; set; } = false;
+
+    /// <summary>Máximo de chaves por envio na tela. Default 30.</summary>
+    public int MaxChavesPorEnvio { get; set; } = MaxChavesPorEnvioPadrao;
+
+    /// <summary>
+    /// Pasta da auditoria simples dos envios da tela. Vazio = <c>&lt;Estado&gt;\devolucao</c>.
+    /// </summary>
+    public string PastaAuditoria { get; set; } = string.Empty;
 
     /// <summary><c>tipoNota</c> da I40 (OR/AR/NO/OI/OE/DE/CD/OC/SU/SD). Default DE.</summary>
     public string TipoNota { get; set; } = TipoNotaPadrao;
 
     /// <summary>
     /// Nome FIXO do motorista (<c>nomeMotorista</c>), cadastrado previamente no WMS.
-    /// Default vazio: é obrigatório configurar; o construtor falha com mensagem clara se vazio.
+    /// Só é usado (e exigido) quando a placa é enviada; sem placa o campo vai em branco.
     /// </summary>
     public string NomeMotorista { get; set; } = string.Empty;
 
     /// <summary>
     /// Quando <c>true</c>, troca emitente/remetente com destinatário/local de entrega
     /// (o cliente devolve para nós). <c>cnpjNota</c> segue o emitente do envio (o CNPJ que
-    /// sai em <c>cnpjEmitente</c>). Default <c>false</c>; o teste ao vivo decide o default.
+    /// sai em <c>cnpjEmitente</c>). Default <c>false</c>: validado no homolog (a variante
+    /// invertida não é necessária).
     /// </summary>
     public bool InverterPartes { get; set; } = false;
 
@@ -55,6 +92,6 @@ public sealed class OpcoesDevolucao
     /// <summary><c>codSituacaoTributaria</c> dos itens. Default 040.</summary>
     public string CodSituacaoTributaria { get; set; } = CodSituacaoTributariaPadrao;
 
-    /// <summary>Porta HTTP da tela (fase 2). <c>null</c> na fase 1.</summary>
-    public int? Porta { get; set; }
+    /// <summary>Porta HTTP da tela (fase 2). Default 8085.</summary>
+    public int Porta { get; set; } = PortaPadrao;
 }

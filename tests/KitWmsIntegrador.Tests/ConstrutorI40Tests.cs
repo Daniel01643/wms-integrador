@@ -36,7 +36,7 @@ public class ConstrutorI40Tests
     {
         var nota = LerXml1();
 
-        var nf = Assert.Single(Criar().Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(nota, true, Placa).NotaFiscal);
 
         Assert.Equal(nota.ChaveNFe, nf.Chavenfe);
         Assert.Equal(44, nf.Chavenfe.Length);
@@ -54,9 +54,9 @@ public class ConstrutorI40Tests
     }
 
     [Fact]
-    public void Construir_TipoNotaDE_E_TipoOperacaoICD_PorPadrao()
+    public void Construir_TipoNotaDE_E_TipoOperacaoICD_ComPlaca()
     {
-        var nf = Assert.Single(Criar().Construir(LerXml1(), Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(LerXml1(), true, Placa).NotaFiscal);
 
         Assert.Equal("DE", nf.TipoNota);
         Assert.Equal("ICD", nf.TipoOperacaoNota);
@@ -64,12 +64,12 @@ public class ConstrutorI40Tests
     }
 
     [Fact]
-    public void Construir_TipoOperacaoConfiguravel()
+    public void Construir_TipoOperacaoComPlacaConfiguravel()
     {
         var dev = DevolucaoPadrao();
-        dev.TipoOperacaoNota = "IMC";
+        dev.TipoOperacaoNotaComPlaca = "IMC";
 
-        var nf = Assert.Single(Criar(dev).Construir(LerXml1(), Placa).NotaFiscal);
+        var nf = Assert.Single(Criar(dev).Construir(LerXml1(), true, Placa).NotaFiscal);
 
         Assert.Equal("IMC", nf.TipoOperacaoNota);
     }
@@ -77,19 +77,82 @@ public class ConstrutorI40Tests
     [Fact]
     public void Construir_PlacaEMotorista_VaoNoPayload()
     {
-        var nf = Assert.Single(Criar().Construir(LerXml1(), Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(LerXml1(), true, Placa).NotaFiscal);
 
         Assert.Equal("ABC1D23", nf.PlacaVeiculoPrevistoNota);
         Assert.Equal("MOTORISTA DEVOLUCAO", nf.NomeMotorista);
     }
 
+    [Fact]
+    public void Construir_SemPlaca_UsaImpSemPlacaNemMotorista()
+    {
+        var nf = Assert.Single(Criar().Construir(LerXml1(), false).NotaFiscal);
+
+        Assert.Equal("IMP", nf.TipoOperacaoNota);
+        Assert.Equal(string.Empty, nf.PlacaVeiculoPrevistoNota);
+        Assert.Equal(string.Empty, nf.NomeMotorista);
+        Assert.Equal("DE", nf.TipoNota);
+    }
+
+    [Fact]
+    public void Construir_SemPlaca_IgnoraPlacaInformada()
+    {
+        var nf = Assert.Single(Criar().Construir(LerXml1(), false, Placa).NotaFiscal);
+
+        Assert.Equal("IMP", nf.TipoOperacaoNota);
+        Assert.Equal(string.Empty, nf.PlacaVeiculoPrevistoNota);
+        Assert.Equal(string.Empty, nf.NomeMotorista);
+    }
+
+    [Fact]
+    public void Construir_SemPlaca_SemMotoristaConfigurado_NaoFalha()
+    {
+        var dev = new OpcoesDevolucao { NomeMotorista = string.Empty };
+
+        var nf = Assert.Single(Criar(dev).Construir(LerXml1(), false).NotaFiscal);
+
+        Assert.Equal("IMP", nf.TipoOperacaoNota);
+        Assert.Equal(string.Empty, nf.NomeMotorista);
+    }
+
+    [Fact]
+    public void Construir_SemPlaca_TipoOperacaoConfiguravel()
+    {
+        var dev = DevolucaoPadrao();
+        dev.TipoOperacaoNota = "IMC";
+
+        var nf = Assert.Single(Criar(dev).Construir(LerXml1(), false).NotaFiscal);
+
+        Assert.Equal("IMC", nf.TipoOperacaoNota);
+    }
+
+    [Fact]
+    public void Construir_ComPlaca_PlacaEmMaiusculaSemEspacos()
+    {
+        var nf = Assert.Single(Criar().Construir(LerXml1(), true, "  epr7871 ").NotaFiscal);
+
+        Assert.Equal("EPR7871", nf.PlacaVeiculoPrevistoNota);
+        Assert.Equal("ICD", nf.TipoOperacaoNota);
+    }
+
+    [Fact]
+    public void ConstruirJson_SemPlaca_PlacaEMotoristaEmBranco()
+    {
+        var json = Criar().ConstruirJson(LerXml1(), false);
+
+        using var doc = JsonDocument.Parse(json);
+        var nota = doc.RootElement.GetProperty("NOTA_FISCAL")[0];
+        Assert.Equal("IMP", nota.GetProperty("tipoOperacaoNota").GetString());
+        Assert.Equal(string.Empty, nota.GetProperty("placaVeiculoPrevistoNota").GetString());
+        Assert.Equal(string.Empty, nota.GetProperty("nomeMotorista").GetString());
+    }
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     public void Construir_PlacaVazia_Lanca(string? placa)
     {
-        var ex = Assert.Throws<ArgumentException>(() => Criar().Construir(LerXml1(), placa!));
+        var ex = Assert.Throws<ArgumentException>(() => Criar().Construir(LerXml1(), true, placa));
 
         Assert.Contains("placa", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -101,7 +164,7 @@ public class ConstrutorI40Tests
     {
         var dev = new OpcoesDevolucao { NomeMotorista = motorista };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => Criar(dev).Construir(LerXml1(), Placa));
+        var ex = Assert.Throws<InvalidOperationException>(() => Criar(dev).Construir(LerXml1(), true, Placa));
 
         Assert.Contains("Devolucao:NomeMotorista", ex.Message);
     }
@@ -111,7 +174,7 @@ public class ConstrutorI40Tests
     {
         var nota = LerXml1();
 
-        var nf = Assert.Single(Criar().Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(nota, true, Placa).NotaFiscal);
 
         Assert.Equal(FormatoWms.Documento(nota.EmitenteCnpj), nf.CnpjEmitente);
         Assert.Equal(FormatoWms.Documento(nota.EmitenteCnpj), nf.CnpjRemetente);
@@ -127,7 +190,7 @@ public class ConstrutorI40Tests
         var dev = DevolucaoPadrao();
         dev.InverterPartes = true;
 
-        var nf = Assert.Single(Criar(dev).Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar(dev).Construir(nota, true, Placa).NotaFiscal);
 
         Assert.NotEqual(nota.EmitenteCnpj, nota.DestinatarioCnpj);
         Assert.Equal(FormatoWms.Documento(nota.DestinatarioCnpj), nf.CnpjEmitente);
@@ -143,7 +206,7 @@ public class ConstrutorI40Tests
     {
         var nota = LerXml1() with { TransportadoraCnpj = null };
 
-        var nf = Assert.Single(Criar().Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(nota, true, Placa).NotaFiscal);
 
         Assert.Equal("14.605.065/0001-75", nf.CnpjTransportadora);
     }
@@ -152,11 +215,11 @@ public class ConstrutorI40Tests
     public void Construir_Atributo1_TemChaveEProtocoloETruncaEm200()
     {
         var nota = LerXml1();
-        var nf = Assert.Single(Criar().Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(nota, true, Placa).NotaFiscal);
         Assert.Equal($"CH:{nota.ChaveNFe} PROT:{nota.Protocolo}", nf.Atributo1);
 
         var longa = nota with { Protocolo = new string('9', 400) };
-        var nfLonga = Assert.Single(Criar().Construir(longa, Placa).NotaFiscal);
+        var nfLonga = Assert.Single(Criar().Construir(longa, true, Placa).NotaFiscal);
         Assert.Equal(200, nfLonga.Atributo1.Length);
     }
 
@@ -165,7 +228,7 @@ public class ConstrutorI40Tests
     {
         var nota = LerXml1();
 
-        var nf = Assert.Single(Criar().Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(nota, true, Placa).NotaFiscal);
 
         Assert.Equal(nota.Itens.Count, nf.ItemNotaFiscal.Count);
         for (var i = 0; i < nota.Itens.Count; i++)
@@ -186,7 +249,7 @@ public class ConstrutorI40Tests
     [Fact]
     public void ConstruirJson_RaizNotaFiscal_ItensComoArray_NomesExatos()
     {
-        var json = Criar().ConstruirJson(LerXml1(), Placa);
+        var json = Criar().ConstruirJson(LerXml1(), true, Placa);
 
         using var doc = JsonDocument.Parse(json);
         var notas = doc.RootElement.GetProperty("NOTA_FISCAL");
@@ -230,10 +293,10 @@ public class ConstrutorI40Tests
             },
         };
 
-        var nf = Assert.Single(Criar().Construir(nota, Placa).NotaFiscal);
+        var nf = Assert.Single(Criar().Construir(nota, true, Placa).NotaFiscal);
         Assert.Equal(13L, nf.QtdeVolume); // 12,6 -> 13
 
-        var json = Criar().ConstruirJson(nota, Placa);
+        var json = Criar().ConstruirJson(nota, true, Placa);
         using var doc = JsonDocument.Parse(json);
         var volume = doc.RootElement.GetProperty("NOTA_FISCAL")[0].GetProperty("qtdeVolume");
         Assert.Equal(JsonValueKind.Number, volume.ValueKind);

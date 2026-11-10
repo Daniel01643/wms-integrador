@@ -11,13 +11,17 @@ public class OpcoesDevolucaoTests
         var o = new OpcoesDevolucao();
 
         Assert.False(o.Habilitada);
-        Assert.Equal("ICD", o.TipoOperacaoNota);
+        Assert.Equal("IMP", o.TipoOperacaoNota);
+        Assert.Equal("ICD", o.TipoOperacaoNotaComPlaca);
+        Assert.False(o.EnviarPlacaPadrao);
+        Assert.Equal(30, o.MaxChavesPorEnvio);
+        Assert.Equal(string.Empty, o.PastaAuditoria);
         Assert.Equal("DE", o.TipoNota);
         Assert.Equal(string.Empty, o.NomeMotorista);
         Assert.False(o.InverterPartes);
         Assert.Equal("PR", o.FormaTransporte);
         Assert.Equal("040", o.CodSituacaoTributaria);
-        Assert.Null(o.Porta);
+        Assert.Equal(8085, o.Porta);
         Assert.Equal("Devolucao", OpcoesDevolucao.Secao);
     }
 

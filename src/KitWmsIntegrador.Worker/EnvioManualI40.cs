@@ -17,8 +17,9 @@ namespace KitWmsIntegrador.Worker;
 /// chave (ou usa <c>--xml</c>), monta a I40 com o <see cref="ConstrutorI40"/> e a mesma
 /// configuração do Worker (seções <c>Operacional</c>, <c>Pastas</c> e <c>Devolucao</c>, com
 /// overrides por ambiente, ex.: <c>Devolucao__InverterPartes</c>) e envia SOMENTE a I40.
-/// Uso: <c>--enviar-i40 --chave &lt;44 dígitos&gt; --placa &lt;placa&gt; [--xml &lt;caminho&gt;]</c>,
-/// com <c>WMS__Usuario</c>/<c>WMS__Senha</c>.
+/// Uso: <c>--enviar-i40 --chave &lt;44 dígitos&gt; [--placa &lt;placa&gt;] [--xml &lt;caminho&gt;]</c>,
+/// com <c>WMS__Usuario</c>/<c>WMS__Senha</c>. <c>--placa</c> é opcional e liga o envio da placa
+/// (ICD, com motorista fixo); sem <c>--placa</c> a I40 vai como IMP, sem placa nem motorista.
 /// </summary>
 public static class EnvioManualI40
 {
@@ -37,13 +38,15 @@ public static class EnvioManualI40
         var erroChave = LocalizadorXmlDevolucao.ValidarChave(chave);
         if (erroChave is not null)
         {
-            logger.LogError("{Erro} Uso: {Argumento} --chave <44 digitos> --placa <placa> [--xml <caminho>].", erroChave, Argumento);
+            logger.LogError("{Erro} Uso: {Argumento} --chave <44 digitos> [--placa <placa>] [--xml <caminho>].", erroChave, Argumento);
             return 2;
         }
 
-        if (string.IsNullOrWhiteSpace(placa))
+        // --placa opcional: informada liga o envio da placa (ICD); ausente envia IMP.
+        var enviarPlaca = Array.IndexOf(args, "--placa") >= 0;
+        if (enviarPlaca && string.IsNullOrWhiteSpace(placa))
         {
-            logger.LogError("Informe a placa: --placa <placa> (obrigatória na devolução).");
+            logger.LogError("--placa informado sem valor. Use --placa <placa> ou omita para enviar sem placa (IMP).");
             return 2;
         }
 
@@ -113,14 +116,14 @@ public static class EnvioManualI40
             }
 
             var construtor = new ConstrutorI40(Options.Create(operacional), Options.Create(devolucao));
-            var payload = construtor.Construir(nota, placa!);
+            var payload = construtor.Construir(nota, enviarPlaca, placa);
             var nf = payload.NotaFiscal[0];
-            var json = construtor.ConstruirJson(nota, placa!);
+            var json = construtor.ConstruirJson(nota, enviarPlaca, placa);
 
             logger.LogInformation("JSON da I40:{NovaLinha}{Json}", Environment.NewLine, json);
             logger.LogInformation(
-                "I40 manual: nota={Nota} tipoNota={TipoNota} tipoOperacaoNota={Tipo} inverter={Inverter} emitente={Emitente} destinatario={Destinatario} qtdeVolume={Volume} itens={Itens} destino={Url}",
-                nf.NumeroNota, nf.TipoNota, nf.TipoOperacaoNota, devolucao.InverterPartes,
+                "I40 manual: nota={Nota} enviarPlaca={EnviarPlaca} tipoNota={TipoNota} tipoOperacaoNota={Tipo} inverter={Inverter} emitente={Emitente} destinatario={Destinatario} qtdeVolume={Volume} itens={Itens} destino={Url}",
+                nf.NumeroNota, enviarPlaca, nf.TipoNota, nf.TipoOperacaoNota, devolucao.InverterPartes,
                 nf.CnpjEmitente, nf.CnpjDestinatario, nf.QtdeVolume, nf.ItemNotaFiscal.Count, wms.BaseUrl);
 
             var baseUrl = wms.BaseUrl.EndsWith('/') ? wms.BaseUrl : wms.BaseUrl + "/";
@@ -149,7 +152,7 @@ public static class EnvioManualI40
                 .AppendLine($"Data: {DateTime.Now:dd/MM/yyyy HH:mm:ss}")
                 .AppendLine($"XML: {caminho}")
                 .AppendLine($"Destino: {wms.BaseUrl}")
-                .AppendLine($"InverterPartes={devolucao.InverterPartes} tipoNota={nf.TipoNota} tipoOperacaoNota={nf.TipoOperacaoNota} placa={nf.PlacaVeiculoPrevistoNota} qtdeVolume={nf.QtdeVolume} qtdeTotalNota={nf.QtdeTotalNota}")
+                .AppendLine($"enviarPlaca={enviarPlaca} InverterPartes={devolucao.InverterPartes} tipoNota={nf.TipoNota} tipoOperacaoNota={nf.TipoOperacaoNota} placa={nf.PlacaVeiculoPrevistoNota} qtdeVolume={nf.QtdeVolume} qtdeTotalNota={nf.QtdeTotalNota}")
                 .AppendLine()
                 .AppendLine("JSON enviado:")
                 .AppendLine(json)
