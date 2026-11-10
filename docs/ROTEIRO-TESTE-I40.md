@@ -1,8 +1,14 @@
 # Roteiro de teste da I40 (devolução) no HOMOLOG
 
-Objetivo: enviar a mesma nota de devolução em duas variantes (partes não invertidas e
-invertidas) e anotar a resposta do WMS. A resposta decide o default de `Devolucao:InverterPartes`
-(ver seção 5).
+Objetivo original: enviar a mesma nota em duas variantes (partes não invertidas e invertidas) e
+decidir o default de `Devolucao:InverterPartes`.
+
+> **Status (10/11/2026): teste feito.** A variante não invertida (`InverterPartes=false`) com
+> `tipoOperacaoNota=IMP` e sem placa retornou "Registrado com sucesso" (transação 4042207) e o
+> recebimento foi concluído no WMS. A variante invertida **não é necessária** e as seções 3 a 7
+> ficam como histórico/consulta. Os resultados completos estão na seção 13 de
+> `docs/ARQUITETURA-PLANO-B-I40.md`. As seções 9 e 10 abaixo ensinam a testar a **tela** (fase 2)
+> e o modo manual atualizado (placa opcional).
 
 ## Avisos antes de começar
 
@@ -23,7 +29,7 @@ Exemplo:
 - Nota 15671241, chave `35251201838723009850550060156712411843547443`
   (`...\Processados\pacote_20261110_095349\NFE35251201838723009850550060156712411843547443.XML`)
 
-Placa: use uma placa de teste válida (ex.: `ABC1D23`; informe a que o WMS homolog aceitar).
+Placa (só se for testar o envio com placa): use uma placa **cadastrada** no WMS homolog (a `EPR7871` foi aceita; a `ABC1D23` foi recusada por não estar cadastrada). Sem `--placa` a I40 vai como IMP, sem placa nem motorista.
 
 ## 2. Preparar a sessão (uma vez)
 
@@ -41,18 +47,19 @@ $env:WMS__BaseUrl = 'https://friozem.assistsoftware.com.br:8888/wmsapi/api'
 # Pasta onde estao os XMLs de teste (o padrao do appsettings aponta para outra pasta)
 $env:Pastas__Entrada = 'C:\wms-teste\entrada'
 
-# Motorista fixo cadastrado no WMS homolog
+# Motorista fixo cadastrado no WMS homolog (necessario so com placa)
 $env:Devolucao__NomeMotorista = '<nome cadastrado>'
 ```
 
 Os demais valores vêm do `appsettings.json` (`Operacional`, `Devolucao`). Por padrão a I40 sai
-com `tipoNota=DE`, `tipoOperacaoNota=ICD`, `formaTransporte=PR`, `codSituacaoTributaria=040`.
+com `tipoNota=DE`, `tipoOperacaoNota=IMP` (sem placa; com `--placa` vai `ICD`), `formaTransporte=PR`
+e `codSituacaoTributaria=040`.
 
 ## 3. Variante A: partes NÃO invertidas (emitente = nós, destinatário = cliente)
 
 ```powershell
 $env:Devolucao__InverterPartes = 'false'
-dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release -- --enviar-i40 --chave 35251201838723009850550060156712411843547443 --placa ABC1D23
+dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release -- --enviar-i40 --chave 35251201838723009850550060156712411843547443 --placa EPR7871
 ```
 
 ## 4. Variante B: partes INVERTIDAS (emitente = cliente, destinatário = nós)
@@ -62,7 +69,7 @@ use outra nota candidata para a variante B e anote qual foi usada.
 
 ```powershell
 $env:Devolucao__InverterPartes = 'true'
-dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release -- --enviar-i40 --chave 35251201838723009850550060156712411843547443 --placa ABC1D23
+dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release -- --enviar-i40 --chave 35251201838723009850550060156712411843547443 --placa EPR7871
 ```
 
 Opcional: `--xml <caminho>` usa um XML específico em vez de procurar pela chave.
@@ -120,3 +127,58 @@ nos testes do construtor; a mudança entra em commit próprio.
 ```powershell
 Remove-Item Env:WMS__Usuario, Env:WMS__Senha, Env:WMS__BaseUrl, Env:Pastas__Entrada, Env:Devolucao__NomeMotorista, Env:Devolucao__InverterPartes -ErrorAction SilentlyContinue
 ```
+
+## 9. Testar a TELA de devolução no homolog (nesta máquina)
+
+A tela roda dentro do Worker, só quando `Devolucao:Habilitada=true`. **Não ligue isso no servidor
+nem em produção para testar**: use esta máquina e o WMS de HOMOLOG. Os envios feitos pela tela
+vão de verdade ao homolog, então use notas de teste.
+
+1. Confirme que os XMLs de teste estão em `C:\wms-teste\entrada\Processados\pacote_*\`.
+2. Na mesma sessão do PowerShell, prepare as variáveis (a senha não é exibida nem gravada):
+
+```powershell
+$env:WMS__Usuario = Read-Host 'Usuario WMS (HOMOLOG)'
+$sec = Read-Host 'Senha WMS (HOMOLOG)' -AsSecureString
+$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+try { $env:WMS__Senha = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+
+$env:WMS__BaseUrl = 'https://friozem.assistsoftware.com.br:8888/wmsapi/api'   # HOMOLOG
+$env:Pastas__Entrada = 'C:\wms-teste\entrada'
+$env:Devolucao__Habilitada = 'true'
+$env:Devolucao__Porta = '8085'                      # ou outra porta livre
+# Somente para testar o envio COM placa (ICD):
+# $env:Devolucao__NomeMotorista = '<nome cadastrado no WMS>'
+```
+
+3. Suba o Worker (ele também processa a pasta de entrada, então deixe `C:\wms-teste\entrada` sem
+   XMLs soltos na raiz; os já processados em `Processados` não são mexidos):
+
+```powershell
+dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release
+```
+
+4. Abra `http://localhost:8085/` (ou a porta escolhida). O log mostra "Tela de devolução ligada na porta ...".
+5. Cenários a testar:
+   - **Sem placa (padrão):** cole a chave `35251201838723009850550060156712411843547443`, Adicionar, Enviar.
+     Esperado: "Enviada com sucesso" (IMP).
+   - **Chave inválida** (mude um dígito): "Chave inválida", sem tentar enviar.
+   - **Chave sem XML** (chave válida de outra nota): "XML não encontrado (retenção de 60 dias)".
+   - **Duplicada:** colar a mesma chave duas vezes mantém só uma.
+   - **Com placa:** marque "Enviar placa do veículo", informe a placa cadastrada e
+     defina `Devolucao__NomeMotorista`. O ICD ainda deu "Erro na criacao do controlador de veiculo" no
+     homolog; registre a mensagem que a tela mostrar.
+   - **Teclado e leitor:** digitar a chave e teclar Enter adiciona; Tab alcança todos os botões.
+6. Confira a auditoria: `<Estado>\devolucao\devolucao_<data>.log` (uma linha por chave, sem senha).
+7. Encerre com Ctrl+C e faça a limpeza da seção 8, incluindo:
+
+```powershell
+Remove-Item Env:Devolucao__Habilitada, Env:Devolucao__Porta, Env:Devolucao__EnviarPlacaPadrao -ErrorAction SilentlyContinue
+```
+
+## 10. Modo manual atualizado
+
+`--enviar-i40 --chave <44 dígitos> [--placa <placa>] [--xml <caminho>]`. A **placa é opcional**:
+sem `--placa` a I40 vai como IMP, sem placa nem motorista; com `--placa <x>` liga o envio da placa
+(ICD, com `Devolucao__NomeMotorista` obrigatório).
