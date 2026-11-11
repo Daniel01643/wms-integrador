@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-11</span>
-    <span>Vers&atilde;o: 2026.11.11-ee69a8d</span>
+    <span>Vers&atilde;o: 2026.11.11-86f03d0</span>
   </div>
 </section>
   <header class="hd">
@@ -117,7 +117,6 @@
 <li><a href="#7-boas-práticas">Boas práticas</a></li>
 <li><a href="#8-como-reenviar-uma-nota-corrigida">Como reenviar uma nota corrigida</a></li>
 <li><a href="#9-perguntas-frequentes">Perguntas frequentes</a></li>
-<li><a href="#10-devolução-tela-de-chaves">Devolução: tela de chaves</a></li>
 </ol>
 <hr />
 <h2>1. O que o sistema faz</h2>
@@ -352,86 +351,6 @@
 <p><strong>Não recebi o e-mail de fechamento.</strong> O envio depende de você estar na lista de destinatários e do e-mail estar configurado. Fale com a TI para incluir seu endereço.</p>
 <p><strong>E se eu colocar um arquivo que não é XML?</strong> O sistema <strong>não</strong> integra arquivos que não sejam <code>.xml</code>. Ele move o arquivo para <code>Erro\pacote_&lt;data_hora&gt;\ExtensaoInvalida</code> e registra no relatório como <strong>"Arquivo ignorado (não é XML)"</strong> (status cinza, aviso — não é falha de nota). Esse arquivo é removido automaticamente depois de <strong>60 dias</strong>, junto com o restante do pacote. Para evitar isso, deposite <strong>apenas arquivos <code>.xml</code></strong> de nota fiscal na pasta de entrada. Arquivos que ainda estão sendo copiados (com extensão temporária como <code>.tmp</code>, <code>.part</code>, <code>.crdownload</code> etc.) são <strong>deixados em paz</strong>: o sistema não os processa nem os move, espera a cópia terminar. Quando a cópia acaba e o arquivo vira <code>.xml</code>, ele entra no fluxo normal.</p>
 <hr />
-<h2>10. Devolução: tela de chaves</h2>
-<blockquote><p><strong>Atenção:</strong> esta tela só funciona depois que a TI ligar o recurso. Enquanto isso não for feito, o endereço não abre. A TI informa o endereço quando estiver pronto.</p></blockquote>
-<p>Quando um cliente devolve mercadoria, você usa uma tela simples para avisar o WMS. Você só informa a nota de venda original: pela <strong>chave de acesso</strong> (os 44 números) ou pelo **número da nota e a série**. O sistema acha o XML da nota sozinho e envia a devolução ao WMS.</p>
-<h3>Antes de começar</h3>
-<ul>
-<li>A nota de venda precisa ter sido integrada pelo sistema <strong>nos últimos 60 dias</strong>. Depois disso o XML é apagado e a tela avisa que não encontrou.</li>
-<li>Você não precisa de login nem senha.</li>
-<li>Use o computador ligado à rede da Friozem.</li>
-</ul>
-<h3>Passo a passo</h3>
-<ol>
-<li>Abra o navegador (Edge ou Chrome) e digite o endereço da tela que a TI informou. Aparece a página <strong>"Devolução: envio de chaves"</strong>, com o logo da Friozem.</li>
-<li>Escolha <strong>uma</strong> das duas formas de informar a nota (pode misturar na mesma lista):</li>
-</ol>
-<ul>
-<li><strong>Pela chave:</strong> clique no campo <strong>"Chave de acesso (44 dígitos)"</strong> (ele já vem selecionado ao abrir a página). <strong>Digite</strong> a chave ou <strong>bipe</strong> o código de barras da nota com o leitor, e tecle <strong>Enter</strong> (o leitor já faz isso sozinho). A chave entra na lista. Você também pode **colar várias chaves de uma vez**, uma por linha.</li>
-<li><strong>Pelo número e pela série:</strong> no quadro <strong>"Ou procure pelo número e pela série"</strong>, digite o <strong>Número da nota</strong> (até 9 números) e a <strong>Série</strong> (até 3 números) e clique em **Buscar e adicionar<strong> (ou tecle </strong>Enter**). Zeros à esquerda não atrapalham: <code>006</code> é o mesmo que <code>6</code>.</li>
-</ul>
-<ol>
-<li>Veja o que a tela respondeu à busca por número e série:</li>
-</ol>
-<ul>
-<li><strong>A nota foi encontrada:</strong> ela entra na lista, e a tela avisa "Nota ... adicionada à lista".</li>
-<li><strong>Apareceu uma tabela "Chaves encontradas":</strong> existem <strong>duas ou mais</strong> notas com esse mesmo número e série (por exemplo, uma nota reemitida). A tabela mostra a chave, a data do arquivo e o pacote. Escolha a correta e clique em <strong>Usar esta chave</strong>. **Nada entra na lista antes da sua escolha.** Na dúvida, chame a TI.</li>
-<li><strong>"Nota não encontrada na retenção de 60 dias":</strong> confira o número e a série. Se a venda for antiga (mais de 60 dias) ou a nota nunca tiver sido integrada, a devolução precisa ser feita direto no WMS.</li>
-</ul>
-<ol>
-<li>Confira a lista. Cada linha mostra a chave e, embaixo, o <strong>número e a série</strong> da nota.</li>
-</ol>
-<ul>
-<li>O limite é <strong>30 notas por envio</strong>. O contador mostra quantas você já colocou.</li>
-<li>Se a chave tiver número errado ou faltando, a tela avisa na hora e <strong>não</strong> coloca na lista.</li>
-<li>Se você colocar a mesma nota duas vezes, a tela guarda só uma.</li>
-<li>Para tirar uma nota da lista, clique em <strong>Remover</strong> ao lado dela.</li>
-</ul>
-<ol>
-<li>Clique em <strong>Enviar</strong>. O botão fica desativado até ter pelo menos uma nota na lista e, enquanto o envio acontece, não clique de novo. Não existe campo de placa: a devolução é enviada sem placa e sem motorista.</li>
-<li>Veja o quadro <strong>"3. Resultado"</strong>. Cada nota aparece numa linha, com a chave, o número e a série, a situação e a mensagem do WMS.</li>
-</ol>
-<h3>O que cada situação significa</h3>
-<table>
-<thead><tr>
-<th>Situação</th>
-<th>O que quer dizer</th>
-<th>O que fazer</th>
-</tr></thead>
-<tbody>
-<tr>
-<td><strong>Enviada com sucesso</strong> (verde)</td>
-<td>O WMS registrou a devolução.</td>
-<td>Nada. Siga o recebimento no WMS.</td>
-</tr>
-<tr>
-<td><strong>Erro do WMS</strong> (vermelho)</td>
-<td>O WMS recusou. A mensagem explica o motivo.</td>
-<td>Leia a mensagem. Se não entender, chame a TI e informe a nota e a mensagem.</td>
-</tr>
-<tr>
-<td><strong>XML não encontrado (retenção de 60 dias)</strong> (amarelo)</td>
-<td>O sistema não achou o XML dessa nota. A venda pode ser mais antiga que 60 dias, ou a nota nunca foi integrada.</td>
-<td>Confira a chave. Se a venda for antiga, a devolução precisa ser feita direto no WMS.</td>
-</tr>
-<tr>
-<td><strong>Chave inválida</strong> (vermelho)</td>
-<td>A chave não tem 44 números ou algum número está errado.</td>
-<td>Digite ou bipe de novo.</td>
-</tr>
-<tr>
-<td><strong>Erro ao ler o XML</strong> (vermelho)</td>
-<td>O arquivo existe, mas não foi possível ler.</td>
-<td>Chame a TI.</td>
-</tr>
-</tbody></table>
-<p>Uma chave com problema <strong>não impede</strong> as outras: as demais do mesmo envio seguem normalmente.</p>
-<h3>Dicas</h3>
-<ul>
-<li>Para reenviar só as chaves com problema, use <strong>Limpar lista</strong>, digite novamente apenas as que precisam e envie.</li>
-<li>Não precisa de mouse: use <strong>Tab</strong> para passar de um campo para o outro e <strong>Enter</strong> para adicionar a chave ou para buscar pelo número e série.</li>
-<li>Se a página não abrir ou der erro de conexão, avise a TI. Isso não afeta o envio normal das notas.</li>
-</ul>
 
   </main>
   <footer class="ft">

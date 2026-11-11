@@ -17,7 +17,6 @@ nada técnico: só o Windows Explorer e a rede da Friozem.
 7. [Boas práticas](#7-boas-práticas)
 8. [Como reenviar uma nota corrigida](#8-como-reenviar-uma-nota-corrigida)
 9. [Perguntas frequentes](#9-perguntas-frequentes)
-10. [Devolução: tela de chaves](#10-devolução-tela-de-chaves)
 
 ---
 
@@ -161,70 +160,3 @@ Arquivos que ainda estão sendo copiados (com extensão temporária como `.tmp`,
 terminar. Quando a cópia acaba e o arquivo vira `.xml`, ele entra no fluxo normal.
 
 ---
-
-## 10. Devolução: tela de chaves
-
-> **Atenção:** esta tela só funciona depois que a TI ligar o recurso. Enquanto isso não for feito,
-> o endereço não abre. A TI informa o endereço quando estiver pronto.
-
-Quando um cliente devolve mercadoria, você usa uma tela simples para avisar o WMS. Você só
-informa a nota de venda original: pela **chave de acesso** (os 44 números) ou pelo **número da nota
-e a série**. O sistema acha o XML da nota sozinho e envia a devolução ao WMS.
-
-### Antes de começar
-
-- A nota de venda precisa ter sido integrada pelo sistema **nos últimos 60 dias**. Depois disso o
-  XML é apagado e a tela avisa que não encontrou.
-- Você não precisa de login nem senha.
-- Use o computador ligado à rede da Friozem.
-
-### Passo a passo
-
-1. Abra o navegador (Edge ou Chrome) e digite o endereço da tela que a TI informou. Aparece a
-   página **"Devolução: envio de chaves"**, com o logo da Friozem.
-2. Escolha **uma** das duas formas de informar a nota (pode misturar na mesma lista):
-   - **Pela chave:** clique no campo **"Chave de acesso (44 dígitos)"** (ele já vem selecionado ao
-     abrir a página). **Digite** a chave ou **bipe** o código de barras da nota com o leitor, e tecle
-     **Enter** (o leitor já faz isso sozinho). A chave entra na lista. Você também pode **colar várias
-     chaves de uma vez**, uma por linha.
-   - **Pelo número e pela série:** no quadro **"Ou procure pelo número e pela série"**, digite o
-     **Número da nota** (até 9 números) e a **Série** (até 3 números) e clique em **Buscar e
-     adicionar** (ou tecle **Enter**). Zeros à esquerda não atrapalham: `006` é o mesmo que `6`.
-3. Veja o que a tela respondeu à busca por número e série:
-   - **A nota foi encontrada:** ela entra na lista, e a tela avisa "Nota ... adicionada à lista".
-   - **Apareceu uma tabela "Chaves encontradas":** existem **duas ou mais** notas com esse mesmo
-     número e série (por exemplo, uma nota reemitida). A tabela mostra a chave, a data do arquivo e
-     o pacote. Escolha a correta e clique em **Usar esta chave**. **Nada entra na lista antes da sua
-     escolha.** Na dúvida, chame a TI.
-   - **"Nota não encontrada na retenção de 60 dias":** confira o número e a série. Se a venda for
-     antiga (mais de 60 dias) ou a nota nunca tiver sido integrada, a devolução precisa ser feita
-     direto no WMS.
-4. Confira a lista. Cada linha mostra a chave e, embaixo, o **número e a série** da nota.
-   - O limite é **30 notas por envio**. O contador mostra quantas você já colocou.
-   - Se a chave tiver número errado ou faltando, a tela avisa na hora e **não** coloca na lista.
-   - Se você colocar a mesma nota duas vezes, a tela guarda só uma.
-   - Para tirar uma nota da lista, clique em **Remover** ao lado dela.
-5. Clique em **Enviar**. O botão fica desativado até ter pelo menos uma nota na lista e, enquanto o
-   envio acontece, não clique de novo. Não existe campo de placa: a devolução é enviada sem placa
-   e sem motorista.
-6. Veja o quadro **"3. Resultado"**. Cada nota aparece numa linha, com a chave, o número e a série,
-   a situação e a mensagem do WMS.
-### O que cada situação significa
-
-| Situação | O que quer dizer | O que fazer |
-|---|---|---|
-| **Enviada com sucesso** (verde) | O WMS registrou a devolução. | Nada. Siga o recebimento no WMS. |
-| **Erro do WMS** (vermelho) | O WMS recusou. A mensagem explica o motivo. | Leia a mensagem. Se não entender, chame a TI e informe a nota e a mensagem. |
-| **XML não encontrado (retenção de 60 dias)** (amarelo) | O sistema não achou o XML dessa nota. A venda pode ser mais antiga que 60 dias, ou a nota nunca foi integrada. | Confira a chave. Se a venda for antiga, a devolução precisa ser feita direto no WMS. |
-| **Chave inválida** (vermelho) | A chave não tem 44 números ou algum número está errado. | Digite ou bipe de novo. |
-| **Erro ao ler o XML** (vermelho) | O arquivo existe, mas não foi possível ler. | Chame a TI. |
-
-Uma chave com problema **não impede** as outras: as demais do mesmo envio seguem normalmente.
-
-### Dicas
-
-- Para reenviar só as chaves com problema, use **Limpar lista**, digite novamente apenas as que
-  precisam e envie.
-- Não precisa de mouse: use **Tab** para passar de um campo para o outro e **Enter** para
-  adicionar a chave ou para buscar pelo número e série.
-- Se a página não abrir ou der erro de conexão, avise a TI. Isso não afeta o envio normal das notas.

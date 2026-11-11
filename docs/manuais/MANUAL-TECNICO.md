@@ -36,7 +36,6 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
 8. [Dia/hora do resumo, janela de coleta e limpeza](#8-diahora-do-resumo-janela-de-coleta-e-limpeza)
    - [8.1. Arquivos não-XML (ExtensaoInvalida) e a flag `Pastas:TratarNaoXmlComoErro`](#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro)
    - [8.2. Ligar/desligar o envio da placa do veículo (`I50:EnviarPlacaVeiculo`)](#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo)
-   - [8.4. Devolução (I40): tela de chaves, desligada em produção](#84-devolução-i40-tela-de-chaves-desligada-em-produção)
 9. [Publicar nova versão e rollback](#9-publicar-nova-versão-e-rollback)
 10. [Estado e telemetria (não mexer)](#10-estado-e-telemetria-não-mexer)
 11. [O serviço não sobe — diagnóstico e TLS 1.2](#11-o-serviço-não-sobe--diagnóstico-e-tls-12)
@@ -429,63 +428,6 @@ completo em `docs\wms-codigo-customizado\HISTORICO-PLANO-A.md`.
   em `envio-manual-i60\`.
 - **Em produção, mantenha `I60__Habilitada=false`.**
 
-### 8.4. Devolução (I40): tela de chaves, desligada em produção
-
-Plano B da devolução: uma página web, hospedada pelo próprio serviço, onde o colaborador digita ou
-bipa a chave de NF-e **ou pesquisa pelo número da nota + série**; o sistema acha o XML em `Processados`,
-monta a I40 e envia ao WMS. Não há placa nem motorista (removidos em 10/11/2026). Está
-**desligada** (`Devolucao:Habilitada=false`) e **nada foi ligado em produção**. No homolog (10/11),
-a I40 como IMP sem placa deu "Registrado com sucesso" e o recebimento foi concluído.
-
-**Habilitar (somente com OK do responsável e depois do firewall, ver `INSTALACAO-SERVIDOR.md`):**
-
-1. Defina `Devolucao__Habilitada=true` (variável de ambiente do serviço) ou `Devolucao:Habilitada` em
-   `config\appsettings.Production.json`.
-2. Reinicie o serviço. No `logs\worker.out.log` deve aparecer "Tela de devolução ligada na porta 8085".
-3. Teste `http://<servidor>:8085/api/saude` (responde `{"status":"ok"}`).
-
-**Chaves (seção `Devolucao`):**
-
-| Chave | Padrão | O que faz |
-|---|---|---|
-| `Habilitada` | `false` | Liga a tela. `false`: a porta não abre. |
-| `Porta` | `8085` | Porta HTTP (escuta em todas as interfaces; **sem login**). |
-| `TipoOperacaoNota` | `IMP` | Tipo de operação da I40 (`placaVeiculoPrevistoNota` e `nomeMotorista` vão sempre em branco). |
-| `MaxChavesPorEnvio` | `30` | Limite por envio. |
-| `PastaAuditoria` | vazio | Vazio = `<Estado>\devolucao`. |
-| `InverterPartes` | `false` | Validado no homolog; a variante invertida não é necessária. |
-
-**Busca por número + série:** `GET /api/devolucao/buscar?numero=&serie=` (número até 9 dígitos, série até 3,
-só dígitos). Não abre os XMLs: lê número, série e CNPJ do emitente do nome do arquivo `NFE<chave>.XML`
-(chave de 44 dígitos: série nas posições 23-25, número em 26-34, CNPJ em 7-20), em `Processados` e
-`pacote_*` (nunca `Erro`), só do CNPJ de `Operacional:CnpjDepositante`, comparando como inteiros. Mesma
-chave em dois pacotes vale uma vez (a mais recente). Responde 200 com `opcoes[]` (uma ou mais chaves; a
-tela pede a escolha quando há mais de uma e não envia sozinha), 404 "Nota não encontrada na retenção de
-60 dias." ou 400 para entrada inválida. O `POST /api/devolucao/enviar` recebe só `{ "chaves": [...] }`.
-
-**Sem placa/motorista:** o `ConstrutorI40` não recebe placa; `placaVeiculoPrevistoNota` e `nomeMotorista`
-vão sempre em branco. Chaves antigas `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista` no
-`appsettings` são ignoradas. Modo manual: `--enviar-i40 --chave <44>` ou `--enviar-i40 --numero <n> --serie <s>`,
-mais `--xml <caminho>` opcional.
-
-**Firewall:** a tela não tem login. Libere a porta **somente para a rede interna** (comando de
-exemplo em `INSTALACAO-SERVIDOR.md`, seção 3.12).
-
-**Auditoria:** um arquivo por dia, `devolucao_yyyyMMdd.log`, em `Devolucao:PastaAuditoria` ou
-`<Estado>\devolucao`. Uma linha por chave: `data;ip;chave;nota;status;transacao;mensagem`.
-Sem senha nem JSON. Cada envio também aparece em `logs\worker.out.log`.
-
-**Isolamento:** a tela tem o próprio servidor web dentro do serviço. Se a porta estiver ocupada ou
-houver erro, o log registra "Tela de devolução falhou e foi desligada" e a integração das notas
-continua normalmente.
-
-**Erros da API:** 400 (pedido inválido: lista vazia, mais de 30 chaves, número/série inválidos na busca),
-503 (`Pastas:Entrada` ou `Operacional:CnpjDepositante` não configurados), 500 (erro inesperado; veja o log).
-
-**Para desligar:** `Devolucao__Habilitada=false` e reiniciar o serviço.
-
-**Teste no homolog nesta máquina:** `docs\ROTEIRO-TESTE-I40.md`.
-
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -591,8 +533,6 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
 | Janela de coleta / limpeza (60 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
 | Ligar/desligar envio da placa do veículo | editar `I50:EnviarPlacaVeiculo` em `config\appsettings.Production.json` | **Sim** |
-| Ligar/desligar a tela de devolução (I40) | `Devolucao__Habilitada` / `Devolucao:Habilitada` (e firewall, ver seção 8.4) | **Sim** |
-| Ver a auditoria da devolução | `<Estado>\devolucao\devolucao_<data>.log` | Não |
 | Limpar já as pastas de não-XML (ExtensaoInvalida) | `tools\deploy\limpar-extensao-invalida.ps1` (`-WhatIf` simula) | Não (só apaga as pastas `ExtensaoInvalida`) |
 | Publicar nova versão | `tools\deploy\publicar-release.ps1` (o `.zip` vem da máquina de build) | Automático (o script reinicia) |
 | Rollback | `tools\deploy\rollback.ps1` | Automático (o script reinicia) |
