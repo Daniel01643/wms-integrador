@@ -51,3 +51,8 @@ deploy/config/
 # e relatórios gerados ao rodar o Worker de dentro do projeto.
 *.off-teste
 src/KitWmsIntegrador.Worker/relatorios/
+
+# XML de NF-e nunca vai para o repositório (tem dados de cliente). Os XMLs de teste ficam só no
+# disco, em tests/KitWmsIntegrador.Tests/Recursos. Vale para qualquer pasta.
+*.xml
+*.XML
