@@ -11,14 +11,14 @@ public sealed class ServicoDevolucaoTests : IDisposable
 
     public void Dispose() => _amb.Dispose();
 
-    private static SolicitacaoDevolucao Pedido(IEnumerable<string> chaves, bool placa = false, string? valorPlaca = null) =>
-        new() { Chaves = chaves.ToList(), EnviarPlaca = placa, Placa = valorPlaca, Origem = "10.0.0.5" };
+    private static SolicitacaoDevolucao Pedido(IEnumerable<string> chaves) =>
+        new() { Chaves = chaves.ToList(), Origem = "10.0.0.5" };
 
     private NotaFiscalI40 NotaEnviada(int envio = 0, int indice = 0) =>
         ((PayloadI40)_amb.Cliente.Envios[envio].Payload).NotaFiscal[indice];
 
     [Fact]
-    public async Task Enviar_SemPlaca_MontaIMPSemPlacaNemMotorista_EMarcaEnviada()
+    public async Task Enviar_MontaIMPSemPlacaNemMotorista_EMarcaEnviada()
     {
         _amb.CopiarXml(AmbienteDevolucao.Chave1);
         _amb.Cliente.Responder(InterfaceWms.I40,
@@ -39,46 +39,6 @@ public sealed class ServicoDevolucaoTests : IDisposable
         Assert.Equal(StatusChaveDevolucao.Enviada, item.Status);
         Assert.Equal(AmbienteDevolucao.Nota1, item.Nota);
         Assert.Equal("Registrado com sucesso", item.Mensagem);
-    }
-
-    [Fact]
-    public async Task Enviar_ComPlaca_MontaICDComPlacaEMotoristaFixo()
-    {
-        _amb.CopiarXml(AmbienteDevolucao.Chave1);
-        _amb.Cliente.Responder(InterfaceWms.I40,
-            AmbienteDevolucao.Resposta("1", (AmbienteDevolucao.Nota1, true, "ok")));
-
-        await _amb.Servico.EnviarAsync(Pedido(new[] { AmbienteDevolucao.Chave1 }, placa: true, valorPlaca: "epr-7871"));
-
-        var nf = NotaEnviada();
-        Assert.Equal("ICD", nf.TipoOperacaoNota);
-        Assert.Equal("EPR7871", nf.PlacaVeiculoPrevistoNota);
-        Assert.Equal("MOTORISTA DEVOLUCAO", nf.NomeMotorista);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("A1")]
-    public async Task Enviar_PlacaLigadaSemPlacaValida_LancaSolicitacaoInvalidaENaoEnvia(string? placa)
-    {
-        _amb.CopiarXml(AmbienteDevolucao.Chave1);
-
-        await Assert.ThrowsAsync<SolicitacaoDevolucaoInvalidaException>(() =>
-            _amb.Servico.EnviarAsync(Pedido(new[] { AmbienteDevolucao.Chave1 }, placa: true, valorPlaca: placa)));
-
-        Assert.Empty(_amb.Cliente.Envios);
-    }
-
-    [Fact]
-    public async Task Enviar_PlacaLigadaSemMotoristaConfigurado_LancaConfiguracao()
-    {
-        using var amb = new AmbienteDevolucao(new KitWmsIntegrador.Core.Configuracao.OpcoesDevolucao());
-        amb.Devolucao.NomeMotorista = " ";
-        amb.CopiarXml(AmbienteDevolucao.Chave1);
-
-        await Assert.ThrowsAsync<ConfiguracaoDevolucaoException>(() =>
-            amb.Servico.EnviarAsync(Pedido(new[] { AmbienteDevolucao.Chave1 }, placa: true, valorPlaca: "EPR7871")));
     }
 
     [Fact]
@@ -208,6 +168,7 @@ public sealed class ServicoDevolucaoTests : IDisposable
                 Microsoft.Extensions.Options.Options.Create(_amb.Devolucao),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<AuditoriaDevolucao>.Instance),
             Microsoft.Extensions.Options.Options.Create(_amb.Pastas),
+            Microsoft.Extensions.Options.Options.Create(_amb.Operacional),
             Microsoft.Extensions.Options.Options.Create(_amb.Devolucao),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ServicoDevolucao>.Instance);
 
@@ -240,19 +201,18 @@ public sealed class ServicoDevolucaoTests : IDisposable
         _amb.Cliente.Responder(InterfaceWms.I40,
             AmbienteDevolucao.Resposta("4042207", (AmbienteDevolucao.Nota1, true, "Registrado; com sucesso")));
 
-        await _amb.Servico.EnviarAsync(Pedido(new[] { AmbienteDevolucao.Chave1 }, placa: true, valorPlaca: "EPR7871"));
+        await _amb.Servico.EnviarAsync(Pedido(new[] { AmbienteDevolucao.Chave1 }));
 
         var arquivo = Assert.Single(Directory.GetFiles(_amb.Auditoria, "devolucao_*.log"));
         var linha = Assert.Single(File.ReadAllLines(arquivo));
         var campos = linha.Split(';');
-        Assert.Equal(8, campos.Length);
+        Assert.Equal(7, campos.Length);
         Assert.Equal("10.0.0.5", campos[1]);
-        Assert.Equal("EPR7871", campos[2]);
-        Assert.Equal(AmbienteDevolucao.Chave1, campos[3]);
-        Assert.Equal(AmbienteDevolucao.Nota1, campos[4]);
-        Assert.Equal("Enviada", campos[5]);
-        Assert.Equal("4042207", campos[6]);
-        Assert.Equal("Registrado, com sucesso", campos[7]);
+        Assert.Equal(AmbienteDevolucao.Chave1, campos[2]);
+        Assert.Equal(AmbienteDevolucao.Nota1, campos[3]);
+        Assert.Equal("Enviada", campos[4]);
+        Assert.Equal("4042207", campos[5]);
+        Assert.Equal("Registrado, com sucesso", campos[6]);
         Assert.DoesNotContain("NOTA_FISCAL", linha);
         Assert.DoesNotContain("MOTORISTA", linha);
     }

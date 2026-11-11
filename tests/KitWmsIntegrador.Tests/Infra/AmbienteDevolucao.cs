@@ -18,6 +18,9 @@ public sealed class AmbienteDevolucao : IDisposable
     public const string Chave2 = "35251201838723009850550060156663211093034056";
     public const string Nota1 = "15665807";
     public const string Nota2 = "15666321";
+    public const string CnpjDepositante = "01.838.723/0098-50";
+    public const string CnpjDepositanteDigitos = "01838723009850";
+    public const string CnpjOutroEmitente = "12345678000195";
 
     private static readonly string PastaRecursos = Path.Combine(AppContext.BaseDirectory, "Recursos");
 
@@ -29,24 +32,19 @@ public sealed class AmbienteDevolucao : IDisposable
         Directory.CreateDirectory(Processados);
 
         Devolucao = devolucao ?? new OpcoesDevolucao();
-        if (string.IsNullOrWhiteSpace(Devolucao.NomeMotorista))
-        {
-            Devolucao.NomeMotorista = "MOTORISTA DEVOLUCAO";
-        }
-
         Devolucao.PastaAuditoria = Auditoria;
         Pastas = new OpcoesPasta { Entrada = Raiz };
         Cliente = new FakeClienteWms();
 
-        var operacional = new OpcoesOperacionais
+        Operacional = new OpcoesOperacionais
         {
             Deposito = "JD",
             CnpjArmazem = "14.605.065/0001-75",
-            CnpjDepositante = "01.838.723/0098-50",
+            CnpjDepositante = CnpjDepositante,
         };
         Servico = new ServicoDevolucao(
             Cliente,
-            new ConstrutorI40(Options.Create(operacional), Options.Create(Devolucao)),
+            new ConstrutorI40(Options.Create(Operacional), Options.Create(Devolucao)),
             new LeitorNotaFiscalXml(),
             new AuditoriaDevolucao(
                 new FakeClock(DateTimeOffset.UtcNow),
@@ -54,6 +52,7 @@ public sealed class AmbienteDevolucao : IDisposable
                 Options.Create(Devolucao),
                 NullLogger<AuditoriaDevolucao>.Instance),
             Options.Create(Pastas),
+            Options.Create(Operacional),
             Options.Create(Devolucao),
             NullLogger<ServicoDevolucao>.Instance);
     }
@@ -68,6 +67,8 @@ public sealed class AmbienteDevolucao : IDisposable
 
     public OpcoesPasta Pastas { get; }
 
+    public OpcoesOperacionais Operacional { get; }
+
     public FakeClienteWms Cliente { get; }
 
     public ServicoDevolucao Servico { get; }
@@ -79,6 +80,32 @@ public sealed class AmbienteDevolucao : IDisposable
         Directory.CreateDirectory(pacote);
         var nome = $"NFE{chave}.XML";
         File.Copy(Path.Combine(PastaRecursos, nome), Path.Combine(pacote, nome), overwrite: true);
+    }
+
+    /// <summary>
+    /// Monta uma chave de 44 dígitos válida (DV correto) com CNPJ, série e número informados
+    /// (modelo 55, UF 35, AAMM 2512). <paramref name="variacao"/> muda o cNF para gerar chaves
+    /// distintas com o mesmo número e série.
+    /// </summary>
+    public static string ChaveDe(string cnpj14, int serie, int numero, int variacao = 1) =>
+        ChaveComDv("352512" + cnpj14 + "55" + serie.ToString("D3") + numero.ToString("D9") + "1" + variacao.ToString("D8"));
+
+    /// <summary>
+    /// Cria um arquivo vazio <c>NFE&lt;chave&gt;.XML</c> (o conteúdo não é lido pela busca) na pasta
+    /// indicada, relativa a Processados ("" = raiz), com a data de gravação informada. Só em pasta temporária.
+    /// </summary>
+    public string CriarArquivoDaChave(string chave, string subpasta, DateTime? dataUtc = null, string? nomeArquivo = null)
+    {
+        var pasta = string.IsNullOrEmpty(subpasta) ? Processados : Path.Combine(Processados, subpasta);
+        Directory.CreateDirectory(pasta);
+        var caminho = Path.Combine(pasta, nomeArquivo ?? $"NFE{chave}.XML");
+        File.WriteAllText(caminho, string.Empty);
+        if (dataUtc is not null)
+        {
+            File.SetLastWriteTimeUtc(caminho, dataUtc.Value);
+        }
+
+        return caminho;
     }
 
     /// <summary>Resposta do WMS com um retorno por documento (sucesso, mensagem).</summary>

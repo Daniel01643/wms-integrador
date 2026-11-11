@@ -47,24 +47,67 @@ public sealed class ValidadorChavesDevolucaoTests
         Assert.Equal(string.Empty, ValidadorChavesDevolucao.NotaDaChave("abc"));
     }
 
-    [Theory]
-    [InlineData("epr7871", "EPR7871")]
-    [InlineData("ABC-1D23", "ABC1D23")]
-    [InlineData(" abc 1234 ", "ABC1234")]
-    public void NormalizarPlaca_AceitaPlacasValidas(string entrada, string esperado)
+    [Fact]
+    public void ExtracaoDaChave_CnpjSerieENumero_SaoOsDasPosicoesDoLayout()
     {
-        Assert.Equal(esperado, ValidadorChavesDevolucao.NormalizarPlaca(entrada));
+        // 35 2512 01838723009850 55 006 015665807 1 60449161 2
+        Assert.Equal("01838723009850", ValidadorChavesDevolucao.CnpjDaChave(AmbienteDevolucao.Chave1));
+        Assert.Equal(6, ValidadorChavesDevolucao.SerieDaChave(AmbienteDevolucao.Chave1));
+        Assert.Equal(15665807, ValidadorChavesDevolucao.NumeroDaChave(AmbienteDevolucao.Chave1));
+    }
+
+    [Fact]
+    public void ExtracaoDaChave_ChaveInvalida_DevolveVazioOuNulo()
+    {
+        Assert.Equal(string.Empty, ValidadorChavesDevolucao.CnpjDaChave("123"));
+        Assert.Null(ValidadorChavesDevolucao.SerieDaChave("123"));
+        Assert.Null(ValidadorChavesDevolucao.NumeroDaChave(AmbienteDevolucao.Chave1[..43] + "X"));
+    }
+
+    [Fact]
+    public void ExtracaoDaChave_IgnoraZerosAEsquerda()
+    {
+        var chave = AmbienteDevolucao.ChaveDe(AmbienteDevolucao.CnpjDepositanteDigitos, 0, 12);
+
+        Assert.Equal(0, ValidadorChavesDevolucao.SerieDaChave(chave));
+        Assert.Equal(12, ValidadorChavesDevolucao.NumeroDaChave(chave));
+        Assert.Equal("12", ValidadorChavesDevolucao.NotaDaChave(chave));
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData("AB1")]
-    [InlineData("ABC123456")]
-    [InlineData("ABC!234")]
-    public void NormalizarPlaca_RecusaPlacasInvalidas(string? entrada)
+    [InlineData("15671289", "6", 15671289, 6)]
+    [InlineData(" 015671289 ", "006", 15671289, 6)]
+    [InlineData("1", "0", 1, 0)]
+    [InlineData("999999999", "999", 999999999, 999)]
+    public void ValidarNumeroSerie_Aceita(string numero, string serie, int numeroEsperado, int serieEsperada)
     {
-        Assert.Null(ValidadorChavesDevolucao.NormalizarPlaca(entrada));
+        var erro = ValidadorChavesDevolucao.ValidarNumeroSerie(numero, serie, out var n, out var s);
+
+        Assert.Null(erro);
+        Assert.Equal(numeroEsperado, n);
+        Assert.Equal(serieEsperada, s);
+    }
+
+    [Theory]
+    [InlineData(null, "6")]
+    [InlineData("", "6")]
+    [InlineData("   ", "6")]
+    [InlineData("1234567890", "6")]
+    [InlineData("12a4", "6")]
+    [InlineData("-5", "6")]
+    [InlineData("15671289", null)]
+    [InlineData("15671289", "")]
+    [InlineData("15671289", "1234")]
+    [InlineData("15671289", "6x")]
+    [InlineData("1 5", "6")]
+    public void ValidarNumeroSerie_Recusa(string? numero, string? serie)
+    {
+        Assert.NotNull(ValidadorChavesDevolucao.ValidarNumeroSerie(numero, serie, out _, out _));
+    }
+
+    [Fact]
+    public void SoDigitos_RemovePontuacaoDoCnpj()
+    {
+        Assert.Equal("01838723009850", ValidadorChavesDevolucao.SoDigitos("01.838.723/0098-50"));
     }
 }

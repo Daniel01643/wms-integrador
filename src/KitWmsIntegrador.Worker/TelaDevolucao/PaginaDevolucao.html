@@ -16,7 +16,7 @@
   h2 { margin: 0 0 12px; color: #17479E; font-size: 1.2rem; }
   p.ajuda { margin: 0 0 12px; color: #444444; }
   label { display: block; font-weight: 700; margin-bottom: 4px; }
-  input[type="text"] { width: 100%; font: inherit; font-size: 1.1rem; padding: 10px 12px; border: 2px solid #6B7280; border-radius: 6px; background: #FFFFFF; color: #222222; }
+  input[type="text"], input[type="search"] { width: 100%; font: inherit; font-size: 1.1rem; padding: 10px 12px; border: 2px solid #6B7280; border-radius: 6px; background: #FFFFFF; color: #222222; }
   .linha { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
   .linha .campo { flex: 1 1 360px; }
   button { font: inherit; font-weight: 700; padding: 10px 20px; border-radius: 6px; border: 2px solid #17479E; background: #17479E; color: #FFFFFF; cursor: pointer; min-height: 44px; }
@@ -34,11 +34,16 @@
   ul.chaves code { font-family: Consolas, "Courier New", monospace; font-size: 1.05rem; letter-spacing: 0.5px; word-break: break-all; }
   ul.chaves button { padding: 4px 12px; min-height: 36px; }
   .vazio { color: #4B5563; font-style: italic; }
-  .placa-opcao { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
-  .placa-opcao input { width: 22px; height: 22px; }
-  .placa-opcao label { margin: 0; }
-  #bloco-placa { max-width: 280px; margin-bottom: 8px; }
-  #bloco-placa[hidden] { display: none; }
+  fieldset.busca { border: 1px solid #C1C1C1; border-radius: 6px; margin: 16px 0 0; padding: 12px 16px 16px; }
+  fieldset.busca legend { font-weight: 700; color: #17479E; padding: 0 6px; }
+  .linha .campo-num { flex: 0 1 220px; }
+  .linha .campo-serie { flex: 0 1 120px; }
+  #opcoes[hidden] { display: none; }
+  #opcoes { margin-top: 12px; }
+  #opcoes table { margin-top: 4px; }
+  #opcoes td button { padding: 4px 12px; min-height: 36px; }
+  ul.chaves .det { display: block; color: #444444; font-size: 0.9rem; }
+  ul.chaves .info { flex: 1 1 auto; }
   .aviso { margin: 12px 0 0; padding: 10px 14px; border-radius: 6px; border: 1px solid; }
   .aviso:empty { display: none; }
   .aviso.erro { background: #FDECEA; border-color: #8A1C1C; color: #7A1717; }
@@ -66,8 +71,8 @@
 </header>
 <main>
   <section class="card" aria-labelledby="t-chaves">
-    <h2 id="t-chaves">1. Chaves de acesso das notas de venda</h2>
-    <p class="ajuda">Digite ou bipe a chave de 44 números e tecle Enter. Pode colar várias chaves de uma vez.</p>
+    <h2 id="t-chaves">1. Notas de venda a devolver</h2>
+    <p class="ajuda">Digite ou bipe a chave de 44 números e tecle Enter, ou procure pelo número e pela série da nota. Pode colar várias chaves de uma vez.</p>
     <div class="linha">
       <div class="campo">
         <label for="chave">Chave de acesso (44 dígitos)</label>
@@ -76,21 +81,37 @@
       <button type="button" id="adicionar">Adicionar</button>
     </div>
     <div id="msg-chave" class="aviso" role="alert"></div>
+
+    <fieldset class="busca">
+      <legend>Ou procure pelo número e pela série</legend>
+      <div class="linha">
+        <div class="campo-num">
+          <label for="numero">Número da nota (até 9 dígitos)</label>
+          <input type="text" id="numero" inputmode="numeric" maxlength="9" autocomplete="off" aria-describedby="msg-busca">
+        </div>
+        <div class="campo-serie">
+          <label for="serie">Série (até 3 dígitos)</label>
+          <input type="text" id="serie" inputmode="numeric" maxlength="3" autocomplete="off" aria-describedby="msg-busca">
+        </div>
+        <button type="button" id="buscar">Buscar e adicionar</button>
+      </div>
+      <div id="msg-busca" class="aviso" role="alert"></div>
+      <div id="opcoes" hidden>
+        <p class="ajuda" id="opcoes-titulo" tabindex="-1"></p>
+        <table>
+          <caption>Chaves encontradas para o número e a série</caption>
+          <thead><tr><th scope="col">Chave</th><th scope="col">Data do arquivo</th><th scope="col">Pacote</th><th scope="col">Ação</th></tr></thead>
+          <tbody id="opcoes-corpo"></tbody>
+        </table>
+      </div>
+    </fieldset>
     <p class="contador" id="contador" aria-live="polite"></p>
-    <ul class="chaves" id="lista" aria-label="Chaves adicionadas"></ul>
+    <ul class="chaves" id="lista" aria-label="Notas adicionadas"></ul>
   </section>
 
   <section class="card" aria-labelledby="t-envio">
     <h2 id="t-envio">2. Envio</h2>
-    <div class="placa-opcao">
-      <input type="checkbox" id="enviar-placa" aria-controls="bloco-placa">
-      <label for="enviar-placa">Enviar placa do veículo</label>
-    </div>
-    <div id="bloco-placa" hidden>
-      <label for="placa">Placa do veículo (obrigatória)</label>
-      <input type="text" id="placa" maxlength="8" autocomplete="off" aria-describedby="msg-placa">
-    </div>
-    <div id="msg-placa" class="aviso" role="alert"></div>
+    <p class="ajuda">Confira a lista acima e clique em Enviar. Cada nota é registrada no WMS como devolução.</p>
     <div class="acoes">
       <button type="button" id="enviar" disabled>Enviar</button>
       <button type="button" id="limpar" class="sec">Limpar lista</button>
@@ -105,7 +126,7 @@
       <p id="resumo"></p>
       <table id="tabela" hidden>
         <caption>Resultado do envio por chave</caption>
-        <thead><tr><th scope="col">Chave</th><th scope="col">Nota</th><th scope="col">Situação</th><th scope="col">Mensagem</th></tr></thead>
+        <thead><tr><th scope="col">Chave</th><th scope="col">Nota/Série</th><th scope="col">Situação</th><th scope="col">Mensagem</th></tr></thead>
         <tbody id="corpo"></tbody>
       </table>
     </div>
@@ -122,7 +143,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var campo = $('chave'), lista = $('lista'), contador = $('contador');
   var btnEnviar = $('enviar'), btnAdd = $('adicionar'), btnLimpar = $('limpar');
-  var chkPlaca = $('enviar-placa'), blocoPlaca = $('bloco-placa'), campoPlaca = $('placa');
+  var campoNumero = $('numero'), campoSerie = $('serie'), btnBuscar = $('buscar');
 
   var ROTULOS = {
     Enviada: ['Enviada com sucesso', 'ok', '\u2714 '],
@@ -144,6 +165,10 @@
     return dv === c.charCodeAt(43) - 48 ? null : 'Dígito verificador inválido (confira a chave).';
   }
 
+  // Número e série estão na própria chave (posições 26-34 e 23-25), sem zeros à esquerda.
+  function numeroDaChave(c) { return String(parseInt(c.substr(25, 9), 10)); }
+  function serieDaChave(c) { return String(parseInt(c.substr(22, 3), 10)); }
+
   function aviso(id, texto, tipo) {
     var el = $(id);
     el.textContent = texto || '';
@@ -160,19 +185,26 @@
     }
     chaves.forEach(function (c, i) {
       var li = document.createElement('li');
+      var info = document.createElement('span');
+      info.className = 'info';
       var code = document.createElement('code');
       code.textContent = c;
+      var det = document.createElement('span');
+      det.className = 'det';
+      det.textContent = 'Nota ' + numeroDaChave(c) + ', série ' + serieDaChave(c);
+      info.appendChild(code);
+      info.appendChild(det);
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'sec';
       b.textContent = 'Remover';
-      b.setAttribute('aria-label', 'Remover a chave ' + c);
+      b.setAttribute('aria-label', 'Remover a nota ' + numeroDaChave(c) + ' série ' + serieDaChave(c));
       b.addEventListener('click', function () {
         chaves.splice(i, 1);
         atualizar();
         campo.focus();
       });
-      li.appendChild(code);
+      li.appendChild(info);
       li.appendChild(b);
       lista.appendChild(li);
     });
@@ -214,16 +246,108 @@
   campo.addEventListener('paste', function () { setTimeout(submeterCampo, 0); });
   btnAdd.addEventListener('click', submeterCampo);
 
-  chkPlaca.addEventListener('change', function () {
-    blocoPlaca.hidden = !chkPlaca.checked;
-    aviso('msg-placa', '');
-    if (chkPlaca.checked) { campoPlaca.focus(); }
+  function fecharOpcoes() {
+    $('opcoes').hidden = true;
+    $('opcoes-corpo').textContent = '';
+  }
+
+  function escolher(chave) {
+    fecharOpcoes();
+    aviso('msg-busca', '');
+    adicionar(chave);
+    if (chaves.indexOf(chave) >= 0) {
+      aviso('msg-busca', 'Nota ' + numeroDaChave(chave) + ', série ' + serieDaChave(chave) + ' adicionada à lista.', 'info');
+      campoNumero.value = '';
+      campoSerie.value = '';
+      campoNumero.focus();
+    }
+  }
+
+  function mostrarOpcoes(dados) {
+    var corpo = $('opcoes-corpo');
+    corpo.textContent = '';
+    dados.opcoes.forEach(function (o) {
+      var tr = document.createElement('tr');
+      var tdC = document.createElement('td'); tdC.className = 'chave'; tdC.textContent = o.chave;
+      var tdD = document.createElement('td'); tdD.textContent = o.dataArquivo;
+      var tdP = document.createElement('td'); tdP.textContent = o.pacote;
+      var tdA = document.createElement('td');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sec';
+      b.textContent = 'Usar esta chave';
+      b.setAttribute('aria-label', 'Usar a chave ' + o.chave + ', arquivo de ' + o.dataArquivo + ', ' + o.pacote);
+      b.addEventListener('click', function () { escolher(o.chave); });
+      tdA.appendChild(b);
+      tr.appendChild(tdC); tr.appendChild(tdD); tr.appendChild(tdP); tr.appendChild(tdA);
+      corpo.appendChild(tr);
+    });
+    var titulo = $('opcoes-titulo');
+    titulo.textContent = 'Foram encontradas ' + dados.opcoes.length + ' chaves para a nota ' + dados.numero +
+      ', série ' + dados.serie + '. Escolha a correta; nada foi adicionado ainda.';
+    $('opcoes').hidden = false;
+    titulo.focus();
+  }
+
+  var buscando = false;
+  function buscar() {
+    if (buscando) { return; }
+    var numero = campoNumero.value.trim(), serie = campoSerie.value.trim();
+    fecharOpcoes();
+    aviso('msg-busca', '');
+    if (!/^\d{1,9}$/.test(numero)) {
+      aviso('msg-busca', 'Informe o número da nota com até 9 dígitos, somente números.', 'erro');
+      campoNumero.focus();
+      return;
+    }
+    if (!/^\d{1,3}$/.test(serie)) {
+      aviso('msg-busca', 'Informe a série com até 3 dígitos, somente números.', 'erro');
+      campoSerie.focus();
+      return;
+    }
+    buscando = true;
+    btnBuscar.disabled = true;
+    aviso('msg-busca', 'Buscando a nota, aguarde.', 'info');
+    fetch('/api/devolucao/buscar?numero=' + encodeURIComponent(numero) + '&serie=' + encodeURIComponent(serie))
+      .then(function (resp) {
+        return resp.json().catch(function () { return {}; }).then(function (dados) {
+          return { ok: resp.ok, dados: dados };
+        });
+      }).then(function (res) {
+        if (!res.ok) {
+          aviso('msg-busca', res.dados.erro || 'Não foi possível buscar a nota. Tente novamente.', 'erro');
+          return;
+        }
+        var ops = res.dados.opcoes || [];
+        if (ops.length === 1) {
+          escolher(ops[0].chave);
+        } else if (ops.length > 1) {
+          aviso('msg-busca', '');
+          mostrarOpcoes(res.dados);
+        } else {
+          aviso('msg-busca', 'Nota não encontrada na retenção de 60 dias.', 'erro');
+        }
+      }).catch(function () {
+        aviso('msg-busca', 'Sem conexão com o serviço. Verifique a rede e tente novamente.', 'erro');
+      }).then(function () {
+        buscando = false;
+        btnBuscar.disabled = false;
+      });
+  }
+
+  btnBuscar.addEventListener('click', buscar);
+  [campoNumero, campoSerie].forEach(function (el) {
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); buscar(); }
+    });
   });
 
   btnLimpar.addEventListener('click', function () {
     chaves = [];
     aviso('msg-chave', '');
+    aviso('msg-busca', '');
     aviso('msg-envio', '');
+    fecharOpcoes();
     atualizar();
     campo.focus();
   });
@@ -236,7 +360,7 @@
       var tr = document.createElement('tr');
       var rot = ROTULOS[x.status] || [x.status, 'err', ''];
       var tdC = document.createElement('td'); tdC.className = 'chave'; tdC.textContent = x.chave;
-      var tdN = document.createElement('td'); tdN.textContent = x.nota || '-';
+      var tdN = document.createElement('td'); tdN.textContent = x.nota ? x.nota + ' / ' + (x.serie || '-') : '-';
       var tdS = document.createElement('td');
       var sp = document.createElement('span'); sp.className = 'st ' + rot[1]; sp.textContent = rot[2] + rot[0];
       tdS.appendChild(sp);
@@ -252,14 +376,7 @@
 
   btnEnviar.addEventListener('click', function () {
     aviso('msg-envio', '');
-    aviso('msg-placa', '');
     if (chaves.length === 0) { return; }
-    var placa = campoPlaca.value.trim();
-    if (chkPlaca.checked && placa === '') {
-      aviso('msg-placa', 'Informe a placa do veículo ou desmarque "Enviar placa do veículo".', 'erro');
-      campoPlaca.focus();
-      return;
-    }
     enviando = true;
     btnEnviar.disabled = true;
     btnEnviar.textContent = 'Enviando...';
@@ -268,7 +385,7 @@
     fetch('/api/devolucao/enviar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chaves: chaves, enviarPlaca: chkPlaca.checked, placa: chkPlaca.checked ? placa : '' })
+      body: JSON.stringify({ chaves: chaves })
     }).then(function (resp) {
       return resp.json().catch(function () { return {}; }).then(function (dados) {
         return { ok: resp.ok, dados: dados };
@@ -298,7 +415,6 @@
 
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     if (cfg && cfg.maxChaves > 0) { maxChaves = cfg.maxChaves; }
-    if (cfg && cfg.enviarPlacaPadrao) { chkPlaca.checked = true; blocoPlaca.hidden = false; }
     atualizar();
   }).catch(function () { /* mantém os padrões */ });
 })();

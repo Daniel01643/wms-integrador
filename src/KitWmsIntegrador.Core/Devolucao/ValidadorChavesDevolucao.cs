@@ -1,3 +1,4 @@
+using System.Globalization;
 namespace KitWmsIntegrador.Core.Devolucao;
 
 /// <summary>
@@ -41,18 +42,52 @@ public static class ValidadorChavesDevolucao
         return numero.Length == 0 ? "0" : numero;
     }
 
+    /// <summary>Tamanho máximo do número da nota (nNF, 9 dígitos na chave).</summary>
+    public const int MaxDigitosNumero = 9;
+
+    /// <summary>Tamanho máximo da série (3 dígitos na chave).</summary>
+    public const int MaxDigitosSerie = 3;
+
+    /// <summary>CNPJ do emitente (posições 7 a 20 da chave), 14 dígitos; vazio se a chave não tiver 44 dígitos.</summary>
+    public static string CnpjDaChave(string chave) => EhChave44Digitos(chave) ? chave.Substring(6, 14) : string.Empty;
+
+    /// <summary>Série (posições 23 a 25 da chave) como inteiro; <c>null</c> se a chave não tiver 44 dígitos.</summary>
+    public static int? SerieDaChave(string chave) =>
+        EhChave44Digitos(chave) ? int.Parse(chave.AsSpan(22, 3), NumberStyles.None, CultureInfo.InvariantCulture) : null;
+
+    /// <summary>Número da nota (posições 26 a 34 da chave) como inteiro; <c>null</c> se a chave não tiver 44 dígitos.</summary>
+    public static int? NumeroDaChave(string chave) =>
+        EhChave44Digitos(chave) ? int.Parse(chave.AsSpan(25, 9), NumberStyles.None, CultureInfo.InvariantCulture) : null;
+
     /// <summary>
-    /// Normaliza a placa (remove espaços e hífens, maiúsculas). Devolve <c>null</c> se não tiver
-    /// de 5 a 8 letras/dígitos (placas BR têm 7).
+    /// Valida os campos da busca por número + série: somente dígitos, número com 1 a 9 e série
+    /// com 1 a 3 dígitos (zeros à esquerda são aceitos). Devolve <c>null</c> se válidos ou a mensagem do problema.
     /// </summary>
-    public static string? NormalizarPlaca(string? placa)
+    public static string? ValidarNumeroSerie(string? numero, string? serie, out int numeroInt, out int serieInt)
     {
-        if (string.IsNullOrWhiteSpace(placa))
+        numeroInt = 0;
+        serieInt = 0;
+        var n = numero?.Trim() ?? string.Empty;
+        var s = serie?.Trim() ?? string.Empty;
+
+        if (n.Length == 0 || n.Length > MaxDigitosNumero || !n.All(char.IsAsciiDigit))
         {
-            return null;
+            return $"O número da nota deve ter de 1 a {MaxDigitosNumero} dígitos, somente números.";
         }
 
-        var p = new string(placa.Where(c => !char.IsWhiteSpace(c) && c != '-').ToArray()).ToUpperInvariant();
-        return p.Length is >= 5 and <= 8 && p.All(char.IsAsciiLetterOrDigit) ? p : null;
+        if (s.Length == 0 || s.Length > MaxDigitosSerie || !s.All(char.IsAsciiDigit))
+        {
+            return $"A série deve ter de 1 a {MaxDigitosSerie} dígitos, somente números.";
+        }
+
+        numeroInt = int.Parse(n, NumberStyles.None, CultureInfo.InvariantCulture);
+        serieInt = int.Parse(s, NumberStyles.None, CultureInfo.InvariantCulture);
+        return null;
     }
+
+    /// <summary>Somente os dígitos do texto (para comparar CNPJs).</summary>
+    public static string SoDigitos(string? texto) =>
+        new((texto ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+
+    private static bool EhChave44Digitos(string? chave) => chave is { Length: 44 } && chave.All(char.IsAsciiDigit);
 }

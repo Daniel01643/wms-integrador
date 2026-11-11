@@ -10,15 +10,11 @@ namespace KitWmsIntegrador.Core.Construtores;
 public interface IConstrutorI40
 {
     /// <summary>
-    /// Constrói o DTO tipado da I40 para a nota.
-    /// <paramref name="enviarPlaca"/> = false: <c>tipoOperacaoNota</c> = <c>Devolucao:TipoOperacaoNota</c>
-    /// (IMP), placa e motorista em branco, nada é exigido.
-    /// <paramref name="enviarPlaca"/> = true: <c>tipoOperacaoNota</c> = <c>Devolucao:TipoOperacaoNotaComPlaca</c>
-    /// (ICD), exige <paramref name="placa"/> (<see cref="ArgumentException"/>) e
-    /// <c>Devolucao:NomeMotorista</c> (<see cref="InvalidOperationException"/>).
+    /// Constrói o DTO tipado da I40 para a nota: <c>tipoOperacaoNota</c> = <c>Devolucao:TipoOperacaoNota</c>
+    /// (padrão IMP); <c>placaVeiculoPrevistoNota</c> e <c>nomeMotorista</c> sempre em branco.
     /// </summary>
-    PayloadI40 Construir(NotaFiscal nota, bool enviarPlaca, string? placa = null);
+    PayloadI40 Construir(NotaFiscal nota);
 
     /// <summary>Constrói o DTO e serializa para o JSON exato esperado pela API.</summary>
-    string ConstruirJson(NotaFiscal nota, bool enviarPlaca, string? placa = null);
+    string ConstruirJson(NotaFiscal nota);
 }

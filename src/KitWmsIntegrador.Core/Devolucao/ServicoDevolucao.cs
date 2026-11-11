@@ -14,9 +14,18 @@ public interface IServicoDevolucao
     /// <summary>
     /// Processa o pedido. Chaves inválidas ou sem XML não bloqueiam as demais.
     /// </summary>
-    /// <exception cref="SolicitacaoDevolucaoInvalidaException">Lista vazia, excesso de chaves ou placa ausente/inválida.</exception>
-    /// <exception cref="ConfiguracaoDevolucaoException">Pasta de entrada ou motorista fixo não configurados.</exception>
+    /// <exception cref="SolicitacaoDevolucaoInvalidaException">Lista vazia ou excesso de chaves.</exception>
+    /// <exception cref="ConfiguracaoDevolucaoException">Pasta de entrada não configurada.</exception>
     Task<ResultadoLoteDevolucao> EnviarAsync(SolicitacaoDevolucao solicitacao, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Busca as chaves da nota pelo número + série na retenção (Processados e pacote_*), filtrando
+    /// pelo CNPJ do depositante. Não lê os XMLs. Pode devolver zero, uma ou várias chaves distintas;
+    /// quem decide o que enviar é o colaborador.
+    /// </summary>
+    /// <exception cref="SolicitacaoDevolucaoInvalidaException">Número ou série vazios, não numéricos ou grandes demais.</exception>
+    /// <exception cref="ConfiguracaoDevolucaoException">Pasta de entrada ou CNPJ do depositante não configurados.</exception>
+    ResultadoBuscaDevolucao Buscar(string? numero, string? serie);
 }
 
 /// <summary>
@@ -30,6 +39,7 @@ public sealed class ServicoDevolucao : IServicoDevolucao
     private readonly LeitorNotaFiscalXml _leitor;
     private readonly AuditoriaDevolucao _auditoria;
     private readonly OpcoesPasta _pastas;
+    private readonly OpcoesOperacionais _operacional;
     private readonly OpcoesDevolucao _opcoes;
     private readonly ILogger<ServicoDevolucao> _logger;
 
@@ -39,6 +49,7 @@ public sealed class ServicoDevolucao : IServicoDevolucao
         LeitorNotaFiscalXml leitor,
         AuditoriaDevolucao auditoria,
         IOptions<OpcoesPasta> pastas,
+        IOptions<OpcoesOperacionais> operacional,
         IOptions<OpcoesDevolucao> opcoes,
         ILogger<ServicoDevolucao> logger)
     {
@@ -47,6 +58,7 @@ public sealed class ServicoDevolucao : IServicoDevolucao
         _leitor = leitor;
         _auditoria = auditoria;
         _pastas = pastas.Value;
+        _operacional = operacional.Value;
         _opcoes = opcoes.Value;
         _logger = logger;
     }
@@ -67,23 +79,6 @@ public sealed class ServicoDevolucao : IServicoDevolucao
         if (chaves.Count > max)
         {
             throw new SolicitacaoDevolucaoInvalidaException($"Máximo de {max} chaves por envio.");
-        }
-
-        string? placa = null;
-        if (solicitacao.EnviarPlaca)
-        {
-            placa = ValidadorChavesDevolucao.NormalizarPlaca(solicitacao.Placa);
-            if (placa is null)
-            {
-                throw new SolicitacaoDevolucaoInvalidaException(
-                    "Informe a placa do veículo (5 a 8 letras ou números) para enviar com placa.");
-            }
-
-            if (string.IsNullOrWhiteSpace(_opcoes.NomeMotorista))
-            {
-                throw new ConfiguracaoDevolucaoException(
-                    "Devolucao:NomeMotorista não está configurado; não é possível enviar com placa.");
-            }
         }
 
         if (string.IsNullOrWhiteSpace(_pastas.Entrada))
@@ -118,7 +113,7 @@ public sealed class ServicoDevolucao : IServicoDevolucao
                 }
 
                 var nota = _leitor.ParseArquivo(caminho);
-                var payload = _construtor.Construir(nota, solicitacao.EnviarPlaca, placa);
+                var payload = _construtor.Construir(nota);
                 paraEnvio.Add((i, chave, nota.Numero, payload.NotaFiscal[0]));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -155,6 +150,7 @@ public sealed class ServicoDevolucao : IServicoDevolucao
                 {
                     Chave = chave,
                     Nota = nota,
+                    Serie = ValidadorChavesDevolucao.SerieDaChave(chave)?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
                     Status = sucesso ? StatusChaveDevolucao.Enviada : StatusChaveDevolucao.ErroWms,
                     Mensagem = mensagem,
                 };
@@ -165,20 +161,47 @@ public sealed class ServicoDevolucao : IServicoDevolucao
         foreach (var r in finais)
         {
             _logger.LogInformation(
-                "Devolução: chave={Chave} nota={Nota} status={Status} transacao={Transacao} placa={Placa}",
-                r.Chave, r.Nota, r.Status, string.IsNullOrEmpty(transacao) ? "-" : transacao,
-                solicitacao.EnviarPlaca ? placa : "-");
+                "Devolução: chave={Chave} nota={Nota} status={Status} transacao={Transacao}",
+                r.Chave, r.Nota, r.Status, string.IsNullOrEmpty(transacao) ? "-" : transacao);
         }
 
-        _auditoria.Registrar(solicitacao.Origem, placa, transacao, finais);
+        _auditoria.Registrar(solicitacao.Origem, transacao, finais);
 
         return new ResultadoLoteDevolucao
         {
-            EnviarPlaca = solicitacao.EnviarPlaca,
             Total = finais.Count,
             Enviadas = finais.Count(r => r.Sucesso),
             Transacao = transacao,
             Resultados = finais,
+        };
+    }
+
+    /// <inheritdoc />
+    public ResultadoBuscaDevolucao Buscar(string? numero, string? serie)
+    {
+        var erro = ValidadorChavesDevolucao.ValidarNumeroSerie(numero, serie, out var numeroInt, out var serieInt);
+        if (erro is not null)
+        {
+            throw new SolicitacaoDevolucaoInvalidaException(erro);
+        }
+
+        if (string.IsNullOrWhiteSpace(_pastas.Entrada))
+        {
+            throw new ConfiguracaoDevolucaoException("Pastas:Entrada não está configurada.");
+        }
+
+        var cnpj = ValidadorChavesDevolucao.SoDigitos(_operacional.CnpjDepositante);
+        if (cnpj.Length != 14)
+        {
+            throw new ConfiguracaoDevolucaoException("Operacional:CnpjDepositante não está configurado com 14 dígitos.");
+        }
+
+        var opcoes = new LocalizadorXmlDevolucao(_pastas.CaminhoProcessados).BuscarPorNumeroSerie(numeroInt, serieInt, cnpj);
+        return new ResultadoBuscaDevolucao
+        {
+            Numero = numeroInt.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Serie = serieInt.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Opcoes = opcoes,
         };
     }
 
@@ -225,5 +248,12 @@ public sealed class ServicoDevolucao : IServicoDevolucao
     }
 
     private static ResultadoChaveDevolucao Local(string chave, string nota, StatusChaveDevolucao status, string mensagem) =>
-        new() { Chave = chave, Nota = nota, Status = status, Mensagem = mensagem };
+        new()
+        {
+            Chave = chave,
+            Nota = nota,
+            Serie = ValidadorChavesDevolucao.SerieDaChave(chave)?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            Status = status,
+            Mensagem = mensagem,
+        };
 }

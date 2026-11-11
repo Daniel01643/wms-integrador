@@ -29,38 +29,11 @@ public sealed class ConstrutorI40 : IConstrutorI40
     }
 
     /// <inheritdoc />
-    public PayloadI40 Construir(NotaFiscal nota, bool enviarPlaca, string? placa = null)
+    public PayloadI40 Construir(NotaFiscal nota)
     {
         ArgumentNullException.ThrowIfNull(nota);
 
-        var placaEnvio = string.Empty;
-        var motorista = string.Empty;
-        string tipoOperacao;
-
-        if (enviarPlaca)
-        {
-            if (string.IsNullOrWhiteSpace(placa))
-            {
-                throw new ArgumentException(
-                    "A placa do veículo é obrigatória quando o envio da placa está ligado (I40 com chegada de veículo).",
-                    nameof(placa));
-            }
-
-            if (string.IsNullOrWhiteSpace(_devolucao.NomeMotorista))
-            {
-                throw new InvalidOperationException(
-                    "Devolucao:NomeMotorista não configurado. Informe o nome fixo do motorista cadastrado no WMS " +
-                    "(appsettings ou env Devolucao__NomeMotorista).");
-            }
-
-            placaEnvio = placa.Trim().ToUpperInvariant();
-            motorista = _devolucao.NomeMotorista.Trim();
-            tipoOperacao = ValorOuPadrao(_devolucao.TipoOperacaoNotaComPlaca, OpcoesDevolucao.TipoOperacaoNotaComPlacaPadrao);
-        }
-        else
-        {
-            tipoOperacao = ValorOuPadrao(_devolucao.TipoOperacaoNota, OpcoesDevolucao.TipoOperacaoNotaPadrao);
-        }
+        var tipoOperacao = ValorOuPadrao(_devolucao.TipoOperacaoNota, OpcoesDevolucao.TipoOperacaoNotaPadrao);
 
         var cfopPrimeiroItem = nota.Itens.Count > 0 ? nota.Itens[0].Cfop : string.Empty;
 
@@ -128,9 +101,7 @@ public sealed class ConstrutorI40 : IConstrutorI40
             CnpjProprietariaProduto = FormatoWms.Documento(_operacional.CnpjDepositante),
             Deposito = _operacional.Deposito,
             CnpjArmazem = FormatoWms.Documento(_operacional.CnpjArmazem),
-            NomeMotorista = motorista,
             TipoOperacaoNota = tipoOperacao,
-            PlacaVeiculoPrevistoNota = placaEnvio,
             Atributo1 = atributo1,
             ItemNotaFiscal = itens,
         };
@@ -139,8 +110,8 @@ public sealed class ConstrutorI40 : IConstrutorI40
     }
 
     /// <inheritdoc />
-    public string ConstruirJson(NotaFiscal nota, bool enviarPlaca, string? placa = null) =>
-        JsonSerializer.Serialize(Construir(nota, enviarPlaca, placa), JsonWms.Opcoes);
+    public string ConstruirJson(NotaFiscal nota) =>
+        JsonSerializer.Serialize(Construir(nota), JsonWms.Opcoes);
 
     private static string ValorOuPadrao(string? valor, string padrao) =>
         string.IsNullOrWhiteSpace(valor) ? padrao : valor.Trim();

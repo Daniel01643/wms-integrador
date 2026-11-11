@@ -69,7 +69,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
     {
         var cfg = await _http.GetFromJsonAsync<JsonElement>("/api/config");
 
-        Assert.False(cfg.GetProperty("enviarPlacaPadrao").GetBoolean());
+        Assert.False(cfg.TryGetProperty("enviarPlacaPadrao", out _));
         Assert.Equal(30, cfg.GetProperty("maxChaves").GetInt32());
     }
 
@@ -82,14 +82,14 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostEnviar_SemPlaca_EnviaIMPEDevolveResultadoPorChave()
+    public async Task PostEnviar_EnviaIMPEDevolveResultadoPorChave()
     {
         _amb.CopiarXml(AmbienteDevolucao.Chave1);
         _amb.Cliente.Responder(InterfaceWms.I40,
             AmbienteDevolucao.Resposta("4042207", (AmbienteDevolucao.Nota1, true, "Registrado com sucesso")));
 
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 }, enviarPlaca = false, placa = "" }));
+            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 } }));
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -99,6 +99,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         var r = corpo.GetProperty("resultados")[0];
         Assert.Equal(AmbienteDevolucao.Chave1, r.GetProperty("chave").GetString());
         Assert.Equal(AmbienteDevolucao.Nota1, r.GetProperty("nota").GetString());
+        Assert.Equal("6", r.GetProperty("serie").GetString());
         Assert.Equal("Enviada", r.GetProperty("status").GetString());
         Assert.True(r.GetProperty("sucesso").GetBoolean());
         Assert.Equal("Registrado com sucesso", r.GetProperty("mensagem").GetString());
@@ -111,7 +112,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         var semXml = AmbienteDevolucao.ChaveComDv(AmbienteDevolucao.Chave1[..30] + "0000000000001");
 
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { "123", semXml }, enviarPlaca = false }));
+            Json(new { chaves = new[] { "123", semXml } }));
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -121,26 +122,138 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PostEnviar_PlacaLigadaSemPlaca_Devolve400()
+    public async Task PostEnviar_PlacaNoCorpo_EIgnorada_SempreIMPSemPlaca()
     {
         _amb.CopiarXml(AmbienteDevolucao.Chave1);
+        _amb.Cliente.Responder(InterfaceWms.I40,
+            AmbienteDevolucao.Resposta("1", (AmbienteDevolucao.Nota1, true, "ok")));
 
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 }, enviarPlaca = true, placa = "" }));
+            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 }, enviarPlaca = true, placa = "EPR7871" }));
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var nf = ((KitWmsIntegrador.Core.Construtores.Dtos.PayloadI40)_amb.Cliente.Envios[0].Payload).NotaFiscal[0];
+        Assert.Equal("IMP", nf.TipoOperacaoNota);
+        Assert.Equal(string.Empty, nf.PlacaVeiculoPrevistoNota);
+        Assert.Equal(string.Empty, nf.NomeMotorista);
+    }
+
+    [Fact]
+    public async Task GetRaiz_NaoTemMaisPlaca_ETemCamposDeNumeroESerie()
+    {
+        var html = await _http.GetStringAsync("/");
+
+        Assert.DoesNotContain("laca", html);
+        Assert.Contains("for=\"numero\"", html);
+        Assert.Contains("for=\"serie\"", html);
+        Assert.Contains("/api/devolucao/buscar", html);
+        Assert.Contains("aria-live", html);
+    }
+
+    [Fact]
+    public async Task GetBuscar_UmaNota_Devolve200ComUmaOpcao()
+    {
+        var chave = AmbienteDevolucao.ChaveDe(AmbienteDevolucao.CnpjDepositanteDigitos, 6, 15671289);
+        _amb.CriarArquivoDaChave(chave, "pacote_20261101_100000");
+
+        var resp = await _http.GetAsync("/api/devolucao/buscar?numero=15671289&serie=6");
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        Assert.Contains("placa", corpo.GetProperty("erro").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Equal("15671289", corpo.GetProperty("numero").GetString());
+        Assert.Equal("6", corpo.GetProperty("serie").GetString());
+        var o = Assert.Single(corpo.GetProperty("opcoes").EnumerateArray());
+        Assert.Equal(chave, o.GetProperty("chave").GetString());
+        Assert.Equal("pacote_20261101_100000", o.GetProperty("pacote").GetString());
+        Assert.False(string.IsNullOrEmpty(o.GetProperty("dataArquivo").GetString()));
         Assert.Empty(_amb.Cliente.Envios);
     }
 
+    [Fact]
+    public async Task GetBuscar_VariasChaves_Devolve200ComTodasAsOpcoes_SemEnviarNada()
+    {
+        var a = AmbienteDevolucao.ChaveDe(AmbienteDevolucao.CnpjDepositanteDigitos, 6, 500, variacao: 1);
+        var b = AmbienteDevolucao.ChaveDe(AmbienteDevolucao.CnpjDepositanteDigitos, 6, 500, variacao: 2);
+        _amb.CriarArquivoDaChave(a, "pacote_a", new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc));
+        _amb.CriarArquivoDaChave(b, "pacote_b", new DateTime(2026, 11, 5, 0, 0, 0, DateTimeKind.Utc));
+
+        var corpo = await _http.GetFromJsonAsync<JsonElement>("/api/devolucao/buscar?numero=500&serie=006");
+
+        var chaves = corpo.GetProperty("opcoes").EnumerateArray().Select(o => o.GetProperty("chave").GetString()).ToArray();
+        Assert.Equal(new[] { b, a }, chaves);
+        Assert.Empty(_amb.Cliente.Envios);
+    }
+
+    [Fact]
+    public async Task GetBuscar_NaoEncontrada_Devolve404ComMensagem()
+    {
+        var resp = await _http.GetAsync("/api/devolucao/buscar?numero=999&serie=6");
+        var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+        Assert.Equal("Nota não encontrada na retenção de 60 dias.", corpo.GetProperty("erro").GetString());
+    }
+
+    [Fact]
+    public async Task GetBuscar_OutroCnpj_Devolve404()
+    {
+        _amb.CriarArquivoDaChave(AmbienteDevolucao.ChaveDe(AmbienteDevolucao.CnpjOutroEmitente, 6, 500), "pacote_a");
+
+        var resp = await _http.GetAsync("/api/devolucao/buscar?numero=500&serie=6");
+
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("?numero=500")]
+    [InlineData("?serie=6")]
+    [InlineData("?numero=12a&serie=6")]
+    [InlineData("?numero=1234567890&serie=6")]
+    [InlineData("?numero=500&serie=1234")]
+    [InlineData("?numero=500&serie=-1")]
+    [InlineData("?numero=%27%3Bdrop&serie=6")]
+    public async Task GetBuscar_EntradaInvalida_Devolve400(string consulta)
+    {
+        var resp = await _http.GetAsync("/api/devolucao/buscar" + consulta);
+        var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(corpo.GetProperty("erro").GetString()));
+    }
+
+    [Fact]
+    public async Task GetBuscar_SemCnpjDoDepositante_Devolve503()
+    {
+        _amb.Operacional.CnpjDepositante = string.Empty;
+
+        var resp = await _http.GetAsync("/api/devolucao/buscar?numero=500&serie=6");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetBuscar_ErroInesperado_Devolve500GenericoSemDetalhes()
+    {
+        await using var app = TelaDevolucaoApp.Criar(
+            new ServicoQueExplode(), _amb.Devolucao, NullLoggerFactory.Instance, "http://127.0.0.1:0");
+        await app.StartAsync();
+        using var http = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+
+        var resp = await http.GetAsync("/api/devolucao/buscar?numero=500&serie=6");
+        var texto = await resp.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, resp.StatusCode);
+        Assert.DoesNotContain("segredo-interno", texto);
+        await app.StopAsync();
+    }
     [Fact]
     public async Task PostEnviar_31Chaves_Devolve400()
     {
         var chaves = Enumerable.Range(0, 31)
             .Select(i => AmbienteDevolucao.ChaveComDv(AmbienteDevolucao.Chave1[..30] + i.ToString("D13"))).ToArray();
 
-        var resp = await _http.PostAsync("/api/devolucao/enviar", Json(new { chaves, enviarPlaca = false }));
+        var resp = await _http.PostAsync("/api/devolucao/enviar", Json(new { chaves }));
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
         Assert.Empty(_amb.Cliente.Envios);
@@ -172,7 +285,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         _amb.CopiarXml(AmbienteDevolucao.Chave1);
         // Sem resposta programada, o FakeClienteWms lança InvalidOperationException.
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 }, enviarPlaca = false }));
+            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 } }));
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -200,6 +313,9 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
     private sealed class ServicoQueExplode : IServicoDevolucao
     {
         public Task<ResultadoLoteDevolucao> EnviarAsync(SolicitacaoDevolucao solicitacao, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("segredo-interno");
+
+        public ResultadoBuscaDevolucao Buscar(string? numero, string? serie) =>
             throw new InvalidOperationException("segredo-interno");
     }
 }

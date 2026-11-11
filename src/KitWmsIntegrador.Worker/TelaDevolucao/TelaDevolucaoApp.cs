@@ -15,15 +15,12 @@ namespace KitWmsIntegrador.Worker.TelaDevolucao;
 public sealed class EnvioDevolucaoRequest
 {
     public List<string?>? Chaves { get; set; }
-
-    public bool EnviarPlaca { get; set; }
-
-    public string? Placa { get; set; }
 }
 
 /// <summary>
 /// Monta o <see cref="WebApplication"/> (Kestrel) da tela de devolução: <c>GET /</c> (página única),
-/// <c>GET /api/config</c>, <c>GET /api/saude</c> e <c>POST /api/devolucao/enviar</c>. Sem login.
+/// <c>GET /api/config</c>, <c>GET /api/saude</c>, <c>GET /api/devolucao/buscar?numero=&amp;serie=</c>
+/// (resolve número + série em chave(s)) e <c>POST /api/devolucao/enviar</c>. Sem login.
 /// É usado pelo <see cref="ServidorTelaDevolucao"/> e pelos testes de integração do endpoint.
 /// </summary>
 public static class TelaDevolucaoApp
@@ -71,9 +68,38 @@ public static class TelaDevolucaoApp
 
         app.MapGet("/api/config", () => Results.Json(new
         {
-            enviarPlacaPadrao = opcoes.EnviarPlacaPadrao,
             maxChaves = max,
         }));
+
+        app.MapGet("/api/devolucao/buscar", (string? numero, string? serie) =>
+        {
+            try
+            {
+                var busca = servico.Buscar(numero, serie);
+                if (busca.Opcoes.Count == 0)
+                {
+                    return Results.Json(
+                        new { erro = "Nota não encontrada na retenção de 60 dias.", numero = busca.Numero, serie = busca.Serie },
+                        statusCode: 404);
+                }
+
+                return Results.Json(busca);
+            }
+            catch (SolicitacaoDevolucaoInvalidaException ex)
+            {
+                return Results.Json(new { erro = ex.Message }, statusCode: 400);
+            }
+            catch (ConfiguracaoDevolucaoException ex)
+            {
+                logger.LogWarning("Devolução: configuração insuficiente na busca: {Mensagem}", ex.Message);
+                return Results.Json(new { erro = ex.Message }, statusCode: 503);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Devolução: erro inesperado no endpoint de busca");
+                return Results.Json(new { erro = "Erro interno ao buscar a nota. Veja o log do serviço." }, statusCode: 500);
+            }
+        });
 
         app.MapPost("/api/devolucao/enviar", async (HttpContext ctx) =>
         {
@@ -97,8 +123,6 @@ public static class TelaDevolucaoApp
                 var resultado = await servico.EnviarAsync(new SolicitacaoDevolucao
                 {
                     Chaves = (IReadOnlyList<string>)(req.Chaves ?? new List<string?>()).Select(c => c ?? string.Empty).ToList(),
-                    EnviarPlaca = req.EnviarPlaca,
-                    Placa = req.Placa,
                     Origem = ctx.Connection.RemoteIpAddress?.ToString(),
                 }, ctx.RequestAborted);
 

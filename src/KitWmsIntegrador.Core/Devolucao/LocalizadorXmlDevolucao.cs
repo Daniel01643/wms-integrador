@@ -67,6 +67,87 @@ public sealed class LocalizadorXmlDevolucao
     }
 
     /// <summary>
+    /// Procura notas pelo número + série SEM abrir os XMLs: número, série e CNPJ do emitente são
+    /// lidos da própria chave, que é o nome do arquivo (<c>NFE&lt;chave&gt;.XML</c>). Mesmas pastas e
+    /// retenção do <see cref="Localizar"/> (Processados e <c>pacote_*</c>, nunca Erro). Só entram
+    /// chaves válidas (44 dígitos + DV) do CNPJ do depositante; número e série são comparados como
+    /// inteiros (zeros à esquerda não contam). A mesma chave em mais de um pacote vale uma vez
+    /// (a mais recente). Resultado ordenado do mais recente para o mais antigo.
+    /// </summary>
+    /// <param name="numero">Número da nota (já validado, ver <see cref="ValidadorChavesDevolucao.ValidarNumeroSerie"/>).</param>
+    /// <param name="serie">Série (já validada).</param>
+    /// <param name="cnpjEmitente">CNPJ do depositante; só os dígitos são comparados.</param>
+    public IReadOnlyList<OpcaoNotaDevolucao> BuscarPorNumeroSerie(int numero, int serie, string cnpjEmitente)
+    {
+        var cnpj = ValidadorChavesDevolucao.SoDigitos(cnpjEmitente);
+        if (cnpj.Length != 14)
+        {
+            throw new ArgumentException("CNPJ do emitente inválido.", nameof(cnpjEmitente));
+        }
+
+        if (!Directory.Exists(_pastaProcessados))
+        {
+            return Array.Empty<OpcaoNotaDevolucao>();
+        }
+
+        var pastas = new List<string> { _pastaProcessados };
+        pastas.AddRange(Directory.EnumerateDirectories(_pastaProcessados, "pacote_*", SearchOption.TopDirectoryOnly));
+
+        var porChave = new Dictionary<string, (DateTime Data, string Pacote)>(StringComparer.Ordinal);
+        foreach (var pasta in pastas)
+        {
+            var nomePacote = Path.GetFileName(pasta);
+            foreach (var arquivo in Directory.EnumerateFiles(pasta, "*", SearchOption.TopDirectoryOnly))
+            {
+                var chave = ChaveDoNomeDoArquivo(Path.GetFileName(arquivo));
+                if (chave is null
+                    || ValidarChave(chave) is not null
+                    || ValidadorChavesDevolucao.CnpjDaChave(chave) != cnpj
+                    || ValidadorChavesDevolucao.NumeroDaChave(chave) != numero
+                    || ValidadorChavesDevolucao.SerieDaChave(chave) != serie)
+                {
+                    continue;
+                }
+
+                var data = File.GetLastWriteTimeUtc(arquivo);
+                if (!porChave.TryGetValue(chave, out var atual) || data > atual.Data)
+                {
+                    porChave[chave] = (data, nomePacote);
+                }
+            }
+        }
+
+        return porChave
+            .OrderByDescending(p => p.Value.Data)
+            .ThenBy(p => p.Key, StringComparer.Ordinal)
+            .Select(p => new OpcaoNotaDevolucao
+            {
+                Chave = p.Key,
+                Numero = ValidadorChavesDevolucao.NotaDaChave(p.Key),
+                Serie = ValidadorChavesDevolucao.SerieDaChave(p.Key)!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                DataArquivo = p.Value.Data.ToLocalTime().ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                Pacote = p.Value.Pacote,
+            })
+            .ToList();
+    }
+
+    /// <summary>Chave (44 dígitos) do nome <c>NFE&lt;chave&gt;.XML</c> (sem diferenciar maiúsculas); <c>null</c> se não casar.</summary>
+    private static string? ChaveDoNomeDoArquivo(string nome)
+    {
+        const string prefixo = "NFE";
+        const string sufixo = ".XML";
+        if (nome.Length != prefixo.Length + 44 + sufixo.Length
+            || !nome.StartsWith(prefixo, StringComparison.OrdinalIgnoreCase)
+            || !nome.EndsWith(sufixo, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var chave = nome.Substring(prefixo.Length, 44);
+        return chave.All(char.IsAsciiDigit) ? chave : null;
+    }
+
+    /// <summary>
     /// Valida a chave: 44 dígitos numéricos e dígito verificador (módulo 11).
     /// Devolve <c>null</c> se válida ou a mensagem do problema.
     /// </summary>

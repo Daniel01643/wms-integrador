@@ -28,7 +28,7 @@ if (args.Contains(EnvioManualI60.Argumento))
     return await EnvioManualI60.ExecutarAsync(args);
 }
 
-// Envio manual de teste da I40 (devolução, Plano B fase 1): chave + placa (+ --xml opcional).
+// Envio manual de teste da I40 (devolução, Plano B fase 1): chave ou número + série (+ --xml opcional).
 if (args.Contains(EnvioManualI40.Argumento))
 {
     return await EnvioManualI40.ExecutarAsync(args);

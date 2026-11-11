@@ -2,7 +2,7 @@ namespace KitWmsIntegrador.Core.Configuracao;
 
 /// <summary>
 /// Opções da devolução pela I40 (Plano B), seção "Devolucao". Override por variável de
-/// ambiente no padrão <c>Devolucao__NomeMotorista</c>, <c>Devolucao__InverterPartes</c> etc.
+/// ambiente no padrão <c>Devolucao__TipoOperacaoNota</c>, <c>Devolucao__InverterPartes</c> etc.
 ///
 /// Fase 1: só o modo manual de teste (<c>--enviar-i40</c>) usa estas opções; a tela web
 /// (fase 2) usará <see cref="Habilitada"/> e <see cref="Porta"/>.
@@ -12,14 +12,8 @@ public sealed class OpcoesDevolucao
     /// <summary>Nome da seção de configuração.</summary>
     public const string Secao = "Devolucao";
 
-    /// <summary>Valor padrão de <see cref="TipoOperacaoNota"/> (placa desligada): IMP, sem chegada de veículo.</summary>
+    /// <summary>Valor padrão de <see cref="TipoOperacaoNota"/>: IMP, sem chegada de veículo.</summary>
     public const string TipoOperacaoNotaPadrao = "IMP";
-
-    /// <summary>
-    /// Valor padrão de <see cref="TipoOperacaoNotaComPlaca"/> (placa ligada): ICD gera chegada de
-    /// veículo e descarga.
-    /// </summary>
-    public const string TipoOperacaoNotaComPlacaPadrao = "ICD";
 
     /// <summary>Porta HTTP padrão da tela.</summary>
     public const int PortaPadrao = 8085;
@@ -43,23 +37,10 @@ public sealed class OpcoesDevolucao
     public bool Habilitada { get; set; } = false;
 
     /// <summary>
-    /// <c>tipoOperacaoNota</c> da I40 (IMC/ICD/IMP) quando a placa NÃO é enviada. Default IMP
-    /// (validado no homolog: "Registrado com sucesso" e recebimento concluído).
+    /// <c>tipoOperacaoNota</c> da I40 (IMC/IMP). Default IMP (validado no homolog:
+    /// "Registrado com sucesso" e recebimento concluído). Placa e motorista não são enviados.
     /// </summary>
     public string TipoOperacaoNota { get; set; } = TipoOperacaoNotaPadrao;
-
-    /// <summary>
-    /// <c>tipoOperacaoNota</c> quando a placa É enviada. Default ICD (gera chegada de veículo;
-    /// no homolog ainda deu "Erro na criacao do controlador de veiculo", por isso a placa
-    /// começa desligada).
-    /// </summary>
-    public string TipoOperacaoNotaComPlaca { get; set; } = TipoOperacaoNotaComPlacaPadrao;
-
-    /// <summary>
-    /// Estado inicial do checkbox "Enviar placa do veículo" na tela (e do envio manual).
-    /// Default <c>false</c>.
-    /// </summary>
-    public bool EnviarPlacaPadrao { get; set; } = false;
 
     /// <summary>Máximo de chaves por envio na tela. Default 30.</summary>
     public int MaxChavesPorEnvio { get; set; } = MaxChavesPorEnvioPadrao;
@@ -71,12 +52,6 @@ public sealed class OpcoesDevolucao
 
     /// <summary><c>tipoNota</c> da I40 (OR/AR/NO/OI/OE/DE/CD/OC/SU/SD). Default DE.</summary>
     public string TipoNota { get; set; } = TipoNotaPadrao;
-
-    /// <summary>
-    /// Nome FIXO do motorista (<c>nomeMotorista</c>), cadastrado previamente no WMS.
-    /// Só é usado (e exigido) quando a placa é enviada; sem placa o campo vai em branco.
-    /// </summary>
-    public string NomeMotorista { get; set; } = string.Empty;
 
     /// <summary>
     /// Quando <c>true</c>, troca emitente/remetente com destinatário/local de entrega
