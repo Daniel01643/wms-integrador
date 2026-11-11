@@ -52,10 +52,12 @@ quantidade da I60 (retomar terça 03/11).
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
 | 2026-11-10 | 4,5 | 7,5 | 12,0 | I60 Plano A pausado (aguarda fornecedor); I40 validada no homolog e tela de devolução implementada |
-| **Total parcial** | **4,5** | **7,5** | **12,0** | |
+| 2026-11-11 | 2,0 | 3,5 | 5,5 | Repositório no GitHub (XMLs fora); tela da I40 com busca por número+série, sem placa; escopo da Puxada TSP |
+| **Total parcial** | **6,5** | **11,0** | **17,5** | |
 
-**Projeto pausado em 10/11.** I60 (Plano A) aguarda o fornecedor; I40 (Plano B) com formato validado
-no homolog e tela de devolução pronta e desligada, aguardando teste da tela no homolog.
+**Estado em 11/11.** I60 (Plano A) aguarda o fornecedor. I40 (Plano B): formato validado no homolog e
+tela de devolução pronta e desligada (fora do manual oficial), aguardando teste da tela. Puxada TSP:
+escopo fechado em `docs/ESCOPO-PUXADA-TSP.md`; execução em 12/11.
 
 **Resumo parcial:**
 - Plano A (I60 automática) testado no homolog e pausado: ver `docs/wms-codigo-customizado/HISTORICO-PLANO-A.md`.

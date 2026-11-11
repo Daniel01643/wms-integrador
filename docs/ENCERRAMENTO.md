@@ -60,6 +60,7 @@ rollback, segredos).
 
 | Item | Dono sugerido |
 |---|---|
+| **Puxada TSP** (pastas `Puxada` e `PuxadaTSP`, ZIP, onda única por ZIP): escopo fechado em `docs\ESCOPO-PUXADA-TSP.md`; execução prevista para 12/11 | Usuário / IA |
 | Enviar ao fornecedor as perguntas da I60 (`HISTORICO-PLANO-A.md`) | Usuário |
 | Testar a tela de devolução no homolog (`ROTEIRO-TESTE-I40.md`, seção 9) | Usuário |
 | Publicar a nova release (retenção de 60 dias + I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |

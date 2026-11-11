@@ -33,10 +33,11 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-ESFOR
 | Semana | Período | Humana | IA | Total |
 |--------|---------|--------|-----|-------|
 | W45 | 03/11–09/11 | 23,15 | 16,0 | 39,15 |
-| W46 (parcial) | 10/11– | 4,5 | 7,5 | 12,0 |
-| **Total parcial do mês** | | **27,65** | **23,5** | **51,15** |
+| W46 (parcial) | 10/11– | 6,5 | 11,0 | 17,5 |
+| **Total parcial do mês** | | **29,65** | **27,0** | **56,65** |
 
-> Projeto pausado em 10/11 (I60 aguarda fornecedor; I40 aguarda teste da tela no homolog).
+> Em 11/11: I60 aguarda fornecedor; I40 aguarda teste da tela no homolog; Puxada TSP com escopo fechado
+> (execução em 12/11).
 
 **Realizado em novembro até agora:**
 - Etapa 5: I50 enriquecida com dados fiscais, flag para desligar I60, relatório HTML/PDF.

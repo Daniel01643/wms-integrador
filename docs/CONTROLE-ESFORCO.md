@@ -32,22 +32,26 @@ pelo tempo de execução/sessão do agente.
 | 2026-11-09 | IA      | 4,00  | Ajustes do deck, diagnóstico WinRM, encerramento, I60 (código customizado, qtdeVolume, testes, envio manual) — estimado |
 | 2026-11-10 | Humana  | 4,50  | I60 Plano A no homolog (testes do código customizado), decisão de pausar; I40 testada no homolog (formato validado, recebimento ok) |
 | 2026-11-10 | IA      | 7,50  | Aprox.: Plano A (testes, documentação, perguntas ao fornecedor, 2,5 h) + I40 fase 1 e fase 2 com a tela de devolução (5,0 h) — estimado |
+| 2026-11-11 | Humana  | 2,00  | Publicação no GitHub, tela da I40 (busca por chave ou número+série, sem placa), escopo da Puxada TSP |
+| 2026-11-11 | IA      | 3,50  | Aprox.: XMLs fora do repositório e travas, tela da I40 com busca por número+série, manuais sem devolução, análise dos ZIPs e escopo da Puxada TSP — estimado |
 
 Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**
-(entrega inicial, até a produção). Com 09/11: **31,15 h**. Com 10/11: **35,65 h**.
+(entrega inicial, até a produção). Com 09/11: **31,15 h**. Com 10/11: **35,65 h**. Com 11/11: **37,65 h**.
 
 ## Totais
 
-| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-10/11) |
+| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-11/11) |
 |----------------------|-----------------------------|-------------------------|
-| Humana               | **26,25**                   | **35,65**               |
-| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 25,90**        |
-| **Total de esforço** | **aprox. 40,65**            | **aprox. 61,55**        |
+| Humana               | **26,25**                   | **37,65**               |
+| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 29,40**        |
+| **Total de esforço** | **aprox. 40,65**            | **aprox. 67,05**        |
 
 O comparativo abaixo e a apresentação usam a **entrega inicial** (do desenho à produção).
-09/11 e 10/11 são acabamento, a retomada da I60 (Plano A pausado, aguarda o fornecedor) e a
-devolução pela I40 (Plano B: formato validado no homolog e tela implementada).
-Retomada (09-10/11): **9,40 h humanas** e **aprox. 11,50 h de IA**. Projeto **pausado em 10/11**.
+09/11 a 11/11 são acabamento, a retomada da I60 (Plano A pausado, aguarda o fornecedor), a
+devolução pela I40 (Plano B: formato validado no homolog e tela implementada, fora do manual
+oficial) e o escopo da Puxada TSP.
+Retomada (09-11/11): **11,40 h humanas** e **aprox. 15,00 h de IA**. Execução da Puxada TSP
+prevista para 12/11.
 
 O grosso do esforço humano está em decisões, validação e operação; a IA atua como
 multiplicador de produtividade na escrita de código, testes e documentação.
