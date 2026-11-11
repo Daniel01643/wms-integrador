@@ -168,8 +168,8 @@ terminar. Quando a cópia acaba e o arquivo vira `.xml`, ele entra no fluxo norm
 > o endereço não abre. A TI informa o endereço quando estiver pronto.
 
 Quando um cliente devolve mercadoria, você usa uma tela simples para avisar o WMS. Você só
-digita ou bipa a **chave de acesso** (os 44 números) da nota de venda original. O sistema acha o
-XML da nota sozinho e envia a devolução ao WMS.
+informa a nota de venda original: pela **chave de acesso** (os 44 números) ou pelo **número da nota
+e a série**. O sistema acha o XML da nota sozinho e envia a devolução ao WMS.
 
 ### Antes de começar
 
@@ -182,23 +182,33 @@ XML da nota sozinho e envia a devolução ao WMS.
 
 1. Abra o navegador (Edge ou Chrome) e digite o endereço da tela que a TI informou. Aparece a
    página **"Devolução: envio de chaves"**, com o logo da Friozem.
-2. Clique no campo **"Chave de acesso (44 dígitos)"**. Ele já vem selecionado ao abrir a página.
-3. **Digite** a chave ou **bipe** o código de barras da nota com o leitor, e tecle **Enter**
-   (o leitor já faz isso sozinho). A chave entra na lista.
-   - Você também pode **colar várias chaves de uma vez**, uma por linha.
-   - O limite é **30 chaves por envio**. O contador mostra quantas você já colocou.
+2. Escolha **uma** das duas formas de informar a nota (pode misturar na mesma lista):
+   - **Pela chave:** clique no campo **"Chave de acesso (44 dígitos)"** (ele já vem selecionado ao
+     abrir a página). **Digite** a chave ou **bipe** o código de barras da nota com o leitor, e tecle
+     **Enter** (o leitor já faz isso sozinho). A chave entra na lista. Você também pode **colar várias
+     chaves de uma vez**, uma por linha.
+   - **Pelo número e pela série:** no quadro **"Ou procure pelo número e pela série"**, digite o
+     **Número da nota** (até 9 números) e a **Série** (até 3 números) e clique em **Buscar e
+     adicionar** (ou tecle **Enter**). Zeros à esquerda não atrapalham: `006` é o mesmo que `6`.
+3. Veja o que a tela respondeu à busca por número e série:
+   - **A nota foi encontrada:** ela entra na lista, e a tela avisa "Nota ... adicionada à lista".
+   - **Apareceu uma tabela "Chaves encontradas":** existem **duas ou mais** notas com esse mesmo
+     número e série (por exemplo, uma nota reemitida). A tabela mostra a chave, a data do arquivo e
+     o pacote. Escolha a correta e clique em **Usar esta chave**. **Nada entra na lista antes da sua
+     escolha.** Na dúvida, chame a TI.
+   - **"Nota não encontrada na retenção de 60 dias":** confira o número e a série. Se a venda for
+     antiga (mais de 60 dias) ou a nota nunca tiver sido integrada, a devolução precisa ser feita
+     direto no WMS.
+4. Confira a lista. Cada linha mostra a chave e, embaixo, o **número e a série** da nota.
+   - O limite é **30 notas por envio**. O contador mostra quantas você já colocou.
    - Se a chave tiver número errado ou faltando, a tela avisa na hora e **não** coloca na lista.
-   - Se você colocar a mesma chave duas vezes, a tela guarda só uma.
-   - Para tirar uma chave da lista, clique em **Remover** ao lado dela.
-4. **Placa do veículo:** por padrão a opção **"Enviar placa do veículo"** vem **desmarcada**, e
-   isso é o normal. Deixe assim, a menos que a sua chefia peça para enviar a placa.
-   - Se precisar enviar a placa, **marque** a opção. Aparece o campo **"Placa do veículo
-     (obrigatória)"**: digite a placa (por exemplo, ABC1D23).
-5. Clique em **Enviar**. O botão fica desativado até ter pelo menos uma chave e, enquanto o
-   envio acontece, não clique de novo.
-6. Veja o quadro **"3. Resultado"**. Cada chave aparece numa linha, com a nota, a situação e a
-   mensagem do WMS.
-
+   - Se você colocar a mesma nota duas vezes, a tela guarda só uma.
+   - Para tirar uma nota da lista, clique em **Remover** ao lado dela.
+5. Clique em **Enviar**. O botão fica desativado até ter pelo menos uma nota na lista e, enquanto o
+   envio acontece, não clique de novo. Não existe campo de placa: a devolução é enviada sem placa
+   e sem motorista.
+6. Veja o quadro **"3. Resultado"**. Cada nota aparece numa linha, com a chave, o número e a série,
+   a situação e a mensagem do WMS.
 ### O que cada situação significa
 
 | Situação | O que quer dizer | O que fazer |
@@ -216,5 +226,5 @@ Uma chave com problema **não impede** as outras: as demais do mesmo envio segue
 - Para reenviar só as chaves com problema, use **Limpar lista**, digite novamente apenas as que
   precisam e envie.
 - Não precisa de mouse: use **Tab** para passar de um campo para o outro e **Enter** para
-  adicionar a chave.
+  adicionar a chave ou para buscar pelo número e série.
 - Se a página não abrir ou der erro de conexão, avise a TI. Isso não afeta o envio normal das notas.

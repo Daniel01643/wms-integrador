@@ -17,7 +17,7 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. **Pau
 | Frente | Estado | Onde está |
 |---|---|---|
 | **I60 automática (Plano A)** | **Pausada, aguardando o fornecedor.** No homolog: a I50 sobe; o código customizado de pós-processamento grava `QTD_VOLUMES`; com `qtdeVolume = 0` a conferência de volume passa; a I60 para em "quantidade caixa do pedido ... não confere ... 0". Hipótese: falta o vínculo `IDITEMDOCCARGA` do item da nota de venda, que não existe na interface I60. O código de pré-processamento da nota de venda dá `ORA-20901`. A associação **manual pela tela funciona**. I60 segue **desligada** em produção. | `docs\wms-codigo-customizado\HISTORICO-PLANO-A.md` (tentativas e perguntas prontas para o fornecedor) |
-| **Devolução pela I40 (Plano B)** | **Formato validado no homolog** (10/11, nota 15671241): `IMP`, partes como no XML, recebimento feito do início ao fim. **Tela de chaves implementada e desligada** (`Devolucao:Habilitada=false`), ainda não testada no homolog. O `ICD` com placa deu "erro na criação do controlador de veículo"; por isso a placa começa desligada na tela. | `docs\ARQUITETURA-PLANO-B-I40.md`, `docs\ROTEIRO-TESTE-I40.md` (seção 9: teste da tela) |
+| **Devolução pela I40 (Plano B)** | **Formato validado no homolog** (10/11, nota 15671241): `IMP`, partes como no XML, recebimento feito do início ao fim. **Tela implementada e desligada** (`Devolucao:Habilitada=false`), ainda não testada no homolog. Pesquisa por chave **ou por número da nota + série**. **Placa removida da tela e do código** (o `ICD` com placa foi testado e deu "erro na criação do controlador de veículo"; o `IMP` sem placa funcionou). | `docs\ARQUITETURA-PLANO-B-I40.md`, `docs\ROTEIRO-TESTE-I40.md` (seção 9: teste da tela) |
 
 ## 2. Mapa rápido
 
@@ -44,8 +44,10 @@ rollback, segredos).
 - **I60 desligada por flag** (`I60:Habilitada=false`); código mantido. Opções de diagnóstico:
   `I60:TipoOperacaoNota` (padrão `INE`), `I60:QtdeVolumeZero`, modo manual `--enviar-i60 <xml>`.
 - **I40 (devolução):** `tipoNota = DE`, `tipoOperacaoNota = IMP` (padrão), CFOP da venda, partes como
-  no XML (`InverterPartes = false`), tela sem login. Com a placa ligada na tela: `ICD`, placa e motorista
-  fixo (`Devolucao:NomeMotorista`). Modo manual `--enviar-i40 --chave ... [--placa ...]`.
+  no XML (`InverterPartes = false`), tela sem login. **Sem placa nem motorista** (removidos em 10/11/2026; `placaVeiculoPrevistoNota` e `nomeMotorista`
+  sempre em branco). A tela pesquisa por **chave ou por número + série** (número e série lidos do nome do
+  arquivo `NFE<chave>.XML`, CNPJ do depositante, sem pasta `Erro`; mais de uma chave = o colaborador escolhe).
+  Modo manual `--enviar-i40 --chave ...` ou `--numero ... --serie ...`.
 - **Retenção de 60 dias** em `Processados` e `Erro` (para achar o XML da venda na devolução).
 - **Esforço registrado só em horas** (steering `.kiro\steering\esforco-em-horas.md`).
 - **Subpastas por pacote** em `Processados` e `Erro`.
@@ -60,7 +62,6 @@ rollback, segredos).
 |---|---|
 | Enviar ao fornecedor as perguntas da I60 (`HISTORICO-PLANO-A.md`) | Usuário |
 | Testar a tela de devolução no homolog (`ROTEIRO-TESTE-I40.md`, seção 9) | Usuário |
-| Cadastro para o `ICD` com placa (transportadora, motorista fixo, doca), se quiser criar a chegada do veículo pela I40 | Usuário / equipe WMS |
 | Publicar a nova release (retenção de 60 dias + I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |
 | Homolog: desativar o código customizado de pré-processamento da nota de venda (teste) e voltar "ChecaItensVenda" para SIM | Usuário |
 | Homolog: o pós-processamento `QTD_VOLUMES` do DocCarga continua ativo e aborta doccarga sem caixas (`QTDVOL-POS:2`) | Usuário |

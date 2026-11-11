@@ -432,7 +432,8 @@ completo em `docs\wms-codigo-customizado\HISTORICO-PLANO-A.md`.
 ### 8.4. Devolução (I40): tela de chaves, desligada em produção
 
 Plano B da devolução: uma página web, hospedada pelo próprio serviço, onde o colaborador digita ou
-bipa as chaves de NF-e; o sistema acha o XML em `Processados`, monta a I40 e envia ao WMS. Está
+bipa a chave de NF-e **ou pesquisa pelo número da nota + série**; o sistema acha o XML em `Processados`,
+monta a I40 e envia ao WMS. Não há placa nem motorista (removidos em 10/11/2026). Está
 **desligada** (`Devolucao:Habilitada=false`) e **nada foi ligado em produção**. No homolog (10/11),
 a I40 como IMP sem placa deu "Registrado com sucesso" e o recebimento foi concluído.
 
@@ -449,31 +450,37 @@ a I40 como IMP sem placa deu "Registrado com sucesso" e o recebimento foi conclu
 |---|---|---|
 | `Habilitada` | `false` | Liga a tela. `false`: a porta não abre. |
 | `Porta` | `8085` | Porta HTTP (escuta em todas as interfaces; **sem login**). |
-| `EnviarPlacaPadrao` | `false` | Estado inicial do checkbox "Enviar placa do veículo". |
-| `TipoOperacaoNota` | `IMP` | Tipo de operação com a placa desligada (sem placa nem motorista). |
-| `TipoOperacaoNotaComPlaca` | `ICD` | Tipo com a placa ligada. No homolog ainda deu "Erro na criacao do controlador de veiculo" (provável cadastro de transportadora, motorista ou doca). |
-| `NomeMotorista` | vazio | Motorista fixo cadastrado no WMS. Obrigatório só com a placa ligada; vazio devolve erro 503. |
+| `TipoOperacaoNota` | `IMP` | Tipo de operação da I40 (`placaVeiculoPrevistoNota` e `nomeMotorista` vão sempre em branco). |
 | `MaxChavesPorEnvio` | `30` | Limite por envio. |
 | `PastaAuditoria` | vazio | Vazio = `<Estado>\devolucao`. |
 | `InverterPartes` | `false` | Validado no homolog; a variante invertida não é necessária. |
 
-**Regra da placa:** desligada, `tipoOperacaoNota` = `TipoOperacaoNota`, `placaVeiculoPrevistoNota` e
-`nomeMotorista` em branco. Ligada, `tipoOperacaoNota` = `TipoOperacaoNotaComPlaca`, placa obrigatória
-(informada na tela) e `nomeMotorista` = `NomeMotorista`.
+**Busca por número + série:** `GET /api/devolucao/buscar?numero=&serie=` (número até 9 dígitos, série até 3,
+só dígitos). Não abre os XMLs: lê número, série e CNPJ do emitente do nome do arquivo `NFE<chave>.XML`
+(chave de 44 dígitos: série nas posições 23-25, número em 26-34, CNPJ em 7-20), em `Processados` e
+`pacote_*` (nunca `Erro`), só do CNPJ de `Operacional:CnpjDepositante`, comparando como inteiros. Mesma
+chave em dois pacotes vale uma vez (a mais recente). Responde 200 com `opcoes[]` (uma ou mais chaves; a
+tela pede a escolha quando há mais de uma e não envia sozinha), 404 "Nota não encontrada na retenção de
+60 dias." ou 400 para entrada inválida. O `POST /api/devolucao/enviar` recebe só `{ "chaves": [...] }`.
+
+**Sem placa/motorista:** o `ConstrutorI40` não recebe placa; `placaVeiculoPrevistoNota` e `nomeMotorista`
+vão sempre em branco. Chaves antigas `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista` no
+`appsettings` são ignoradas. Modo manual: `--enviar-i40 --chave <44>` ou `--enviar-i40 --numero <n> --serie <s>`,
+mais `--xml <caminho>` opcional.
 
 **Firewall:** a tela não tem login. Libere a porta **somente para a rede interna** (comando de
 exemplo em `INSTALACAO-SERVIDOR.md`, seção 3.12).
 
 **Auditoria:** um arquivo por dia, `devolucao_yyyyMMdd.log`, em `Devolucao:PastaAuditoria` ou
-`<Estado>\devolucao`. Uma linha por chave: `data;ip;placa;chave;nota;status;transacao;mensagem`.
+`<Estado>\devolucao`. Uma linha por chave: `data;ip;chave;nota;status;transacao;mensagem`.
 Sem senha nem JSON. Cada envio também aparece em `logs\worker.out.log`.
 
 **Isolamento:** a tela tem o próprio servidor web dentro do serviço. Se a porta estiver ocupada ou
 houver erro, o log registra "Tela de devolução falhou e foi desligada" e a integração das notas
 continua normalmente.
 
-**Erros da API:** 400 (pedido inválido: lista vazia, mais de 30 chaves, placa ausente com o flag
-ligado), 503 (`NomeMotorista` ou `Pastas:Entrada` não configurados), 500 (erro inesperado; veja o log).
+**Erros da API:** 400 (pedido inválido: lista vazia, mais de 30 chaves, número/série inválidos na busca),
+503 (`Pastas:Entrada` ou `Operacional:CnpjDepositante` não configurados), 500 (erro inesperado; veja o log).
 
 **Para desligar:** `Devolucao__Habilitada=false` e reiniciar o serviço.
 

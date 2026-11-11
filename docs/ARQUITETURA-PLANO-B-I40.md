@@ -1,14 +1,15 @@
 # Arquitetura do Plano B: devolução pela I40
 
 Data: 2026-11-09 (desenho). Atualizado após a fase 1 (seções 9 a 11) e após o teste real no
-homolog e a fase 2 (seções 13 a 18). Status: fase 1 (construtor e envio manual) e fase 2 (tela
+homolog e a fase 2 (seções 13 a 18) e após as decisões E e F (seção 19: busca por número + série e remoção da placa). Status: fase 1 (construtor e envio manual) e fase 2 (tela
 web no Worker) implementadas e testadas com fakes; **a tela está desligada**
 (`Devolucao:Habilitada=false`) e nada foi ligado em produção. O roteiro de teste no homolog está
 em `docs/ROTEIRO-TESTE-I40.md`.
 
 > Atenção: as seções 9 a 12 registram o estado **antes** do teste real. Onde divergem das
 > seções 13 a 18 (tipo de operação ICD por padrão, placa sempre obrigatória, `POST /api/devolucao`),
-> valem as seções 13 a 18.
+> valem as seções 13 a 18. Onde as seções 13 a 18 falam de placa, motorista ou checkbox "Enviar
+> placa do veículo", vale a seção 19: **a placa foi removida da tela e do código**.
 
 ## 1. Objetivo
 
@@ -292,7 +293,7 @@ Conclusões:
 |---|---|---|
 | A | `InverterPartes` padrão **false**. A variante invertida não é necessária; a opção continua existindo e está documentada como validada. | `Devolucao:InverterPartes` |
 | B | `tipoOperacaoNota` padrão passa de ICD para **IMP**. | `Devolucao:TipoOperacaoNota` = `IMP` |
-| C | A **tela tem um flag** "Enviar placa do veículo", que começa **desligado**. Placa desligada: `tipoOperacaoNota` = `TipoOperacaoNota` (IMP), `placaVeiculoPrevistoNota` e `nomeMotorista` em branco, sem exigir placa nem motorista. Placa ligada: `tipoOperacaoNota` = `TipoOperacaoNotaComPlaca` (ICD), placa obrigatória e `nomeMotorista` = `Devolucao:NomeMotorista` (obrigatório configurar). | `Devolucao:EnviarPlacaPadrao` (estado inicial do checkbox) = `false`, `Devolucao:TipoOperacaoNotaComPlaca` = `ICD`, `Devolucao:NomeMotorista` |
+| C | **Substituída pela decisão F (seção 19): a placa foi removida.** Texto original: a **tela tinha um flag** "Enviar placa do veículo", que começa **desligado**. Placa desligada: `tipoOperacaoNota` = `TipoOperacaoNota` (IMP), `placaVeiculoPrevistoNota` e `nomeMotorista` em branco, sem exigir placa nem motorista. Placa ligada: `tipoOperacaoNota` = `TipoOperacaoNotaComPlaca` (ICD), placa obrigatória e `nomeMotorista` = `Devolucao:NomeMotorista` (obrigatório configurar). | chaves `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista` (removidas do código) |
 | D | CFOP da venda, `tipoNota` DE, sem login na tela. Retenção de 60 dias (`Limpeza:DiasRetencao`) já existente. | `ConstrutorI40`; `Devolucao:TipoNota` = `DE` |
 
 ## 15. Estado da fase 2 (tela web no Worker)
@@ -305,9 +306,10 @@ pela tela e o servidor SRVAPPALC02 não foi acessado.
 | Componente | Projeto | Função |
 |---|---|---|
 | `OpcoesDevolucao` | Core, `Configuracao` | Seção `Devolucao` (ver tabela de chaves abaixo). |
-| `ConstrutorI40.Construir(nota, enviarPlaca, placa)` | Core, `Construtores` | Aplica a regra da placa (decisão C). |
-| `ValidadorChavesDevolucao` | Core, `Devolucao` | Normaliza (espaços e quebras), remove duplicadas mantendo a ordem, valida 44 dígitos e dígito verificador (módulo 11) e normaliza a placa. |
-| `ServicoDevolucao` / `IServicoDevolucao` | Core, `Devolucao` | Valida o pedido, localiza o XML de cada chave, monta a I40, envia **uma requisição** com todas as notas válidas (até 30) pelo `IClienteWms` existente e mapeia a resposta por documento (número da nota). Chave inválida ou sem XML não bloqueia as demais. |
+| `ConstrutorI40.Construir(nota)` | Core, `Construtores` | Monta a I40 com `tipoOperacaoNota` = `Devolucao:TipoOperacaoNota` (IMP); `placaVeiculoPrevistoNota` e `nomeMotorista` sempre em branco (decisão F). |
+| `ValidadorChavesDevolucao` | Core, `Devolucao` | Normaliza (espaços e quebras), remove duplicadas mantendo a ordem, valida 44 dígitos e dígito verificador (módulo 11), extrai CNPJ do emitente, série e número da chave e valida os campos número/série da busca. |
+| `ServicoDevolucao` / `IServicoDevolucao` | Core, `Devolucao` | Valida o pedido, localiza o XML de cada chave, monta a I40, envia **uma requisição** com todas as notas válidas (até 30) pelo `IClienteWms` existente e mapeia a resposta por documento (número da nota). Chave inválida ou sem XML não bloqueia as demais. `Buscar(numero, serie)` resolve número + série em chave(s) (decisão E). |
+| `LocalizadorXmlDevolucao` | Core, `Devolucao` | `Localizar(chave)` acha o XML mais recente da chave; `BuscarPorNumeroSerie` acha as chaves de uma nota lendo só os nomes dos arquivos. |
 | `AuditoriaDevolucao` | Core, `Devolucao` | Grava o arquivo de auditoria (abaixo). |
 | `TelaDevolucaoApp` | Worker, `TelaDevolucao` | Monta o Kestrel com os endpoints. |
 | `ServidorTelaDevolucao` | Worker, `TelaDevolucao` | `BackgroundService` que liga a tela só se `Devolucao:Habilitada=true`. |
@@ -319,30 +321,28 @@ pela tela e o servidor SRVAPPALC02 não foi acessado.
 |---|---|---|
 | `Habilitada` | `false` | Liga a tela. Com `false` a porta não abre. |
 | `Porta` | `8085` | Porta HTTP da tela. |
-| `TipoOperacaoNota` | `IMP` | Tipo de operação com a placa desligada. |
-| `TipoOperacaoNotaComPlaca` | `ICD` | Tipo de operação com a placa ligada. |
-| `EnviarPlacaPadrao` | `false` | Estado inicial do checkbox da placa (também usado pelo modo manual). |
-| `NomeMotorista` | vazio | Motorista fixo cadastrado no WMS; exigido só com a placa ligada. |
+| `TipoOperacaoNota` | `IMP` | Tipo de operação da I40 (validado no homolog). |
 | `MaxChavesPorEnvio` | `30` | Limite de chaves por envio. |
 | `PastaAuditoria` | vazio | Vazio = `<Estado>\devolucao`. |
 | `TipoNota`, `InverterPartes`, `FormaTransporte`, `CodSituacaoTributaria` | `DE`, `false`, `PR`, `040` | Como na fase 1. |
 
 Override por variável de ambiente: `Devolucao__Habilitada`, `Devolucao__Porta`,
-`Devolucao__NomeMotorista`, `Devolucao__EnviarPlacaPadrao` etc.
+`Devolucao__TipoOperacaoNota`, `Devolucao__InverterPartes` etc.
 
 ### Endpoints
 
 | Método e caminho | Resposta |
 |---|---|
 | `GET /` | A página HTML única. |
-| `GET /api/config` | `{ "enviarPlacaPadrao": false, "maxChaves": 30 }` |
+| `GET /api/config` | `{ "maxChaves": 30 }` |
+| `GET /api/devolucao/buscar?numero=&serie=` | Resolve número + série em chave(s): 200 com `numero`, `serie` e `opcoes[]` (`chave`, `numero`, `serie`, `dataArquivo`, `pacote`); 404 "Nota não encontrada na retenção de 60 dias."; 400 para entrada inválida; 503 sem `Pastas:Entrada` ou CNPJ do depositante. Não envia nada ao WMS. |
 | `GET /api/saude` | `{ "status": "ok" }` |
-| `POST /api/devolucao/enviar` | Corpo `{ "chaves": [...], "enviarPlaca": false, "placa": "" }`. Resposta 200 com `enviarPlaca`, `total`, `enviadas`, `transacao` e `resultados[]` (`chave`, `nota`, `status`, `sucesso`, `mensagem`). |
+| `POST /api/devolucao/enviar` | Corpo `{ "chaves": [...] }`. Resposta 200 com `total`, `enviadas`, `transacao` e `resultados[]` (`chave`, `nota`, `serie`, `status`, `sucesso`, `mensagem`). |
 
 `status`: `Enviada`, `ErroWms` (texto do WMS sem alteração), `XmlNaoEncontrado` ("XML não encontrado
 na retenção de 60 dias."), `ChaveInvalida` e `ErroInterno`. Erros do pedido: **400** (corpo
-inválido, lista vazia, mais chaves que o máximo, placa ausente com o flag ligado), **503**
-(`Devolucao:NomeMotorista` ou `Pastas:Entrada` não configurados) e **500** genérico, sem detalhe
+inválido, lista vazia, mais chaves que o máximo), **503**
+(`Pastas:Entrada` não configurado) e **500** genérico, sem detalhe
 interno, para falha inesperada (o detalhe vai para o log). O corpo aceito tem no máximo 64 KB. A
 resposta traz cabeçalhos de segurança (`Cache-Control: no-store`, política de conteúdo restrita
 ao próprio endereço).
@@ -351,7 +351,7 @@ ao próprio endereço).
 
 Um arquivo por dia, `devolucao_yyyyMMdd.log`, em `Devolucao:PastaAuditoria` ou, se vazio, em
 `<Estado>\devolucao` (no servidor, a pasta de estado do serviço). Uma linha por chave, separada
-por `;`: `data;ip;placa;chave;nota;status;transacao;mensagem`. Não grava credenciais nem o JSON
+por `;`: `data;ip;chave;nota;status;transacao;mensagem`. Não grava credenciais nem o JSON
 enviado. Falha ao gravar só gera aviso no log. Cada chave também é registrada no log do Worker.
 
 ### Isolamento
@@ -386,16 +386,66 @@ Verificação documental e de projeto (o servidor **não foi acessado**).
 
 ## 17. Testes
 
-Última execução local: 451 aprovados, 0 falhas, 9 ignorados (stress). Cobrem a regra da placa no
-construtor, validação de chave, montagem do lote, mapeamento da resposta por documento (com
+Última execução local (após a seção 19): 487 aprovados, 0 falhas, 9 ignorados (stress); build com 0 avisos
+e 0 erros. Cobrem o construtor sem placa, validação de chave, extração de número/série/CNPJ da chave,
+busca por número + série (uma, várias, nenhuma, outro CNPJ, zeros à esquerda, pasta Erro, mais recente),
+endpoint de busca, montagem do lote, mapeamento da resposta por documento (com
 cliente WMS falso) e os endpoints. O envio real ao WMS pela tela **não foi testado**.
 
 ## 18. O que falta para ligar em produção
 
-1. Cadastrar no WMS o motorista fixo e resolver o cadastro que causa o erro do ICD (transportadora,
-   motorista, doca), se for desejado o envio com placa.
+1. (Removido pela decisão F: a placa não existe mais; o cadastro do ICD só volta a ser assunto se a
+   chegada de veículo for pedida de novo.)
 2. Testar a tela no homolog nesta máquina (`docs/ROTEIRO-TESTE-I40.md`).
 3. Publicar a versão e testar no servidor (2012 R2) com `Habilitada` ainda `false`.
 4. Criar a regra de firewall restrita à rede interna e só então ligar `Devolucao__Habilitada=true`
    (procedimento em `docs/INSTALACAO-SERVIDOR.md`).
 5. Decisão em aberto: evitar devolução em duplicidade (P7). O WMS é quem decide; não há histórico local.
+
+## 19. Decisões E e F (fechadas pelo usuário em 10/11/2026)
+
+### E. Pesquisar por chave OU por número da nota + série
+
+A tela continua aceitando a chave de 44 dígitos (digitada ou bipada, com Enter) e ganhou os campos
+**Número da nota** (até 9 dígitos) e **Série** (até 3 dígitos), com o botão "Buscar e adicionar".
+A lista final continua sendo de **chaves** (até 30 por envio, duplicadas removidas) e mostra o
+número e a série de cada uma.
+
+Como a busca funciona, **sem abrir nem ler os XMLs**: o nome do arquivo é `NFE<chave>.XML` e a chave
+traz tudo. Layout da chave (44 dígitos, posições a partir de 1): cUF 1-2, AAMM 3-6, CNPJ do emitente
+7-20, modelo 21-22, série 23-25, número 26-34, tpEmis 35, cNF 36-43, DV 44.
+
+- Pastas: as mesmas do localizador atual (`Processados` e `Processados\pacote_*`, nunca `Erro`), na
+  mesma retenção de 60 dias.
+- Filtro: só entram arquivos cujo nome é uma chave válida (44 dígitos e DV) e cujo CNPJ do emitente
+  é o do depositante (`Operacional:CnpjDepositante`, BRF 01.838.723/0098-50; compara só os dígitos).
+- Número e série são comparados como **inteiros** (zeros à esquerda não contam: `006` é igual a `6`).
+- A mesma chave em mais de um pacote vale uma vez, pela cópia mais recente.
+- **Uma** chave encontrada: entra na lista. **Mais de uma chave distinta** para o mesmo número e série:
+  a tela mostra as opções (chave, data do arquivo, pacote) e o colaborador escolhe; **nada é enviado
+  automaticamente**. **Nenhuma**: "Nota não encontrada na retenção de 60 dias."
+- Endpoint: `GET /api/devolucao/buscar?numero=&serie=` (tabela da seção 15). O servidor valida as
+  entradas (só dígitos; número com no máximo 9 e série com no máximo 3).
+- Modo manual: `--enviar-i40 --chave <44 dígitos>` ou `--enviar-i40 --numero <n> --serie <s>`, mais
+  `--xml <caminho>` opcional. Se número + série acharem mais de uma chave, o modo manual lista as
+  chaves e não envia.
+- Acessibilidade: campos com `label`, foco visível, uso por teclado (Enter nos campos de número e
+  série), mensagens em regiões `aria-live`/`role="alert"`.
+
+### F. Placa removida da tela e do código
+
+A placa saiu por completo. Foram removidos o checkbox "Enviar placa", o campo placa, a regra do ICD
+com placa, `OpcoesDevolucao.EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca`, `NomeMotorista` e toda
+validação de placa e de motorista. O `ConstrutorI40` não recebe mais placa: `placaVeiculoPrevistoNota`
+e `nomeMotorista` vão **sempre em branco**. `tipoOperacaoNota` continua configurável em
+`Devolucao:TipoOperacaoNota`, padrão `IMP`. A auditoria perdeu a coluna da placa.
+
+Nota histórica: o ICD com placa **foi testado e removido**. No homolog (seção 13) a placa `ABC1D23`
+foi recusada por não estar cadastrada e, com a `EPR7871` cadastrada, o ICD deu "Erro na criacao do
+controlador de veiculo". O IMP sem placa deu "Registrado com sucesso" e o recebimento foi do início
+ao fim, por isso o IMP sem placa é o caminho adotado. O ICD só volta a ser assunto se a criação da
+chegada de veículo for pedida de novo.
+
+Compatibilidade: chaves antigas `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista`
+que ainda existam em algum `appsettings.Production.json` do servidor são ignoradas, sem erro. O corpo
+do `POST /api/devolucao/enviar` com `enviarPlaca`/`placa` também é aceito e ignorado.

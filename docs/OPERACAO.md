@@ -310,17 +310,19 @@ falhar, o resumo **não falha**: o HTML e o PDF são gravados em `<telemetria>\r
 
 Recurso **desligado** (`Devolucao:Habilitada=false`). Nada foi ligado em produção. Quando ligado, o
 Worker abre uma página web simples na porta `Devolucao:Porta` (padrão 8085), sem login, onde o
-colaborador digita ou bipa chaves de NF-e (até 30 por envio). O sistema localiza o XML da venda em
+colaborador digita ou bipa a chave de NF-e, ou pesquisa pelo número da nota + série (até 30 notas por envio). O sistema localiza o XML da venda em
 `Processados` (retenção de 60 dias), monta a I40 (`tipoNota=DE`) e envia ao WMS, mostrando o
 resultado por chave.
 
-- **Placa:** o checkbox "Enviar placa do veículo" começa desmarcado (`Devolucao:EnviarPlacaPadrao=false`).
-  Desmarcado, o envio vai como `IMP`, sem placa nem motorista (validado no homolog: "Registrado com
-  sucesso" e recebimento concluído). Marcado, vai como `ICD`, com a placa informada na tela e o
-  motorista fixo `Devolucao:NomeMotorista`; o ICD ainda deu "Erro na criacao do controlador de veiculo"
-  no homolog.
+- **Sem placa:** a placa e o motorista foram removidos da tela e do código (10/11/2026). O envio vai
+  sempre como `IMP` (`Devolucao:TipoOperacaoNota`), com `placaVeiculoPrevistoNota` e `nomeMotorista` em branco
+  (validado no homolog: "Registrado com sucesso" e recebimento concluído).
+- **Busca por número + série:** `GET /api/devolucao/buscar`. Lê só os nomes dos arquivos
+  `NFE<chave>.XML` em `Processados` e `pacote_*` (nunca `Erro`), filtra pelo CNPJ de
+  `Operacional:CnpjDepositante` e, havendo mais de uma chave para o mesmo número e série, a tela pede
+  a escolha (nada é enviado sozinho). Sem resultado: "Nota não encontrada na retenção de 60 dias."
 - **Auditoria:** `<Estado>\devolucao\devolucao_yyyyMMdd.log` (ou `Devolucao:PastaAuditoria`), uma linha por
-  chave com data, IP de origem, placa, chave, nota, status, transação e mensagem. Sem senha.
+  chave com data, IP de origem, chave, nota, status, transação e mensagem. Sem senha.
   Cada chave também aparece em `logs\worker.out.log`.
 - **Sem estado:** a tela não guarda histórico além da auditoria. Se a mesma nota for enviada duas
   vezes, quem decide é o WMS.

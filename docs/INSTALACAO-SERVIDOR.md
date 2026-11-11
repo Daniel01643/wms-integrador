@@ -344,8 +344,9 @@ impedimento técnico; o teste real no servidor ainda não foi feito.
        -LocalPort 8085 -RemoteAddress '<REDE_INTERNA>' -Action Allow -Profile Domain
    ```
    Não use `-RemoteAddress Any`. Para remover: `Remove-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)'`.
-3. Em `config\appsettings.Production.json` (bloco `Devolucao`) defina `"Habilitada": true`. Para a placa,
-   defina também `"NomeMotorista"` (motorista fixo cadastrado no WMS) e deixe `"EnviarPlacaPadrao": false`.
+3. Em `config\appsettings.Production.json` (bloco `Devolucao`) defina `"Habilitada": true`
+   (não há mais placa nem motorista a configurar; chaves antigas `NomeMotorista`, `EnviarPlacaPadrao` e
+   `TipoOperacaoNotaComPlaca` que ainda existam no arquivo são ignoradas).
    Alternativa: variável de ambiente `Devolucao__Habilitada=true`.
 4. Reinicie o serviço (`.\servico.ps1 -Acao Restart`) e confira no `logs\worker.out.log` a linha
    "Tela de devolução ligada na porta 8085".
