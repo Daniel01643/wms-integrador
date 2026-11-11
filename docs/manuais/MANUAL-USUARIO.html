@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-10</span>
-    <span>Vers&atilde;o: 2026.11.10-df9a83f</span>
+    <span>Gerado em: 2026-11-11</span>
+    <span>Vers&atilde;o: 2026.11.11-ee69a8d</span>
   </div>
 </section>
   <header class="hd">
@@ -354,7 +354,7 @@
 <hr />
 <h2>10. Devolução: tela de chaves</h2>
 <blockquote><p><strong>Atenção:</strong> esta tela só funciona depois que a TI ligar o recurso. Enquanto isso não for feito, o endereço não abre. A TI informa o endereço quando estiver pronto.</p></blockquote>
-<p>Quando um cliente devolve mercadoria, você usa uma tela simples para avisar o WMS. Você só digita ou bipa a <strong>chave de acesso</strong> (os 44 números) da nota de venda original. O sistema acha o XML da nota sozinho e envia a devolução ao WMS.</p>
+<p>Quando um cliente devolve mercadoria, você usa uma tela simples para avisar o WMS. Você só informa a nota de venda original: pela <strong>chave de acesso</strong> (os 44 números) ou pelo **número da nota e a série**. O sistema acha o XML da nota sozinho e envia a devolução ao WMS.</p>
 <h3>Antes de começar</h3>
 <ul>
 <li>A nota de venda precisa ter sido integrada pelo sistema <strong>nos últimos 60 dias</strong>. Depois disso o XML é apagado e a tela avisa que não encontrou.</li>
@@ -364,25 +364,32 @@
 <h3>Passo a passo</h3>
 <ol>
 <li>Abra o navegador (Edge ou Chrome) e digite o endereço da tela que a TI informou. Aparece a página <strong>"Devolução: envio de chaves"</strong>, com o logo da Friozem.</li>
-<li>Clique no campo <strong>"Chave de acesso (44 dígitos)"</strong>. Ele já vem selecionado ao abrir a página.</li>
-<li><strong>Digite</strong> a chave ou <strong>bipe</strong> o código de barras da nota com o leitor, e tecle <strong>Enter</strong> (o leitor já faz isso sozinho). A chave entra na lista.</li>
+<li>Escolha <strong>uma</strong> das duas formas de informar a nota (pode misturar na mesma lista):</li>
 </ol>
 <ul>
-<li>Você também pode <strong>colar várias chaves de uma vez</strong>, uma por linha.</li>
-<li>O limite é <strong>30 chaves por envio</strong>. O contador mostra quantas você já colocou.</li>
+<li><strong>Pela chave:</strong> clique no campo <strong>"Chave de acesso (44 dígitos)"</strong> (ele já vem selecionado ao abrir a página). <strong>Digite</strong> a chave ou <strong>bipe</strong> o código de barras da nota com o leitor, e tecle <strong>Enter</strong> (o leitor já faz isso sozinho). A chave entra na lista. Você também pode **colar várias chaves de uma vez**, uma por linha.</li>
+<li><strong>Pelo número e pela série:</strong> no quadro <strong>"Ou procure pelo número e pela série"</strong>, digite o <strong>Número da nota</strong> (até 9 números) e a <strong>Série</strong> (até 3 números) e clique em **Buscar e adicionar<strong> (ou tecle </strong>Enter**). Zeros à esquerda não atrapalham: <code>006</code> é o mesmo que <code>6</code>.</li>
+</ul>
+<ol>
+<li>Veja o que a tela respondeu à busca por número e série:</li>
+</ol>
+<ul>
+<li><strong>A nota foi encontrada:</strong> ela entra na lista, e a tela avisa "Nota ... adicionada à lista".</li>
+<li><strong>Apareceu uma tabela "Chaves encontradas":</strong> existem <strong>duas ou mais</strong> notas com esse mesmo número e série (por exemplo, uma nota reemitida). A tabela mostra a chave, a data do arquivo e o pacote. Escolha a correta e clique em <strong>Usar esta chave</strong>. **Nada entra na lista antes da sua escolha.** Na dúvida, chame a TI.</li>
+<li><strong>"Nota não encontrada na retenção de 60 dias":</strong> confira o número e a série. Se a venda for antiga (mais de 60 dias) ou a nota nunca tiver sido integrada, a devolução precisa ser feita direto no WMS.</li>
+</ul>
+<ol>
+<li>Confira a lista. Cada linha mostra a chave e, embaixo, o <strong>número e a série</strong> da nota.</li>
+</ol>
+<ul>
+<li>O limite é <strong>30 notas por envio</strong>. O contador mostra quantas você já colocou.</li>
 <li>Se a chave tiver número errado ou faltando, a tela avisa na hora e <strong>não</strong> coloca na lista.</li>
-<li>Se você colocar a mesma chave duas vezes, a tela guarda só uma.</li>
-<li>Para tirar uma chave da lista, clique em <strong>Remover</strong> ao lado dela.</li>
+<li>Se você colocar a mesma nota duas vezes, a tela guarda só uma.</li>
+<li>Para tirar uma nota da lista, clique em <strong>Remover</strong> ao lado dela.</li>
 </ul>
 <ol>
-<li><strong>Placa do veículo:</strong> por padrão a opção <strong>"Enviar placa do veículo"</strong> vem <strong>desmarcada</strong>, e isso é o normal. Deixe assim, a menos que a sua chefia peça para enviar a placa.</li>
-</ol>
-<ul>
-<li>Se precisar enviar a placa, <strong>marque</strong> a opção. Aparece o campo **"Placa do veículo (obrigatória)"**: digite a placa (por exemplo, ABC1D23).</li>
-</ul>
-<ol>
-<li>Clique em <strong>Enviar</strong>. O botão fica desativado até ter pelo menos uma chave e, enquanto o envio acontece, não clique de novo.</li>
-<li>Veja o quadro <strong>"3. Resultado"</strong>. Cada chave aparece numa linha, com a nota, a situação e a mensagem do WMS.</li>
+<li>Clique em <strong>Enviar</strong>. O botão fica desativado até ter pelo menos uma nota na lista e, enquanto o envio acontece, não clique de novo. Não existe campo de placa: a devolução é enviada sem placa e sem motorista.</li>
+<li>Veja o quadro <strong>"3. Resultado"</strong>. Cada nota aparece numa linha, com a chave, o número e a série, a situação e a mensagem do WMS.</li>
 </ol>
 <h3>O que cada situação significa</h3>
 <table>
@@ -422,7 +429,7 @@
 <h3>Dicas</h3>
 <ul>
 <li>Para reenviar só as chaves com problema, use <strong>Limpar lista</strong>, digite novamente apenas as que precisam e envie.</li>
-<li>Não precisa de mouse: use <strong>Tab</strong> para passar de um campo para o outro e <strong>Enter</strong> para adicionar a chave.</li>
+<li>Não precisa de mouse: use <strong>Tab</strong> para passar de um campo para o outro e <strong>Enter</strong> para adicionar a chave ou para buscar pelo número e série.</li>
 <li>Se a página não abrir ou der erro de conexão, avise a TI. Isso não afeta o envio normal das notas.</li>
 </ul>
 
