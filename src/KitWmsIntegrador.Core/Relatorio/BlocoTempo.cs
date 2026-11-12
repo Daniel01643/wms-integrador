@@ -21,6 +21,11 @@ internal sealed record BlocoTempo(
     /// <summary>Rótulo da coluna "por nota" da integração no WMS (número comparável ao processo manual).</summary>
     public const string IntegracaoWms = "Integração no WMS";
 
+    /// <summary>Nota explicativa exibida sob o bloco (definições e limitação da etapa de relatório).</summary>
+    public const string Nota =
+        "Tempos medidos pelo sistema. Em \"Integração no WMS\", a coluna \"Por nota\" é a soma das chamadas ao WMS " +
+        "dividida pelas notas. A geração deste relatório não entra na medição.";
+
     /// <summary>Monta o bloco; <c>null</c> quando não há medição.</summary>
     public static BlocoTempo? Montar(ResumoRelatorio resumo, MedicaoTempo? m)
     {

@@ -14,7 +14,7 @@ namespace KitWmsIntegrador.Core.Relatorio;
 internal static class RenderizadorPdf
 {
     private const double Margem = 30;
-    private const double AlturaCabecalhoPagina = 62;
+    private const double AlturaCabecalhoPagina = 68;
     private const double AlturaRodape = 28;
     private const double EntreLinhas = 10.5;
     private const double PaddingCelula = 3;
@@ -39,6 +39,7 @@ internal static class RenderizadorPdf
     private static readonly XColor CVermelho = XColor.FromArgb(0xD3, 0x2F, 0x2F);
     private static readonly XColor CCinzaNeutra = XColor.FromArgb(0x6B, 0x72, 0x80);
     private static readonly XColor CGrupo = XColor.FromArgb(0xE8, 0xF4, 0xFB);
+    private static readonly XColor CCianoClaro = XColor.FromArgb(0xD6, 0xEF, 0xFF);
 
     // Colunas: Nota, Transporte, Horário, Status, ID de processamento, Mensagem, Integrada, Tent.
     private static readonly string[] Cabecalhos =
@@ -75,7 +76,8 @@ internal static class RenderizadorPdf
         using var medidor = XGraphics.CreateMeasureContext(
             new XSize(larguraPagina, alturaPagina), XGraphicsUnit.Point, XPageDirection.Downwards);
 
-        var blocos = MontarBlocos(modelo, medidor, larguraUtil, colunas);
+        var blocos = MontarBlocos(modelo, medidor, larguraUtil, colunas, pacote);
+        var itensInfo = IdentidadeVisual.ItensInformacao(modelo.Resumo, geradoEm, periodo, pacote);
 
         // Passada 1: distribui os blocos em páginas.
         var topo = Margem + AlturaCabecalhoPagina;
@@ -128,7 +130,7 @@ internal static class RenderizadorPdf
             }
 
             using var gfx = XGraphics.FromPdfPage(pagina);
-            DesenharCabecalhoPagina(gfx, larguraPagina, geradoEm, logoPng, periodo);
+            DesenharCabecalhoPagina(gfx, larguraPagina, logoPng, itensInfo);
             foreach (var (bloco, by) in paginas[p])
             {
                 bloco.Desenhar(gfx, by);
@@ -145,25 +147,25 @@ internal static class RenderizadorPdf
     // ---------- Cabeçalho / rodapé de página ----------
 
     private static void DesenharCabecalhoPagina(
-        XGraphics gfx, double larguraPagina, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo)
+        XGraphics gfx, double larguraPagina, byte[]? logoPng, IReadOnlyList<(string Rotulo, string Valor)> itens)
     {
-        var xTitulo = Margem;
+        // Faixa azul da marca (desenhada ANTES da logo: a logo negativa é branca com fundo transparente).
+        const double yFaixa = 24;
+        const double alturaFaixa = 44;
+        var larguraFaixa = larguraPagina - 2 * Margem;
+        gfx.DrawRectangle(new XSolidBrush(CAzul), Margem, yFaixa, larguraFaixa, alturaFaixa);
+
+        var xTitulo = Margem + 14;
         var desenhouLogo = false;
         if (logoPng is not null)
         {
             try
             {
                 using var img = XImage.FromStream(() => new MemoryStream(logoPng));
-                var largura = 110.0;
-                var altura = img.PixelWidth > 0 ? largura * img.PixelHeight / img.PixelWidth : 36;
-                if (altura > 38)
-                {
-                    altura = 38;
-                    largura = altura * img.PixelWidth / img.PixelHeight;
-                }
-
-                gfx.DrawImage(img, Margem, Margem - 6 + (38 - altura) / 2, largura, altura);
-                xTitulo = Margem + Math.Max(largura, 99) + 18;
+                const double alturaLogo = 32;
+                var larguraLogo = img.PixelHeight > 0 ? alturaLogo * img.PixelWidth / img.PixelHeight : 58;
+                gfx.DrawImage(img, Margem + 14, yFaixa + (alturaFaixa - alturaLogo) / 2, larguraLogo, alturaLogo);
+                xTitulo = Margem + 14 + larguraLogo + 18;
                 desenhouLogo = true;
             }
             catch (Exception)
@@ -174,21 +176,36 @@ internal static class RenderizadorPdf
 
         if (!desenhouLogo)
         {
-            gfx.DrawString("Friozem", FMarca, new XSolidBrush(CAzul), Margem, Margem - 4, XStringFormats.TopLeft);
-            xTitulo = Margem + 100;
+            gfx.DrawString("Friozem", FMarca, XBrushes.White, Margem + 14, yFaixa + 9, XStringFormats.TopLeft);
+            xTitulo = Margem + 14 + 100;
         }
 
-        gfx.DrawString(IdentidadeVisual.Titulo, FTitulo, new XSolidBrush(CAzul), xTitulo, Margem - 3, XStringFormats.TopLeft);
-        gfx.DrawString(
-            "Gerado em: " + IdentidadeVisual.Horario(geradoEm)
-            + RenderizadorHtml.TextoColeta(periodo),
-            FNormal, new XSolidBrush(CTexto), xTitulo, Margem + 18, XStringFormats.TopLeft);
+        gfx.DrawString(IdentidadeVisual.Titulo, FTitulo, XBrushes.White, xTitulo, yFaixa + 8, XStringFormats.TopLeft);
+        gfx.DrawString("KitWms Integrador", FPequena, new XSolidBrush(CCianoClaro), xTitulo, yFaixa + 29, XStringFormats.TopLeft);
 
-        DesenharBarra(gfx, xTitulo, Margem + 32);
-        var yLinha = Margem + 44;
-        gfx.DrawLine(new XPen(CAzul, 1.5), Margem, yLinha, larguraPagina - Margem, yLinha);
+        // Barra tricolor sob a faixa.
+        var terco = larguraFaixa / 3;
+        gfx.DrawRectangle(new XSolidBrush(CAzul), Margem, yFaixa + alturaFaixa, terco, 3.5);
+        gfx.DrawRectangle(new XSolidBrush(CAzulClaro), Margem + terco, yFaixa + alturaFaixa, terco, 3.5);
+        gfx.DrawRectangle(new XSolidBrush(CVerde), Margem + 2 * terco, yFaixa + alturaFaixa, terco, 3.5);
+
+        // Linha de informações: itens com rótulo em negrito, separados por uma divisória vertical.
+        var yInfo = yFaixa + alturaFaixa + 9;
+        var x = Margem + 2;
+        for (var i = 0; i < itens.Count; i++)
+        {
+            var (rotulo, valor) = itens[i];
+            gfx.DrawString(rotulo, FNegrito, new XSolidBrush(CTexto), x, yInfo, XStringFormats.TopLeft);
+            x += gfx.MeasureString(rotulo + " ", FNegrito).Width;
+            gfx.DrawString(valor, FNormal, new XSolidBrush(CTexto), x, yInfo, XStringFormats.TopLeft);
+            x += gfx.MeasureString(valor, FNormal).Width + 12;
+            if (i < itens.Count - 1)
+            {
+                gfx.DrawLine(new XPen(CCinza, 0.75), x, yInfo - 1, x, yInfo + 9);
+                x += 12;
+            }
+        }
     }
-
     private static void DesenharBarra(XGraphics gfx, double x, double y)
     {
         gfx.DrawRectangle(new XSolidBrush(CAzul), x, y, 22, 3.5);
@@ -214,26 +231,25 @@ internal static class RenderizadorPdf
     // ---------- Montagem dos blocos ----------
 
     private static List<Bloco> MontarBlocos(
-        ModeloRelatorio modelo, XGraphics medidor, double larguraUtil, double[] colunas)
+        ModeloRelatorio modelo, XGraphics medidor, double larguraUtil, double[] colunas, DadosPacote? pacote)
     {
         var blocos = new List<Bloco>();
         var r = modelo.Resumo;
+        var tempo = BlocoTempo.Montar(r, pacote?.Medicao);
 
-        // Resumo: título + cartões + notas por transporte.
+        // Resumo: título + cartões + por tipo. A linha "Notas por transporte" saiu do resumo (a mesma
+        // informação segue nos cabeçalhos de cada grupo da tabela principal).
         blocos.Add(Titulo("Resumo", comProximo: true));
         blocos.Add(Cartoes(r, larguraUtil));
-        var porTransporte = "Notas por transporte: " + string.Join("   ·   ",
-            r.NotasPorTransporte.Select(n => $"{n.Transporte}: {IdentidadeVisual.Plural(n.Notas, "nota", "notas")}"));
         var porTipo = $"Por tipo: PUXADA {r.NotasPuxada}   ·   TSP {r.NotasTsp}   ·   Notas da raiz: {r.NotasRaiz}";
-        if (r.NotasPorOnda is { Count: > 0 })
+        // Com o bloco de tempo, a tabela por onda já traz notas e transportes: não repete.
+        if (r.NotasPorOnda is { Count: > 0 } && tempo is not { Ondas.Count: > 0 })
         {
             porTipo += "\nOndas da Puxada TSP: " + string.Join("   ·   ", r.NotasPorOnda.Select(o =>
                 $"{o.Onda}: {IdentidadeVisual.Plural(o.Notas, "nota", "notas")}, {IdentidadeVisual.Plural(o.Transportes, "transporte", "transportes")}"));
         }
 
-        var linhasPorte = TextoPdf.Quebrar(porTransporte, FNormal, larguraUtil, medidor)
-            .Concat(porTipo.Split('\n').SelectMany(s => TextoPdf.Quebrar(s, FNormal, larguraUtil, medidor)))
-            .ToList();
+        var linhasPorte = porTipo.Split('\n').SelectMany(s => TextoPdf.Quebrar(s, FNormal, larguraUtil, medidor)).ToList();
         blocos.Add(new Bloco
         {
             Altura = linhasPorte.Count * EntreLinhas + 8,
@@ -245,6 +261,8 @@ internal static class RenderizadorPdf
                 }
             },
         });
+
+        AdicionarTempo(blocos, tempo, medidor, larguraUtil);
 
         // Produtos criados por contenção.
         if (modelo.ProdutosRevisao.Count > 0)
@@ -308,6 +326,90 @@ internal static class RenderizadorPdf
             {
                 blocos.Add(LinhaTabela(linha, medidor, colunas, cabecalho));
             }
+        }
+
+        return blocos;
+    }
+
+    // Bloco "Tempo de integração": resumo, etapas e (só TSP) tempo por onda, com os mesmos textos do HTML/e-mail.
+    private static void AdicionarTempo(List<Bloco> blocos, BlocoTempo? tempo, XGraphics medidor, double larguraUtil)
+    {
+        if (tempo is null)
+        {
+            return;
+        }
+
+        blocos.Add(Titulo("Tempo de integração", comProximo: true));
+        blocos.AddRange(TabelaTempo(
+            new[] { "Resumo do pacote", "Valor" }, new[] { 200.0, 120.0 },
+            tempo.Resumo.Select(l => new[] { l.Rotulo, l.Valor }).ToList(), medidor));
+
+        if (tempo.Etapas.Count > 0)
+        {
+            blocos.Add(EspacoPequeno());
+            blocos.AddRange(TabelaTempo(
+                new[] { "Etapa", "Duração", "Por nota" }, new[] { 200.0, 100.0, 100.0 },
+                tempo.Etapas.Select(e => new[] { e.Etapa, e.Duracao, e.PorNota }).ToList(), medidor));
+        }
+
+        if (tempo.Ondas.Count > 0)
+        {
+            blocos.Add(EspacoPequeno());
+            blocos.AddRange(TabelaTempo(
+                new[] { "Onda (Puxada TSP)", "Notas", "Transportes", "Tempo da onda" }, new[] { 250.0, 60.0, 80.0, 100.0 },
+                tempo.Ondas.Select(o => new[] { o.Onda, o.Notas, o.Transportes, o.Tempo }).ToList(), medidor));
+        }
+
+        var nota = TextoPdf.Quebrar(BlocoTempo.Nota, FPequena, larguraUtil, medidor);
+        blocos.Add(new Bloco
+        {
+            Altura = nota.Count * 9 + 8,
+            Desenhar = (g, y) =>
+            {
+                for (var i = 0; i < nota.Count; i++)
+                {
+                    g.DrawString(nota[i], FPequena, new XSolidBrush(CTexto), Margem, y + 4 + i * 9, XStringFormats.TopLeft);
+                }
+            },
+        });
+    }
+
+    private static Bloco EspacoPequeno() => new() { Altura = 8 };
+
+    // Tabela simples: primeira coluna à esquerda (com quebra), demais alinhadas à direita; o cabeçalho
+    // se repete se a tabela quebrar de página.
+    private static List<Bloco> TabelaTempo(string[] titulos, double[] larguras, IReadOnlyList<string[]> linhas, XGraphics medidor)
+    {
+        var blocos = new List<Bloco>();
+        var cab = CabecalhoTabela(titulos, larguras);
+        blocos.Add(cab);
+        foreach (var linha in linhas)
+        {
+            var primeira = TextoPdf.Quebrar(linha[0], FNormal, larguras[0] - 2 * PaddingCelula, medidor);
+            var altura = Math.Max(1, primeira.Count) * EntreLinhas + 2 * PaddingCelula;
+            var celulas = linha;
+            blocos.Add(new Bloco
+            {
+                Altura = altura,
+                Cabecalho = cab,
+                Desenhar = (g, y) =>
+                {
+                    for (var k = 0; k < primeira.Count; k++)
+                    {
+                        Texto(g, primeira[k], FNormal, CTexto, Margem + PaddingCelula, y + PaddingCelula + k * EntreLinhas);
+                    }
+
+                    var x = Margem + larguras[0];
+                    for (var c = 1; c < celulas.Length; c++)
+                    {
+                        var largura = g.MeasureString(celulas[c], FNormal).Width;
+                        Texto(g, celulas[c], FNormal, CTexto, x + larguras[c] - PaddingCelula - largura, y + PaddingCelula);
+                        x += larguras[c];
+                    }
+
+                    Divisoria(g, y + altura, larguras.Sum());
+                },
+            });
         }
 
         return blocos;

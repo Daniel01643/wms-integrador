@@ -14,15 +14,25 @@ internal static class RenderizadorHtml
     private const string Css = @"
 *{box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;color:#333333;margin:0;padding:24px;background:#ffffff;font-size:13px}
-.topo{display:flex;align-items:center;gap:18px;border-bottom:4px solid #17479E;padding-bottom:12px;margin-bottom:16px}
-.topo img{min-width:3.5cm;max-height:70px;margin:6px;display:block}
-.marca{font-size:30px;font-weight:bold;color:#17479E;letter-spacing:.5px;padding:6px 10px}
+.faixa{display:flex;align-items:center;gap:22px;background:#17479E;color:#ffffff;padding:14px 22px;border-radius:6px 6px 0 0}
+.faixa img{height:52px;width:auto;display:block;flex:none}
+.marca{font-size:30px;font-weight:bold;color:#ffffff;letter-spacing:.5px}
+.faixa h1{font-size:26px;line-height:1.15;margin:0;color:#ffffff}
+.faixa .sub{margin:3px 0 0;font-size:12px;letter-spacing:.4px;color:#d6efff}
+.trio{display:flex;height:5px}.trio i{display:block;flex:1}
+.trio i:nth-child(1){background:#17479E}.trio i:nth-child(2){background:#54B6E7}.trio i:nth-child(3){background:#009A83}
+.info{display:flex;flex-wrap:wrap;gap:6px 0;margin:0 0 18px;padding:9px 16px;background:#f5f9fd;border:1px solid #C1C1C1;border-top:0;border-radius:0 0 6px 6px;font-size:13px}
+.info span{padding-right:16px;margin-right:16px;border-right:1px solid #C1C1C1}
+.info span:last-child{border-right:0;margin-right:0;padding-right:0}
 h1{font-size:22px;margin:0;color:#17479E}
+h3{font-size:13px;margin:14px 0 0;color:#17479E}
+table.tmp{width:auto;min-width:420px;max-width:100%}
+.tmp thead th{position:static}
+.tmp td.num{text-align:right;white-space:nowrap}
 h2{font-size:16px;margin:22px 0 0;color:#17479E}
 .barra{display:flex;width:64px;height:4px;margin:6px 0 12px}
 .barra i{display:block;flex:1}
 .barra i:nth-child(1){background:#17479E}.barra i:nth-child(2){background:#54B6E7}.barra i:nth-child(3){background:#009A83}
-.gerado{color:#333333;font-size:12px;margin:2px 0 0}
 .cards{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
 .card{border:1px solid #C1C1C1;border-top:4px solid #54B6E7;border-radius:4px;padding:8px 14px;min-width:130px}
 .card b{display:block;font-size:24px;color:#17479E}
@@ -54,7 +64,7 @@ details ol{margin:4px 0 0 18px;padding:0;font-size:12px}
 .controles{display:flex;gap:10px;align-items:center;margin:10px 0}
 .controles input,.controles select{padding:5px 8px;border:1px solid #C1C1C1;border-radius:3px;font-family:Arial,Helvetica,sans-serif}
 .nota{color:#333333;font-size:12px}
-@media print{body{padding:0}thead th{position:static}.controles{display:none}details>*{display:block}}
+@media print{body{padding:0}.faixa,.info,.trio i,thead th,.card{-webkit-print-color-adjust:exact;print-color-adjust:exact}thead th{position:static}.controles{display:none}details>*{display:block}}
 ";
 
     private const string Script = @"
@@ -91,8 +101,9 @@ aplicar();
         sb.Append("<title>").Append(Esc(IdentidadeVisual.Titulo)).Append("</title>");
         sb.Append("<style>").Append(Css).Append("</style></head><body>\n");
 
-        // Cabeçalho: logo (base64) ou marca em texto.
-        sb.Append("<div class=\"topo\">");
+        // Cabeçalho: faixa azul da marca com a logo negativa (base64) ou o texto "Friozem",
+        // título em destaque e uma linha de informações organizada (pacote, geração, coleta).
+        sb.Append("<header><div class=\"faixa\">");
         if (logoPng is not null)
         {
             sb.Append("<img alt=\"Friozem\" src=\"data:image/png;base64,")
@@ -103,13 +114,20 @@ aplicar();
             sb.Append("<span class=\"marca\">Friozem</span>");
         }
 
-        sb.Append("<div><h1>").Append(Esc(IdentidadeVisual.Titulo)).Append("</h1>");
-        sb.Append(Barra());
-        sb.Append("<p class=\"gerado\">Gerado em: ")
-          .Append(Esc(IdentidadeVisual.Horario(geradoEm) + TextoColeta(periodo)))
-          .Append("</p></div></div>\n");
+        sb.Append("<div><h1>").Append(Esc(IdentidadeVisual.Titulo)).Append("</h1>")
+          .Append("<p class=\"sub\">KitWms Integrador</p></div></div>");
+        sb.Append("<div class=\"trio\"><i></i><i></i><i></i></div>");
+        sb.Append("<div class=\"info\">");
+        foreach (var (rotulo, valor) in IdentidadeVisual.ItensInformacao(modelo.Resumo, geradoEm, periodo, pacote))
+        {
+            sb.Append("<span><b>").Append(Esc(rotulo)).Append("</b> ").Append(Esc(valor)).Append("</span>");
+        }
 
-        AppendResumo(sb, modelo.Resumo);
+        sb.Append("</div></header>\n");
+
+        var bloco = BlocoTempo.Montar(modelo.Resumo, pacote?.Medicao);
+        AppendResumo(sb, modelo.Resumo, bloco);
+        AppendTempo(sb, bloco);
         AppendProdutosRevisao(sb, modelo);
         AppendTabela(sb, modelo);
 
@@ -118,16 +136,9 @@ aplicar();
         return sb.ToString();
     }
 
-    /// <summary>Complemento do cabeçalho: ' | Coleta: primeira a última gravação' (vazio sem período).</summary>
-    internal static string TextoColeta(PeriodoColeta? periodo) =>
-        periodo is null
-            ? string.Empty
-            : " | Coleta: " + IdentidadeVisual.Horario(periodo.PrimeiraGravacao)
-              + " a " + IdentidadeVisual.Horario(periodo.UltimaGravacao);
-
     private static string Barra() => "<div class=\"barra\"><i></i><i></i><i></i></div>";
 
-    private static void AppendResumo(StringBuilder sb, ResumoRelatorio r)
+    private static void AppendResumo(StringBuilder sb, ResumoRelatorio r, BlocoTempo? bloco)
     {
         sb.Append("<h2>Resumo</h2>").Append(Barra());
         sb.Append("<div class=\"cards\">");
@@ -144,7 +155,8 @@ aplicar();
           .Append("<span class=\"chip\">TSP: ").Append(Esc(IdentidadeVisual.Plural(r.NotasTsp, "nota", "notas"))).Append("</span>")
           .Append("<span class=\"chip\">Notas da raiz: ").Append(r.NotasRaiz.ToString(CultureInfo.InvariantCulture)).Append("</span>")
           .Append("</p>\n");
-        if (r.NotasPorOnda is { Count: > 0 })
+        // Com o bloco de tempo, a tabela por onda já traz notas e transportes: não repete os chips.
+        if (r.NotasPorOnda is { Count: > 0 } && bloco is not { Ondas.Count: > 0 })
         {
             sb.Append("<p class=\"porte\"><b>Ondas da Puxada TSP:</b> ");
             foreach (var (onda, notas, transportes) in r.NotasPorOnda)
@@ -157,14 +169,57 @@ aplicar();
             sb.Append("</p>\n");
         }
 
-        sb.Append("<p class=\"porte\"><b>Notas por transporte:</b> ");
-        foreach (var (transporte, notas) in r.NotasPorTransporte)
+        // A linha "Notas por transporte: ..." saiu do resumo (pedido de 12/11): a mesma informação
+        // segue nos cabeçalhos de cada grupo da tabela ("Transporte X — N notas · ...").
+    }
+
+    // Bloco "Tempo de integração" (nível B): resumo do pacote, etapas e, só na TSP, tempo por onda.
+    private static void AppendTempo(StringBuilder sb, BlocoTempo? bloco)
+    {
+        if (bloco is null)
         {
-            sb.Append("<span class=\"chip\">").Append(Esc(transporte)).Append(": ")
-              .Append(Esc(IdentidadeVisual.Plural(notas, "nota", "notas"))).Append("</span>");
+            return;
         }
 
-        sb.Append("</p>\n");
+        sb.Append("<h2>Tempo de integração</h2>").Append(Barra());
+        sb.Append("<h3>Resumo do pacote</h3>");
+        sb.Append("<table class=\"tmp\"><tbody>");
+        foreach (var l in bloco.Resumo)
+        {
+            sb.Append("<tr><th scope=\"row\">").Append(Esc(l.Rotulo)).Append("</th><td class=\"num\">")
+              .Append(Esc(l.Valor)).Append("</td></tr>");
+        }
+
+        sb.Append("</tbody></table>\n");
+
+        if (bloco.Etapas.Count > 0)
+        {
+            sb.Append("<h3>Etapas</h3>");
+            sb.Append("<table class=\"tmp\"><thead><tr><th>Etapa</th><th>Duração</th><th>Por nota</th></tr></thead><tbody>");
+            foreach (var e in bloco.Etapas)
+            {
+                sb.Append("<tr><td>").Append(Esc(e.Etapa)).Append("</td><td class=\"num\">").Append(Esc(e.Duracao))
+                  .Append("</td><td class=\"num\">").Append(Esc(e.PorNota)).Append("</td></tr>");
+            }
+
+            sb.Append("</tbody></table>\n");
+        }
+
+        if (bloco.Ondas.Count > 0)
+        {
+            sb.Append("<h3>Por onda (Puxada TSP)</h3>");
+            sb.Append("<table class=\"tmp\"><thead><tr><th>Onda</th><th>Notas</th><th>Transportes</th><th>Tempo da onda</th></tr></thead><tbody>");
+            foreach (var o in bloco.Ondas)
+            {
+                sb.Append("<tr><td>").Append(Esc(o.Onda)).Append("</td><td class=\"num\">").Append(Esc(o.Notas))
+                  .Append("</td><td class=\"num\">").Append(Esc(o.Transportes))
+                  .Append("</td><td class=\"num\">").Append(Esc(o.Tempo)).Append("</td></tr>");
+            }
+
+            sb.Append("</tbody></table>\n");
+        }
+
+        sb.Append("<p class=\"nota\">").Append(Esc(BlocoTempo.Nota)).Append("</p>\n");
     }
 
     private static void Card(StringBuilder sb, string classe, string rotulo, int valor)

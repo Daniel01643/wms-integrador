@@ -65,7 +65,7 @@ public sealed class PeriodoColetaTests : IDisposable
         Assert.Contains("Coleta", corpo);
 
         var html = File.ReadAllText(_amb.RelatoriosGerados(".html").Single());
-        Assert.Contains("Coleta: ", html);
+        Assert.Contains("<b>Coleta:</b> ", html);
         Assert.Contains(esperado.PrimeiraGravacao.ToString("dd/MM/yyyy HH:mm:ss", ci), html);
         Assert.Contains(esperado.UltimaGravacao.ToString("dd/MM/yyyy HH:mm:ss", ci), html);
     }
