@@ -160,6 +160,85 @@ public sealed class AmbientePacote : IDisposable
             """;
     }
 
+    /// <summary>CNPJ do emitente (BRF) usado nos XMLs sintéticos da Puxada.</summary>
+    public const string CnpjBrf = "01838723009850";
+
+    /// <summary>Chave de 44 dígitos SINTÉTICA no layout real (UF, AAMM, CNPJ BRF, modelo 55, série 6, número).</summary>
+    public static string ChaveBrf(int numero)
+    {
+        var baseChave = "35" + "2611" + CnpjBrf + "55" + "006" + numero.ToString("D9") + "1" + "00000001";
+        var soma = 0;
+        var peso = 2;
+        for (var i = baseChave.Length - 1; i >= 0; i--)
+        {
+            soma += (baseChave[i] - '0') * peso;
+            peso = peso == 9 ? 2 : peso + 1;
+        }
+
+        var resto = soma % 11;
+        return baseChave + (resto < 2 ? 0 : 11 - resto);
+    }
+
+    /// <summary>
+    /// XML sintético no padrão da Puxada: emitente BRF (CNPJ 01.838.723/0098-50), série 6 e
+    /// "Transporte: NNNNNNNNNN" no infCpl. Nenhum dado real.
+    /// </summary>
+    public static string XmlBrf(int numero, string? transporte)
+    {
+        var chave = ChaveBrf(numero);
+        var infCpl = transporte is null ? "Pedido sem transporte informado." : "Transporte: " + transporte;
+        return $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+              <NFe>
+                <infNFe Id="NFe{chave}" versao="4.00">
+                  <ide><nNF>{numero}</nNF><serie>6</serie><mod>55</mod><dhEmi>2026-11-10T08:00:00-03:00</dhEmi></ide>
+                  <emit><CNPJ>{CnpjBrf}</CNPJ><xNome>EMITENTE SINTETICO</xNome></emit>
+                  <dest><CNPJ>11111111000111</CNPJ><xNome>DESTINATARIO SINTETICO</xNome></dest>
+                  <det nItem="1"><prod><cProd>ABC{numero}</cProd><xProd>PRODUTO</xProd><qCom>1.0000</qCom><uCom>UN</uCom><vProd>10.00</vProd><CFOP>5102</CFOP></prod></det>
+                  <total><ICMSTot><vNF>10.00</vNF></ICMSTot></total>
+                  <infAdic><infCpl>{infCpl}</infCpl></infAdic>
+                </infNFe>
+              </NFe>
+            </nfeProc>
+            """;
+    }
+
+    /// <summary>Nome da entrada do ZIP para a nota: NFE&lt;chave&gt;.XML.</summary>
+    public static string NomeXmlBrf(int numero) => $"NFE{ChaveBrf(numero)}.XML";
+
+    /// <summary>Cria a pasta (relativa à Entrada; vazio = raiz) e devolve o caminho completo.</summary>
+    public string Pasta(string subpasta)
+    {
+        var caminho = string.IsNullOrEmpty(subpasta) ? Entrada : Path.Combine(Entrada, subpasta);
+        Directory.CreateDirectory(caminho);
+        return caminho;
+    }
+
+    /// <summary>Grava um ZIP SINTÉTICO em <paramref name="subpasta"/> (System.IO.Compression) e devolve o caminho.</summary>
+    public string EscreverZip(string subpasta, string nomeZip, params (string Nome, string Conteudo)[] itens)
+    {
+        var caminho = Path.Combine(Pasta(subpasta), nomeZip);
+        using (var fs = new FileStream(caminho, FileMode.Create, FileAccess.Write))
+        using (var zip = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            foreach (var (nome, conteudo) in itens)
+            {
+                var entrada = zip.CreateEntry(nome);
+                using var w = new StreamWriter(entrada.Open(), new System.Text.UTF8Encoding(false));
+                w.Write(conteudo);
+            }
+        }
+
+        return caminho;
+    }
+
+    /// <summary>ZIP sintético da TSP: notas numeradas a partir de <paramref name="primeiro"/> com os transportes dados.</summary>
+    public string EscreverZipBrf(string subpasta, string nomeZip, int primeiro, params string?[] transportes) =>
+        EscreverZip(subpasta, nomeZip, transportes
+            .Select((t, i) => (NomeXmlBrf(primeiro + i), XmlBrf(primeiro + i, t)))
+            .ToArray());
+
     public ProcessadorLote CriarProcessador(IOrquestrador orquestrador, out DiarioPacote diario)
     {
         diario = new DiarioPacote(Options.Create(Pastas), NullLogger<DiarioPacote>.Instance);
@@ -173,6 +252,8 @@ public sealed class AmbientePacote : IDisposable
             diario,
             Clock,
             Options.Create(Pacote),
+            new LeitorZipSeguro(Options.Create(new OpcoesZip()), Options.Create(Pastas), NullLogger<LeitorZipSeguro>.Instance),
+            new RegistroOndasTsp(Clock, Options.Create(Pastas), NullLogger<RegistroOndasTsp>.Instance),
             NullLogger<ProcessadorLote>.Instance);
     }
 

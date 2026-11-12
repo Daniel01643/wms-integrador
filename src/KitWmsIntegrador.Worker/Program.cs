@@ -185,6 +185,9 @@ builder.Services.AddSingleton<OrganizadorArquivos>();
 builder.Services.AddSingleton<LimpadorPastas>();
 builder.Services.AddSingleton<DetectorArquivoPronto>();
 builder.Services.AddSingleton<DiarioPacote>();
+// Leitor seguro de ZIP (Estado\tmp) e registro das ondas TSP (Estado\tsp\ondas.json).
+builder.Services.AddSingleton<LeitorZipSeguro>();
+builder.Services.AddSingleton<RegistroOndasTsp>();
 builder.Services.AddSingleton<ProcessadorLote>();
 builder.Services.AddSingleton<FechadorPacote>();
 builder.Services.AddSingleton<GerenciadorPacote>();

@@ -36,13 +36,18 @@ public sealed record RegistroDiario(
     /// <summary>Rótulo usado no relatório quando a nota/arquivo não tem transporte.</summary>
     public const string RotuloSemTransporte = "(sem transporte)";
 
+    /// <summary>Rótulo da coluna Transporte na TSP: nota sem transporte sobe normalmente (a onda é o ZIP).</summary>
+    public const string RotuloSemTransporteTsp = "(sem)";
+
     /// <summary>Converte para a linha do relatório.</summary>
     public LinhaRelatorioErro ParaLinha() => new(
         NumeroNota,
         // Arquivo ignorado (não-XML) não é nota: não recebe o rótulo "(sem transporte)", fica vazio.
         Status == StatusLinhaRelatorio.ArquivoIgnorado
             ? string.Empty
-            : string.IsNullOrWhiteSpace(NumeroTransporte) ? RotuloSemTransporte : NumeroTransporte,
+            : string.IsNullOrWhiteSpace(NumeroTransporte)
+                ? (string.Equals(Tipo, TipoNotaExtensoes.RotuloTsp, StringComparison.OrdinalIgnoreCase) ? RotuloSemTransporteTsp : RotuloSemTransporte)
+                : NumeroTransporte,
         Horario,
         Mensagem,
         Integrada,

@@ -26,6 +26,8 @@ public sealed class ProcessadorLote
     private readonly ClassificadorCategoriaErro _classificador;
     private readonly OrganizadorArquivos _organizador;
     private readonly DiarioPacote _diario;
+    private readonly LeitorZipSeguro _leitorZip;
+    private readonly RegistroOndasTsp _ondasTsp;
     private readonly IClock _clock;
     private readonly OpcoesPacote _opcoes;
     private readonly ILogger<ProcessadorLote> _logger;
@@ -44,8 +46,12 @@ public sealed class ProcessadorLote
         DiarioPacote diario,
         IClock clock,
         IOptions<OpcoesPacote> opcoes,
+        LeitorZipSeguro leitorZip,
+        RegistroOndasTsp ondasTsp,
         ILogger<ProcessadorLote> logger)
     {
+        _leitorZip = leitorZip ?? throw new ArgumentNullException(nameof(leitorZip));
+        _ondasTsp = ondasTsp ?? throw new ArgumentNullException(nameof(ondasTsp));
         _orquestrador = orquestrador ?? throw new ArgumentNullException(nameof(orquestrador));
         _leitor = leitor ?? throw new ArgumentNullException(nameof(leitor));
         _agrupador = agrupador ?? throw new ArgumentNullException(nameof(agrupador));
@@ -103,6 +109,21 @@ public sealed class ProcessadorLote
         return false;
     }
 
+    // Contexto da nota: decidido só pela pasta onde o arquivo foi depositado.
+    private sealed record Ctx(string Tipo, string Origem, string Onda, string? Zip)
+    {
+        public bool EhTsp => string.Equals(Tipo, TipoNotaExtensoes.RotuloTsp, StringComparison.Ordinal);
+
+        public static Ctx De(EntradaArquivo e) => new(e.Tipo.Rotulo(), e.Origem, string.Empty, null);
+    }
+
+    private sealed record Lido(string Arquivo, NotaFiscal Nota, Ctx Ctx, string? ZipCaminho);
+
+    private sealed record ZipTratado(EntradaArquivo Entrada, string Hash);
+
+    private static EntradaArquivo Raiz(string caminho) =>
+        new(caminho, TipoNota.Puxada, TipoNotaExtensoes.OrigemRaiz);
+
     /// <summary>
     /// Trata arquivos não-XML definitivos: cada um vira um <see cref="RegistroDiario"/> com
     /// <see cref="CategoriaErro.ExtensaoInvalida"/>/<see cref="StatusLinhaRelatorio.ArquivoIgnorado"/>,
@@ -113,15 +134,27 @@ public sealed class ProcessadorLote
         IReadOnlyCollection<string> arquivos, string identificadorPacote)
     {
         ArgumentNullException.ThrowIfNull(arquivos);
+        return ProcessarNaoXml(arquivos.Select(Raiz).ToList(), identificadorPacote);
+    }
+
+    /// <summary>
+    /// Igual a <see cref="ProcessarNaoXml(IReadOnlyCollection{string}, string)"/>, com tipo e origem
+    /// (pasta). Na PuxadaTSP o motivo diz que a pasta aceita apenas ZIP.
+    /// </summary>
+    public IReadOnlyList<RegistroDiario> ProcessarNaoXml(
+        IReadOnlyCollection<EntradaArquivo> entradas, string identificadorPacote)
+    {
+        ArgumentNullException.ThrowIfNull(entradas);
         var registros = new ConcurrentQueue<RegistroDiario>();
 
-        var ordenados = arquivos
-            .OrderBy(ObterCriacao)
-            .ThenBy(a => Path.GetFileName(a), StringComparer.OrdinalIgnoreCase)
+        var ordenados = entradas
+            .OrderBy(e => ObterCriacao(e.Caminho))
+            .ThenBy(e => Path.GetFileName(e.Caminho), StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        foreach (var arquivo in ordenados)
+        foreach (var entrada in ordenados)
         {
+            var arquivo = entrada.Caminho;
             if (_movePendentes.TryGetValue(arquivo, out var pendente))
             {
                 RepetirMove(arquivo, pendente);
@@ -129,13 +162,17 @@ public sealed class ProcessadorLote
             }
 
             var extensao = Path.GetExtension(arquivo);
-            var motivo = $"Arquivo ignorado: extensão {extensao} não é XML. " +
-                         "Coloque apenas arquivos .xml na pasta de entrada.";
+            var motivo = entrada.Tipo == TipoNota.Tsp
+                ? $"Arquivo ignorado: a pasta {entrada.Origem} aceita apenas ZIP (extensão {extensao}). " +
+                  "Salve aqui somente o ZIP da puxada TSP."
+                : $"Arquivo ignorado: extensão {extensao} não é XML. " +
+                  "Coloque apenas arquivos .xml na pasta de entrada.";
             _logger.LogInformation(
                 "Arquivo não-XML ignorado (extensão {Extensao}): {Arquivo}", extensao, Path.GetFileName(arquivo));
             Finalizar(registros, Registro(arquivo, false, Path.GetFileName(arquivo), string.Empty, motivo, false, 0,
                     StatusLinhaRelatorio.ArquivoIgnorado, string.Empty, string.Empty, null,
-                    Array.Empty<string>(), CategoriaErro.ExtensaoInvalida, DestinoArquivo.Erro, identificadorPacote),
+                    Array.Empty<string>(), CategoriaErro.ExtensaoInvalida, DestinoArquivo.Erro, identificadorPacote,
+                    Ctx.De(entrada)),
                 arquivo);
         }
 
@@ -143,82 +180,228 @@ public sealed class ProcessadorLote
     }
 
     /// <summary>
-    /// Processa os arquivos e devolve os registros novos. Respeita a ordem de chegada
-    /// (criação, depois nome). Propaga apenas o cancelamento.
+    /// Processa os arquivos (XML soltos da raiz, como PUXADA) e devolve os registros novos.
+    /// Respeita a ordem de chegada (criação, depois nome). Propaga apenas o cancelamento.
     /// </summary>
-    public async Task<IReadOnlyList<RegistroDiario>> ProcessarAsync(
+    public Task<IReadOnlyList<RegistroDiario>> ProcessarAsync(
         IReadOnlyCollection<string> arquivos, string identificadorPacote, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(arquivos);
+        return ProcessarAsync(arquivos.Select(Raiz).ToList(), identificadorPacote, ct);
+    }
+
+    /// <summary>
+    /// Processa XML e ZIP com tipo e origem. PUXADA (raiz e pasta Puxada): ondas por número de
+    /// transporte. TSP (pasta PuxadaTSP): uma onda por ZIP, com o nome gerado por
+    /// <see cref="NomeadorOndaTsp"/>. Respeita a ordem de chegada. Propaga apenas o cancelamento.
+    /// </summary>
+    public async Task<IReadOnlyList<RegistroDiario>> ProcessarAsync(
+        IReadOnlyCollection<EntradaArquivo> entradas, string identificadorPacote, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(entradas);
         var registros = new ConcurrentQueue<RegistroDiario>();
 
-        var ordenados = arquivos
-            .OrderBy(ObterCriacao)
-            .ThenBy(a => Path.GetFileName(a), StringComparer.OrdinalIgnoreCase)
+        var ordenados = entradas
+            .OrderBy(e => ObterCriacao(e.Caminho))
+            .ThenBy(e => Path.GetFileName(e.Caminho), StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // 1) Parse (e repetição de moves pendentes).
-        var lidos = new List<(string Arquivo, NotaFiscal Nota)>();
-        foreach (var arquivo in ordenados)
+        var temporarias = new List<string>();
+        try
         {
-            ct.ThrowIfCancellationRequested();
-
-            if (_movePendentes.TryGetValue(arquivo, out var pendente))
+            // 1) Parse (e repetição de moves pendentes). ZIP é aberto aqui e seus XMLs entram na fila.
+            var lidos = new List<Lido>();
+            var zips = new List<ZipTratado>();
+            var chaves = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entrada in ordenados)
             {
-                RepetirMove(arquivo, pendente);
-                continue;
+                ct.ThrowIfCancellationRequested();
+
+                if (_movePendentes.TryGetValue(entrada.Caminho, out var pendente))
+                {
+                    RepetirMove(entrada.Caminho, pendente);
+                    continue;
+                }
+
+                if (entrada.EhZip)
+                {
+                    PrepararZip(entrada, identificadorPacote, lidos, zips, chaves, temporarias, registros);
+                }
+                else
+                {
+                    LerXml(entrada.Caminho, Ctx.De(entrada), null, identificadorPacote, lidos, chaves, registros);
+                }
             }
 
-            try
+            if (lidos.Count > 0)
             {
-                lidos.Add((arquivo, _leitor.ParseArquivo(arquivo)));
+                await IntegrarAsync(lidos, zips, identificadorPacote, registros, ct).ConfigureAwait(false);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                var motivo = "XML inválido: " + ex.Message;
-                _logger.LogWarning("Arquivo {Arquivo} não pôde ser lido: {Motivo}", arquivo, ex.Message);
-                Finalizar(registros, Registro(arquivo, true, Path.GetFileName(arquivo), string.Empty, motivo, false, 0,
-                        StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
-                        new[] { motivo }, CategoriaErro.XmlInvalido, DestinoArquivo.Erro, identificadorPacote),
-                    arquivo);
-            }
-        }
 
-        if (lidos.Count == 0)
-        {
+            // O ZIP só sai da pasta depois que todos os seus XMLs foram tratados (cada um já foi
+            // movido para Processados\<id> ou Erro\<id>\...).
+            foreach (var zip in zips)
+            {
+                MoverZipTratado(zip, identificadorPacote);
+            }
+
             return registros.ToList();
         }
-
-        // 2) Agrupa por transporte, ondas na ordem do primeiro arquivo.
-        var arquivoDe = new Dictionary<NotaFiscal, (string Arquivo, int Ordem)>(ReferenceEqualityComparer.Instance);
-        for (var i = 0; i < lidos.Count; i++)
+        finally
         {
-            arquivoDe[lidos[i].Nota] = (lidos[i].Arquivo, i);
+            foreach (var pasta in temporarias)
+            {
+                _leitorZip.Limpar(pasta);
+            }
+        }
+    }
+
+    private async Task IntegrarAsync(
+        List<Lido> lidos,
+        List<ZipTratado> zips,
+        string identificadorPacote,
+        ConcurrentQueue<RegistroDiario> registros,
+        CancellationToken ct)
+    {
+        // 2) Onda de cada ZIP da TSP (nome gerado na ordem de chegada, antes de qualquer envio).
+        var tspPorZip = lidos
+            .Where(l => l.Ctx.EhTsp && l.ZipCaminho is not null)
+            .GroupBy(l => l.ZipCaminho!, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var ondaDoZip = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var grupo in tspPorZip)
+        {
+            var hash = zips.First(z => string.Equals(z.Entrada.Caminho, grupo.Key, StringComparison.OrdinalIgnoreCase)).Hash;
+            ondaDoZip[grupo.Key] = _ondasTsp.ObterOuCriar(Path.GetFileName(grupo.Key), hash);
         }
 
-        var agrupamento = _agrupador.Agrupar(lidos.Select(l => l.Nota));
+        var arquivoDe = new Dictionary<NotaFiscal, (string Arquivo, int Ordem, Ctx Ctx)>(ReferenceEqualityComparer.Instance);
+        for (var i = 0; i < lidos.Count; i++)
+        {
+            var l = lidos[i];
+            var ctx = l.Ctx.EhTsp && l.ZipCaminho is not null ? l.Ctx with { Onda = ondaDoZip[l.ZipCaminho] } : l.Ctx;
+            arquivoDe[l.Nota] = (l.Arquivo, i, ctx);
+        }
+
+        // 3) PUXADA: agrupa por transporte. TSP: uma onda por ZIP. Ondas na ordem do primeiro arquivo.
+        var agrupamento = _agrupador.Agrupar(
+            lidos.Where(l => !(l.Ctx.EhTsp && l.ZipCaminho is not null)).Select(l => l.Nota));
         var ondas = agrupamento.Ondas
-            .OrderBy(o => o.Notas.Min(n => arquivoDe[n].Ordem))
             .Select(o => (o.NumeroTransporte, Notas: (IReadOnlyList<NotaFiscal>)o.Notas))
             .ToList();
+        ondas.AddRange(tspPorZip.Select(g => (ondaDoZip[g.Key], Notas: (IReadOnlyList<NotaFiscal>)g.Select(l => l.Nota).ToList())));
+        ondas = ondas.OrderBy(o => o.Notas.Min(n => arquivoDe[n].Ordem)).ToList();
         if (agrupamento.SemTransporte.Count > 0)
         {
             ondas.Add((string.Empty, agrupamento.SemTransporte));
         }
 
-        // 3) Ondas em paralelo limitado; notas de cada onda em sequência.
+        // 4) Ondas em paralelo limitado; notas de cada onda em sequência.
         using var semaforo = new SemaphoreSlim(Math.Max(1, _opcoes.MaxTransportesConcorrentes));
-        var tarefas = ondas.Select(o => ProcessarOndaAsync(o.NumeroTransporte, o.Notas, arquivoDe, semaforo, registros, identificadorPacote, ct))
+        var tarefas = ondas.Select(o => ProcessarOndaAsync(o.Item1, o.Notas, arquivoDe, semaforo, registros, identificadorPacote, ct))
             .ToList();
         await Task.WhenAll(tarefas).ConfigureAwait(false);
+    }
 
-        return registros.ToList();
+    // Lê um XML (solto ou extraído de ZIP). Inválido: registra e move para Erro. Repetido (mesma
+    // chave já vista nesta foto) vindo de ZIP: não vai ao WMS; registra como ignorado em Processados.
+    private void LerXml(
+        string arquivo, Ctx ctx, string? zipCaminho, string identificadorPacote,
+        List<Lido> lidos, HashSet<string> chaves, ConcurrentQueue<RegistroDiario> registros)
+    {
+        NotaFiscal nota;
+        try
+        {
+            nota = _leitor.ParseArquivo(arquivo);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var motivo = "XML inválido: " + ex.Message;
+            _logger.LogWarning("Arquivo {Arquivo} não pôde ser lido: {Motivo}", arquivo, ex.Message);
+            Finalizar(registros, Registro(arquivo, true, Path.GetFileName(arquivo), string.Empty, motivo, false, 0,
+                    StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
+                    new[] { motivo }, CategoriaErro.XmlInvalido, DestinoArquivo.Erro, identificadorPacote, ctx),
+                arquivo);
+            return;
+        }
+
+        var nova = string.IsNullOrEmpty(nota.ChaveNFe) || chaves.Add(nota.ChaveNFe);
+        if (!nova && zipCaminho is not null)
+        {
+            var motivo = LinhaRelatorioErro.PrefixoXmlRepetido + " (chave já processada neste pacote). Não foi enviado de novo ao WMS.";
+            _logger.LogInformation("XML repetido dentro do pacote ignorado: {Arquivo}", Path.GetFileName(arquivo));
+            Finalizar(registros, Registro(arquivo, false, nota.Numero, nota.NumeroTransporte ?? string.Empty, motivo, false, 0,
+                    StatusLinhaRelatorio.ArquivoIgnorado, string.Empty, string.Empty, null,
+                    Array.Empty<string>(), null, DestinoArquivo.Processados, identificadorPacote, ctx),
+                arquivo);
+            return;
+        }
+
+        lidos.Add(new Lido(arquivo, nota, ctx, zipCaminho));
+    }
+
+    private void PrepararZip(
+        EntradaArquivo zip, string identificadorPacote, List<Lido> lidos, List<ZipTratado> zips,
+        HashSet<string> chaves, List<string> temporarias, ConcurrentQueue<RegistroDiario> registros)
+    {
+        var nomeZip = Path.GetFileName(zip.Caminho);
+        var ctx = new Ctx(zip.Tipo.Rotulo(), zip.Origem, string.Empty, nomeZip);
+
+        ResultadoZip resultado;
+        try
+        {
+            resultado = _leitorZip.Extrair(zip.Caminho);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var motivo = "ZIP inválido: " + ex.Message;
+            _logger.LogWarning("ZIP {Zip} não pôde ser lido: {Motivo}", nomeZip, ex.Message);
+            Finalizar(registros, Registro(zip.Caminho, false, nomeZip, string.Empty, motivo, false, 0,
+                    StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
+                    new[] { motivo }, CategoriaErro.ZipInvalido, DestinoArquivo.Erro, identificadorPacote, ctx),
+                zip.Caminho);
+            return;
+        }
+
+        temporarias.Add(resultado.PastaTemporaria);
+        zips.Add(new ZipTratado(zip, resultado.Hash));
+
+        // Entradas não usadas (não-XML, ZIP aninhado, caminho perigoso): só aparecem no relatório.
+        foreach (var ignorada in resultado.Ignoradas)
+        {
+            var motivo = $"{ignorada.Nome}: {ignorada.Motivo}";
+            var registro = Registro(
+                zip.Caminho + "!" + ignorada.Nome, false, ignorada.Nome, string.Empty, motivo, false, 0,
+                ignorada.Insegura ? StatusLinhaRelatorio.NaoIntegrada : StatusLinhaRelatorio.ArquivoIgnorado,
+                string.Empty, string.Empty, null, Array.Empty<string>(),
+                ignorada.Insegura ? CategoriaErro.ZipInvalido : CategoriaErro.ExtensaoInvalida,
+                DestinoArquivo.Erro, identificadorPacote, ctx);
+            _diario.Registrar(registro);
+            registros.Enqueue(registro);
+        }
+
+        foreach (var xml in resultado.Xmls)
+        {
+            LerXml(xml.Caminho, ctx, zip.Caminho, identificadorPacote, lidos, chaves, registros);
+        }
+    }
+
+    private void MoverZipTratado(ZipTratado zip, string identificadorPacote)
+    {
+        var caminho = zip.Entrada.Caminho;
+        var mov = _organizador.Mover(caminho, DestinoArquivo.Processados, null, string.Empty, identificadorPacote);
+        if (!mov.Sucesso && File.Exists(caminho))
+        {
+            _logger.LogWarning(
+                "ZIP {Zip} já tratado, mas o move falhou ({Erro}); será repetido sem reenviar ao WMS.", caminho, mov.Erro);
+            _movePendentes[caminho] = new MovePendente(DestinoArquivo.Processados, null, string.Empty, identificadorPacote);
+        }
     }
 
     private async Task ProcessarOndaAsync(
         string transporte,
         IReadOnlyList<NotaFiscal> notas,
-        Dictionary<NotaFiscal, (string Arquivo, int Ordem)> arquivoDe,
+        Dictionary<NotaFiscal, (string Arquivo, int Ordem, Ctx Ctx)> arquivoDe,
         SemaphoreSlim semaforo,
         ConcurrentQueue<RegistroDiario> registros,
         string identificadorPacote,
@@ -230,7 +413,9 @@ public sealed class ProcessadorLote
             foreach (var nota in notas)
             {
                 ct.ThrowIfCancellationRequested();
-                var arquivo = arquivoDe[nota].Arquivo;
+                var (arquivo, _, ctx) = arquivoDe[nota];
+                // TSP: o argumento é o nome da onda; o relatório mostra o transporte da própria nota.
+                var exibido = ctx.EhTsp ? nota.NumeroTransporte ?? string.Empty : transporte;
                 try
                 {
                     var resultados = await _orquestrador.IntegrarAsync(new[] { nota }, transporte, ct)
@@ -238,15 +423,15 @@ public sealed class ProcessadorLote
                     var resultado = resultados.Count > 0
                         ? resultados[0]
                         : throw new InvalidOperationException("O Orquestrador não devolveu resultado para a nota.");
-                    Concluir(registros, arquivo, resultado, identificadorPacote);
+                    Concluir(registros, arquivo, resultado, identificadorPacote, ctx, ctx.EhTsp ? exibido : null);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "Exceção ao integrar a nota {Nota} ({Arquivo}).", nota.Numero, arquivo);
                     var motivo = "Exceção ao integrar: " + ex.Message;
-                    Finalizar(registros, Registro(arquivo, false, nota.Numero, transporte, motivo, false, 0,
+                    Finalizar(registros, Registro(arquivo, false, nota.Numero, exibido, motivo, false, 0,
                             StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
-                            new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro, identificadorPacote),
+                            new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro, identificadorPacote, ctx),
                         arquivo);
                 }
             }
@@ -257,7 +442,9 @@ public sealed class ProcessadorLote
         }
     }
 
-    private void Concluir(ConcurrentQueue<RegistroDiario> registros, string arquivo, ResultadoIntegracaoNota r, string identificadorPacote)
+    private void Concluir(
+        ConcurrentQueue<RegistroDiario> registros, string arquivo, ResultadoIntegracaoNota r,
+        string identificadorPacote, Ctx ctx, string? transporteExibido)
     {
         var destino = _classificador.DestinoDe(r);
         var categoria = destino == DestinoArquivo.Erro ? _classificador.Classificar(r) : (CategoriaErro?)null;
@@ -275,9 +462,9 @@ public sealed class ProcessadorLote
             _ => StatusLinhaRelatorio.NaoIntegrada,
         };
 
-        Finalizar(registros, Registro(arquivo, false, r.NumeroNota, r.NumeroTransporte, mensagem, r.Integrada,
+        Finalizar(registros, Registro(arquivo, false, r.NumeroNota, transporteExibido ?? r.NumeroTransporte, mensagem, r.Integrada,
                 r.Tentativas, status, r.IdTransacao, r.IdDocumento, r.ProdutosProvisorios, r.Historico,
-                categoria, destino, identificadorPacote),
+                categoria, destino, identificadorPacote, ctx),
             arquivo);
     }
 
@@ -317,11 +504,12 @@ public sealed class ProcessadorLote
         string arquivo, bool xmlInvalido, string nota, string transporte, string mensagem, bool integrada,
         int tentativas, StatusLinhaRelatorio status, string idTransacao, string idDocumento,
         IReadOnlyList<string>? produtos, IReadOnlyList<string> historico, CategoriaErro? categoria,
-        DestinoArquivo destino, string identificadorPacote) =>
+        DestinoArquivo destino, string identificadorPacote, Ctx? ctx = null) =>
         new(arquivo, xmlInvalido, nota ?? string.Empty, transporte ?? string.Empty, _clock.UtcNow, mensagem,
             integrada, tentativas, status, idTransacao ?? string.Empty, idDocumento ?? string.Empty,
             produtos ?? Array.Empty<string>(), historico ?? Array.Empty<string>(), categoria, destino,
-            identificadorPacote);
+            identificadorPacote, ctx?.Tipo ?? TipoNotaExtensoes.RotuloPuxada, ctx?.Origem ?? string.Empty,
+            ctx?.Onda ?? string.Empty, ctx?.Zip);
 
     private static DateTime ObterCriacao(string caminho)
     {

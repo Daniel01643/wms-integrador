@@ -46,6 +46,9 @@ public record LinhaRelatorioErro(
     /// <summary>Limite de caracteres do último erro resumido.</summary>
     public const int LimiteMensagemResumida = 160;
 
+    /// <summary>Início da mensagem de um XML repetido no pacote (ignorado, não é erro).</summary>
+    public const string PrefixoXmlRepetido = "XML repetido";
+
     /// <summary>Status efetivo: o informado ou, na ausência, derivado de <see cref="Integrada"/>.</summary>
     public StatusLinhaRelatorio StatusEfetivo =>
         Status ?? (Integrada ? StatusLinhaRelatorio.Integrada : StatusLinhaRelatorio.NaoIntegrada);
@@ -60,7 +63,8 @@ public record LinhaRelatorioErro(
     public string StatusDescricao =>
         IntegradaRevisarProduto ? "Integrada — revisar produto"
         : EstaIntegrada ? "Integrada"
-        : ArquivoIgnorado ? "Arquivo ignorado (não é XML)"
+        : ArquivoIgnorado ? ((Mensagem ?? string.Empty).StartsWith(PrefixoXmlRepetido, StringComparison.Ordinal)
+            ? "Arquivo ignorado (XML repetido)" : "Arquivo ignorado (não é XML)")
         : StatusEfetivo == StatusLinhaRelatorio.Pendente ? "Pendente"
         : "Não integrada";
 

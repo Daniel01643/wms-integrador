@@ -112,8 +112,11 @@ public sealed class GerenciadorPacote
         }
 
         var classificacao = ClassificarEntrada();
-        var naoXmlDefinitivos = new HashSet<string>(classificacao.NaoXmlDefinitivo, StringComparer.OrdinalIgnoreCase);
-        var arquivos = classificacao.XmlOuAguardando.Concat(classificacao.NaoXmlDefinitivo).ToList();
+        var naoXmlDefinitivos = new HashSet<string>(classificacao.NaoXml.Select(e => e.Caminho), StringComparer.OrdinalIgnoreCase);
+        var entradaDe = classificacao.Aceitos.Concat(classificacao.NaoXml)
+            .GroupBy(e => e.Caminho, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var arquivos = entradaDe.Keys.ToList();
         var deteccao = _detector.Avaliar(arquivos);
         var pendentes = new HashSet<string>(_processador.MovePendentes, StringComparer.OrdinalIgnoreCase);
 
@@ -167,9 +170,9 @@ public sealed class GerenciadorPacote
 
                 _idPacote ??= IdDe(_inicio ?? agora);
 
-                // A foto pode conter XML (fluxo de integração) e não-XML definitivos (ExtensaoInvalida).
-                var fotoXml = foto.Where(a => !naoXmlDefinitivos.Contains(a)).ToList();
-                var fotoNaoXml = foto.Where(a => naoXmlDefinitivos.Contains(a)).ToList();
+                // A foto pode conter XML/ZIP (fluxo de integração) e não-XML definitivos (ExtensaoInvalida).
+                var fotoXml = foto.Where(a => !naoXmlDefinitivos.Contains(a)).Select(a => entradaDe[a]).ToList();
+                var fotoNaoXml = foto.Where(a => naoXmlDefinitivos.Contains(a)).Select(a => entradaDe[a]).ToList();
 
                 if (fotoNaoXml.Count > 0)
                 {
@@ -299,22 +302,22 @@ public sealed class GerenciadorPacote
         _logger.LogInformation("Pacote retomado do diário com {Registros} resultado(s).", _registros.Count);
     }
 
-    // Candidatos top-level da entrada já classificados: XML (fluxo de integração) e não-XML
-    // definitivos (viram ExtensaoInvalida). Temporários/em-cópia são ignorados e não aparecem aqui.
-    private ResultadoClassificacaoEntrada ClassificarEntrada()
+    // Candidatos da raiz da entrada e das pastas Puxada/PuxadaTSP, já com tipo e origem: XML/ZIP
+    // (fluxo de integração) e não-XML definitivos (viram ExtensaoInvalida). Temporários/em-cópia
+    // são ignorados e não aparecem aqui.
+    private ClassificacaoPastas ClassificarEntrada()
     {
         var entrada = _pastas.CaminhoEntrada;
         if (!Directory.Exists(entrada))
         {
             _logger.LogWarning("Pasta de entrada não encontrada: {Pasta}", entrada);
-            return new ResultadoClassificacaoEntrada(Array.Empty<string>(), Array.Empty<string>());
+            return new ClassificacaoPastas(Array.Empty<EntradaArquivo>(), Array.Empty<EntradaArquivo>());
         }
 
-        var todos = Directory.EnumerateFiles(entrada, "*", SearchOption.TopDirectoryOnly);
-        return ClassificadorEntrada.Classificar(todos, _pastas);
+        return ClassificadorEntrada.ClassificarPastas(_pastas);
     }
 
-    // Lista os candidatos (XML + não-XML definitivos) para a detecção/estabilização.
+    // Lista os candidatos (XML/ZIP + não-XML definitivos) para a detecção/estabilização.
     private IReadOnlyList<string> ListarEntrada() =>
-        ClassificarEntrada() is var c ? c.XmlOuAguardando.Concat(c.NaoXmlDefinitivo).ToList() : Array.Empty<string>();
+        ClassificarEntrada() is var c ? c.Aceitos.Concat(c.NaoXml).Select(e => e.Caminho).ToList() : Array.Empty<string>();
 }

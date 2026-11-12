@@ -89,7 +89,10 @@ public sealed class AmbienteStress : IDisposable
         var processador = new ProcessadorLote(
             orquestrador, new LeitorNotaFiscalXml(), new AgrupadorTransporte(),
             new ClassificadorCategoriaErro(new ClassificadorRetorno()),
-            organizador, diario, clock, Options.Create(Pacote), NullLogger<ProcessadorLote>.Instance);
+            organizador, diario, clock, Options.Create(Pacote),
+            new LeitorZipSeguro(Options.Create(new OpcoesZip()), Options.Create(Pastas), NullLogger<LeitorZipSeguro>.Instance),
+            new RegistroOndasTsp(clock, Options.Create(Pastas), NullLogger<RegistroOndasTsp>.Instance),
+            NullLogger<ProcessadorLote>.Instance);
         var detector = new DetectorArquivoPronto(clock, Options.Create(Pacote), NullLogger<DetectorArquivoPronto>.Instance);
         var opcoesRelatorio = Options.Create(new OpcoesRelatorio { PastaSaida = Relatorios });
         Gerador = new GeradorMedido(new GeradorRelatorio(opcoesRelatorio));
