@@ -1,0 +1,1 @@
+{"verdict": "APPROVED", "findings": ["Linhas de arquivo ignorado com NumeroTransporte preenchido entram na contagem (possible, baixo impacto)", "Evidencia de build/testes veio de copia em %TEMP% (Worker trava a DLL); nao re-executada na revisao"], "reviewDoc": "c:\\wms-integrador\\.agents\\tasks\\review-cartao-transportes.md"}
