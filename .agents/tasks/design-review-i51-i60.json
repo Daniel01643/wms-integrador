@@ -1,0 +1,15 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {"id": 1, "severity": "MEDIUM", "title": "Registro DI de D4 cria duas instancias transientes de ClienteWmsHttp (token/sessao duplicados)", "where": "secao 3 (D4) e secao 13 (Program.cs)", "fix": "Client nomeado + AddSingleton<ClienteWmsHttp> via ActivatorUtilities e IClienteWms/IClienteWmsBruto apontando para a mesma instancia; teste de DI com ReferenceEquals; PooledConnectionLifetime no handler."},
+    {"id": 2, "severity": "MEDIUM", "title": "--reenfileirar-i60 roda em outro processo e o indice em memoria do servico nao enxerga a mudanca", "where": "secoes 6.2, 6.4, 13 e 17", "fix": "CLI grava arquivo de comando em Estado\\i51\\comandos consumido pelo ServicoSeparacaoI51 no inicio do ciclo (unico escritor do indice), ou exigir servico parado com arquivo de trava; teste com dois repositorios."},
+    {"id": 3, "severity": "MEDIUM", "title": "Filtro de proprietario compara com I51:CnpjConsulta (configuravel, Q3) e destino do documento filtrado nao especificado", "where": "secao 8.1, 4.1 e Q3", "fix": "Filtrar sempre por Operacional:CnpjDepositante; documento de outro proprietario e contado, logado e ignorado (nao vira orfao); teste com CnpjConsulta diferente do depositante."},
+    {"id": 4, "severity": "NIT", "title": "Dono do calculo de QtdeVolume ambiguo; ParametrosI60.QtdeVolume int? vs PayloadI60 decimal", "where": "secao 9.1", "fix": "ParametrosI60.QtdeVolume decimal?; null = construtor calcula SomaCaixas; QtdeVolumeZero tem precedencia; teste por combinacao."},
+    {"id": 5, "severity": "NIT", "title": "Momento da gravacao de UltimoUnicoEm indefinido (falha de rede reenvia UNICO a cada ciclo)", "where": "secao 8 passo 5 e 6.1", "fix": "Gravar UltimoUnicoEm e TentativasUnico antes da chamada (write-ahead)."},
+    {"id": 6, "severity": "NIT", "title": "Resposta sucesso=S sem documentos grava bruto a cada ciclo", "where": "secao 5.4 item 2", "fix": "documentos ausente/vazio com qualquer sucesso = NadaARetornar sem arquivo."},
+    {"id": 7, "severity": "NIT", "title": "Notas atrasadas permanentes mantem o TODOS sempre liberado", "where": "secao 8 passo 4 e secao 22", "fix": "Limitar o gatilho a notas registradas ha menos de N dias (ex.: I51:DiasMaxTodos=14) ou registrar a limitacao no roteiro e no relatorio."},
+    {"id": 8, "severity": "NIT", "title": "Chamada do relatorio diario fica no mesmo try do ciclo do pacote; 'mesmo isolamento' nao existe no Worker real", "where": "secao 11.3", "fix": "try/catch proprio para ServicoRelatorioDiarioI60.VerificarEEnviarAsync, logo apos o resumo semanal."},
+    {"id": 9, "severity": "NIT", "title": "A1 (Numero = nNF) sem alternativa e nome do orfao pode colidir", "where": "secoes 6.3, 21 (A1) e Q7", "fix": "Gravar Tipo/SubTipo/NumeroTransporte no orfao, incluir carimbo do bruto no nome e criterio no roteiro (orfaos > 0 sem nenhuma nota casada = A1 errada)."}
+  ],
+  "reviewDoc": "c:/wms-integrador/.agents/tasks/design-review-i51-i60.md"
+}

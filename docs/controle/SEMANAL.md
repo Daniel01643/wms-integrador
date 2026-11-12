@@ -53,13 +53,14 @@ quantidade da I60 (retomar terça 03/11).
 |------|--------|-----|-------|--------|
 | 2026-11-10 | 4,5 | 7,5 | 12,0 | I60 Plano A pausado (aguarda fornecedor); I40 validada no homolog e tela de devolução implementada |
 | 2026-11-11 | 2,0 | 3,5 | 5,5 | Repositório no GitHub (XMLs fora); tela da I40 com busca por número+série, sem placa; escopo da Puxada TSP |
-| 2026-11-12 | a informar | 2,5 | — | Puxada TSP implementada (pastas, ZIP seguro, onda por ZIP, relatório com Tipo e Origem); documentação e manuais |
-| **Total parcial (até 11/11)** | **6,5** | **11,0** | **17,5** | |
-| **Total parcial (com 12/11, IA parcial)** | **6,5 + a informar** | **13,5** | — | Horas humanas de 12/11 a informar pelo usuário | |
+| 2026-11-12 | 4,24 | 7,5 | 11,74 | Puxada TSP implementada e testada no homolog; relatório com tempo de integração, cabeçalho/logo e cartão Transportes; escopo, design e plano da I51/I60 |
+| **Total parcial (até 12/11)** | **10,74** | **18,5** | **29,24** | |
 
-**Estado em 12/11.** Puxada TSP implementada e documentada; falta o teste com ZIP real no homolog
-(`docs/ROTEIRO-TESTE-PUXADA-TSP.md`). As horas de IA de 12/11 são estimadas pelo tempo de sessão; as
-horas humanas devem ser informadas pelo usuário.
+**Estado em 12/11.** Puxada TSP testada no homolog: ondas `TSP-20261112-01-SOROCABA` e `-02-SJC`
+criadas e notas enviadas, mas pendentes na interface ("Proprietaria/Chave 01.838.723/0098-50 nao
+encontrada"), aguardando o fornecedor. Relatório com tempo de integração (nível B), cabeçalho novo e
+título "Relatório de Integração". I51 como gatilho da I60 (INE; ENC → IMP; I40 como última alternativa):
+design aprovado e plano pronto; workflow pausado, implementação continua em 13/11.
 
 **Estado em 11/11.** I60 (Plano A) aguarda o fornecedor. I40 (Plano B): formato validado no homolog e
 tela de devolução pronta e desligada (fora do manual oficial), aguardando teste da tela. Puxada TSP:

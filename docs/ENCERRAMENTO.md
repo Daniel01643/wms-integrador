@@ -1,7 +1,12 @@
 # Pausa do projeto — KitWms Integrador
 
 Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa: 10/11/2026.
-**Atualizado em 12/11/2026** (Puxada TSP implementada).
+**Atualizado em 12/11/2026, fim do dia** (Puxada TSP testada no homolog; I51/I60 em andamento).
+
+> **Retomar em 13/11:** retomar o workflow `wf_ba4d4666d4c5be64` (I51 como gatilho da I60), pausado depois
+> do plano (`.agents\tasks\plan-i51-i60.md`). Próximos passos dele: implementação e revisão, depois deck e
+> manuais. Escopo em `docs\ESCOPO-I51-I60.md`. No homolog, as notas TSP ficaram pendentes com
+> "Proprietaria/Chave - 01.838.723/0098-50 nao encontrada": aguardando o fornecedor.
 
 ## 1. Estado na pausa
 
@@ -13,9 +18,13 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 - Resumo semanal de telemetria funcionando (verificado e reenviado em 09/11).
 - **Puxada TSP implementada em 12/11/2026** (só no repositório, ainda não publicada no servidor):
   pastas `Puxada` e `PuxadaTSP` (e a raiz, aceita como puxada), leitura segura de ZIP, uma onda por ZIP
-  na TSP (`TSP-AAAAMMDD-NN-NOME`) e relatório/e-mail com as colunas Tipo e Origem. Falta o teste com ZIP
-  real no homolog (`docs\ROTEIRO-TESTE-PUXADA-TSP.md`).
-- Último build: 0 avisos e 0 erros (Debug e Release). Testes (12/11): **584 aprovados, 9 ignorados (stress), 0 falhas**.
+  na TSP (`TSP-AAAAMMDD-NN-NOME`) e relatório/e-mail com as colunas Tipo e Origem. **Testada no homolog
+  com ZIPs reais em 12/11:** ondas criadas e notas enviadas, mas pendentes na interface por proprietária
+  BRF não encontrada (aguarda o fornecedor).
+- Relatório (12/11): tempo de integração (nível B) no relatório e no e-mail, cabeçalho com logo, título
+  "Relatório de Integração", cartão Transportes corrigido.
+- **I51 como gatilho da I60** (12/11): escopo, design e plano prontos; implementação a partir de 13/11.
+- Último build: 0 avisos e 0 erros (Debug e Release). Testes (12/11): **655 aprovados, 9 ignorados (stress), 0 falhas**.
 
 ### Frentes pausadas
 

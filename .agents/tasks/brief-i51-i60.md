@@ -125,3 +125,25 @@ Relatório final em `c:\wms-integrador\.agents\tasks\relatorio-i51-i60.md`.
   Não inventar horas humanas. Não mexer no slide comparativo de horas (o orquestrador consolida).
 - **Ordem:** deck e manuais por último, depois da implementação aprovada no review, refletindo o que foi
   realmente implementado.
+
+## Decisão do orquestrador (12/11/2026, após a 2ª revisão do design)
+
+- UNICO: o usuário disse "só com o CNPJ e o número" → padrão `I51:CampoUnico = Numero` (número da NOTA,
+  9 dígitos), configurável para `NroDocumento`. Testar as duas variantes no roteiro do homolog.
+- Incorporar todos os achados MEDIUM e NIT de `.agents/tasks/design-review-i51-i60.md` (2ª revisão);
+  os itens opcionais do achado 8 (disjuntor, `Max4xxConsecutivos`) devem ser marcados como cortáveis no plano.
+
+## Decisão do usuário (12/11/2026): design encerrado após a 3ª revisão
+
+O loop de design foi encerrado com CHANGES_REQUESTED (0 HIGH, 3 MEDIUM, 6 NIT). O plano e a implementação
+DEVEM tratar todos os achados de `c:\wms-integrador\.agents\tasks\design-review-i51-i60.md` (3ª revisão),
+e o code review deve conferir cada um. Obrigatórios:
+
+1. **Uma única instância do cliente WMS** (token, lock e retry compartilhados) entre Orquestrador,
+   consulta I51 e devolução; corrigir o registro de DI do D4.
+2. **`--reenfileirar-i60` em outro processo:** o Worker em execução precisa enxergar o reenfileiramento
+   (por exemplo, o comando grava um pedido em `Estado\i51\` que o Worker processa no ciclo seguinte, ou o
+   Worker relê o estado em disco). Cobrir com teste.
+3. **Filtro de proprietário pelo `CnpjProprietario` do retorno da I51**, não pelo CNPJ usado na consulta.
+
+Os 6 NIT também devem ser tratados ou justificados no plano.
