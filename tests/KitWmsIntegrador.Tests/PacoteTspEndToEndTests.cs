@@ -91,8 +91,10 @@ public sealed class PacoteTspEndToEndTests : IDisposable
 
         // E-mail de fechamento.
         var email = Assert.Single(_amb.Email.Enviadas);
-        Assert.Contains($"{ondaSoro}: 5 notas, 4 transportes", email.CorpoHtml);
-        Assert.Contains($"{ondaSjc}: 2 notas, 2 transportes", email.CorpoHtml);
+        // Com o bloco "Tempo de integração", as ondas vão numa tabela (onda, notas, transportes, tempo).
+        Assert.Contains("Tempo de integração", email.CorpoHtml);
+        Assert.Matches($@"{ondaSoro}</td><td align=""right"" style=""[^""]*"">5</td><td align=""right"" style=""[^""]*"">4</td>", email.CorpoHtml);
+        Assert.Matches($@"{ondaSjc}</td><td align=""right"" style=""[^""]*"">2</td><td align=""right"" style=""[^""]*"">2</td>", email.CorpoHtml);
         Assert.Contains("Notas da raiz", email.CorpoHtml);
         Assert.Contains("Ondas TSP", email.CorpoHtml);
         Assert.Equal(EstadoPacote.Ocioso, g.Estado);

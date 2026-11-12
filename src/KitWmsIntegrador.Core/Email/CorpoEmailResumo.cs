@@ -81,7 +81,14 @@ public static class CorpoEmailResumo
         AppendCabecalho(sb, temLogo);
         AppendPeriodo(sb, inicio, fim, periodo, ci);
         AppendCartoes(sb, r, xmlsInvalidos, ci);
-        AppendOndasTsp(sb, r);
+        var tempo = BlocoTempo.Montar(r, pacote?.Medicao);
+        AppendTempo(sb, tempo);
+        // Com a tabela por onda do bloco de tempo, o parágrafo "Ondas da Puxada TSP" seria repetição.
+        if (tempo is not { Ondas.Count: > 0 })
+        {
+            AppendOndasTsp(sb, r);
+        }
+
         AppendProblemas(sb, linhas, maxLinhas, ci);
         AppendNotaAnexo(sb);
         AppendAssinatura(sb, temLogo);
@@ -163,6 +170,101 @@ public static class CorpoEmailResumo
         Cartao(sb, "Notas da raiz", r.NotasRaiz, IdentidadeVisual.CinzaNeutro, IdentidadeVisual.CinzaNeutro, ci);
         Cartao(sb, "Ondas TSP", r.OndasTsp, IdentidadeVisual.Ambar, "#B8741A", ci);
         sb.Append("</tr></table></td></tr>");
+    }
+
+    // Bloco "Tempo de integração" (nível B) em cartão: resumo, etapas e (só TSP) tempo por onda.
+    // Só tabelas e CSS inline (Outlook); os textos vêm prontos do BlocoTempo, os mesmos do relatório.
+    private static void AppendTempo(StringBuilder sb, BlocoTempo? bloco)
+    {
+        if (bloco is null)
+        {
+            return;
+        }
+
+        sb.Append("<tr><td style=\"padding:16px 24px 0;\">");
+        sb.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"")
+          .Append("border:1px solid ").Append(IdentidadeVisual.Cinza)
+          .Append(";border-top:4px solid ").Append(IdentidadeVisual.AzulClaro)
+          .Append(";border-radius:4px;\"><tr><td style=\"padding:12px 14px;\">");
+        sb.Append("<div style=\"font-size:15px;font-weight:bold;color:").Append(IdentidadeVisual.Azul)
+          .Append(";margin-bottom:8px;\">Tempo de integração</div>");
+
+        // Resumo do pacote (rótulo / valor).
+        AbrirTabelaTempo(sb);
+        foreach (var l in bloco.Resumo)
+        {
+            sb.Append("<tr><td style=\"").Append(EstiloCelulaTempo()).Append("\">").Append(Enc(l.Rotulo))
+              .Append("</td><td align=\"right\" style=\"").Append(EstiloCelulaTempo()).Append("font-weight:bold;\">")
+              .Append(Enc(l.Valor)).Append("</td></tr>");
+        }
+
+        sb.Append("</table>");
+
+        if (bloco.Etapas.Count > 0)
+        {
+            SubtituloTempo(sb, "Etapas");
+            AbrirTabelaTempo(sb);
+            CabecalhoTempo(sb, "Etapa", "Duração", "Por nota");
+            foreach (var e in bloco.Etapas)
+            {
+                LinhaTempoEmail(sb, e.Etapa, e.Duracao, e.PorNota);
+            }
+
+            sb.Append("</table>");
+        }
+
+        if (bloco.Ondas.Count > 0)
+        {
+            SubtituloTempo(sb, "Por onda (Puxada TSP)");
+            AbrirTabelaTempo(sb);
+            CabecalhoTempo(sb, "Onda", "Notas", "Transportes", "Tempo da onda");
+            foreach (var o in bloco.Ondas)
+            {
+                LinhaTempoEmail(sb, o.Onda, o.Notas, o.Transportes, o.Tempo);
+            }
+
+            sb.Append("</table>");
+        }
+
+        sb.Append("<div style=\"font-size:11px;color:").Append(IdentidadeVisual.CinzaNeutro)
+          .Append(";margin-top:8px;\">").Append(Enc(BlocoTempo.Nota)).Append("</div>");
+        sb.Append("</td></tr></table></td></tr>");
+    }
+
+    private static string EstiloCelulaTempo() =>
+        "padding:5px 8px;border-bottom:1px solid #e3e7ec;font-size:13px;color:" + IdentidadeVisual.Texto + ";";
+
+    private static void AbrirTabelaTempo(StringBuilder sb) =>
+        sb.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" ")
+          .Append("style=\"border-collapse:collapse;\">");
+
+    private static void SubtituloTempo(StringBuilder sb, string texto) =>
+        sb.Append("<div style=\"font-size:13px;font-weight:bold;color:").Append(IdentidadeVisual.Azul)
+          .Append(";margin:12px 0 4px;\">").Append(Enc(texto)).Append("</div>");
+
+    private static void CabecalhoTempo(StringBuilder sb, params string[] titulos)
+    {
+        sb.Append("<tr>");
+        for (var i = 0; i < titulos.Length; i++)
+        {
+            sb.Append("<th align=\"").Append(i == 0 ? "left" : "right").Append("\" style=\"background:")
+              .Append(IdentidadeVisual.Azul).Append(";color:#ffffff;padding:6px 8px;font-size:12px;border:1px solid ")
+              .Append(IdentidadeVisual.Azul).Append(";\">").Append(Enc(titulos[i])).Append("</th>");
+        }
+
+        sb.Append("</tr>");
+    }
+
+    private static void LinhaTempoEmail(StringBuilder sb, params string[] celulas)
+    {
+        sb.Append("<tr>");
+        for (var i = 0; i < celulas.Length; i++)
+        {
+            sb.Append("<td").Append(i == 0 ? string.Empty : " align=\"right\"").Append(" style=\"")
+              .Append(EstiloCelulaTempo()).Append("\">").Append(Enc(celulas[i])).Append("</td>");
+        }
+
+        sb.Append("</tr>");
     }
 
     // Puxada TSP agrupada por onda (uma por ZIP), com a contagem de notas e de transportes.
@@ -327,8 +429,12 @@ public static class CorpoEmailResumo
 
         if (temLogo)
         {
-            sb.Append("<img src=\"cid:").Append(CidLogo)
-              .Append("\" alt=\"Friozem\" height=\"28\" style=\"display:block;max-height:28px;border:0;margin-bottom:6px;\" />");
+            // A logo é a versão negativa (branca): vai sobre um selo azul para ter contraste no fundo branco.
+            sb.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:6px;\"><tr>")
+              .Append("<td style=\"background:").Append(IdentidadeVisual.Azul).Append(";padding:5px 9px;border-radius:4px;\">")
+              .Append("<img src=\"cid:").Append(CidLogo)
+              .Append("\" alt=\"Friozem\" height=\"28\" style=\"display:block;max-height:28px;border:0;\" />")
+              .Append("</td></tr></table>");
         }
         else
         {

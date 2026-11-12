@@ -151,7 +151,10 @@ internal static class RenderizadorPdfResumo
                     largura = altura * img.PixelWidth / img.PixelHeight;
                 }
 
-                gfx.DrawImage(img, Margem, Margem - 6 + (38 - altura) / 2, largura, altura);
+                // A logo é a versão negativa (branca): selo azul atrás dela para ter contraste.
+                var yLogo = Margem - 6 + (38 - altura) / 2;
+                gfx.DrawRoundedRectangle(new XSolidBrush(CAzul), Margem - 6, yLogo - 4, largura + 12, altura + 8, 6, 6);
+                gfx.DrawImage(img, Margem, yLogo, largura, altura);
                 xTitulo = Margem + Math.Max(largura, 99) + 18;
                 desenhouLogo = true;
             }

@@ -391,8 +391,12 @@ public static class CorpoEmailResumoSemanal
 
         if (temLogo)
         {
-            sb.Append("<img src=\"cid:").Append(CorpoEmailResumo.CidLogo)
-              .Append("\" alt=\"Friozem\" height=\"28\" style=\"display:block;max-height:28px;border:0;margin-bottom:6px;\" />");
+            // Logo negativa (branca) sobre selo azul, para ter contraste no fundo branco.
+            sb.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:6px;\"><tr>")
+              .Append("<td style=\"background:").Append(IdentidadeVisual.Azul).Append(";padding:5px 9px;border-radius:4px;\">")
+              .Append("<img src=\"cid:").Append(CorpoEmailResumo.CidLogo)
+              .Append("\" alt=\"Friozem\" height=\"28\" style=\"display:block;max-height:28px;border:0;\" />")
+              .Append("</td></tr></table>");
         }
         else
         {
