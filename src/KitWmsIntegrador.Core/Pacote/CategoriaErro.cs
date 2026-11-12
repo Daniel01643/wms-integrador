@@ -23,6 +23,9 @@ public enum CategoriaErro
 
     /// <summary>Qualquer outro erro.</summary>
     Outro,
+
+    /// <summary>ZIP corrompido, protegido, grande demais, sem XML ou com entrada de caminho perigoso.</summary>
+    ZipInvalido,
 }
 
 /// <summary>Destino de um arquivo após o processamento.</summary>
