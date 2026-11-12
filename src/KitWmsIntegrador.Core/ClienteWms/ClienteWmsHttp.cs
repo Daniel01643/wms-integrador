@@ -21,7 +21,7 @@ namespace KitWmsIntegrador.Core.ClienteWms;
 ///
 /// NUNCA loga token, header Authorization, credenciais ou o corpo integral da nota.
 /// </summary>
-public sealed class ClienteWmsHttp : IClienteWms
+public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
 {
     // Política de serialização compartilhada com os construtores de payload (ver JsonWms).
     private static readonly JsonSerializerOptions JsonOpcoes = JsonWms.Opcoes;
@@ -57,8 +57,35 @@ public sealed class ClienteWmsHttp : IClienteWms
     /// <inheritdoc />
     public async Task<RespostaWms> EnviarAsync(InterfaceWms identificador, string jsonBruto, CancellationToken cancellationToken = default)
     {
-        var relativo = $"integracao/Post{MontarQueryString(identificador)}";
         var inicio = Stopwatch.GetTimestamp();
+        var corpo = await PostCoreAsync(identificador.ParaIdentificador(), jsonBruto, cancellationToken).ConfigureAwait(false);
+        var respostaWms = DesserializarResposta(corpo);
+
+        var duracaoMs = Stopwatch.GetElapsedTime(inicio).TotalMilliseconds;
+        _logger.LogInformation(
+            "Envio WMS concluído: metodo=EnviarAsync identificador={Identificador} transacao={Transacao} sucesso={Sucesso} duracaoMs={DuracaoMs:F0}",
+            identificador, respostaWms.Transacao, respostaWms.Sucesso, duracaoMs);
+
+        // Rejeição de negócio (sucesso="N") NÃO é retry: devolve a resposta tipada.
+        return respostaWms;
+    }
+
+    /// <inheritdoc />
+    public async Task<string> PostBrutoAsync(string identificadorEdi, string jsonBruto, CancellationToken cancellationToken = default)
+    {
+        var inicio = Stopwatch.GetTimestamp();
+        var corpo = await PostCoreAsync(identificadorEdi, jsonBruto, cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation(
+            "Envio WMS concluído: metodo=PostBrutoAsync identificador={Identificador} duracaoMs={DuracaoMs:F0}",
+            identificadorEdi, Stopwatch.GetElapsedTime(inicio).TotalMilliseconds);
+        return corpo;
+    }
+
+    // Núcleo compartilhado: token, query string de 5 parâmetros, retry/backoff e 401. Devolve o
+    // corpo bruto da resposta de sucesso HTTP. Nunca loga corpo, token nem credenciais.
+    private async Task<string> PostCoreAsync(string identificador, string jsonBruto, CancellationToken cancellationToken)
+    {
+        var relativo = $"integracao/Post{MontarQueryString(identificador)}";
 
         var tentativa = 0;
         var jaRenovouPorToken = false;
@@ -126,16 +153,7 @@ public sealed class ClienteWmsHttp : IClienteWms
                 // 4xx (≠401) e 5xx esgotado: erro de transporte definitivo.
                 resposta.EnsureSuccessStatusCode();
 
-                var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                var respostaWms = DesserializarResposta(corpo);
-
-                var duracaoMs = Stopwatch.GetElapsedTime(inicio).TotalMilliseconds;
-                _logger.LogInformation(
-                    "Envio WMS concluído: metodo=EnviarAsync identificador={Identificador} transacao={Transacao} sucesso={Sucesso} duracaoMs={DuracaoMs:F0}",
-                    identificador, respostaWms.Transacao, respostaWms.Sucesso, duracaoMs);
-
-                // Rejeição de negócio (sucesso="N") NÃO é retry: devolve a resposta tipada.
-                return respostaWms;
+                return await resposta.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -162,10 +180,10 @@ public sealed class ClienteWmsHttp : IClienteWms
     /// inclusive <c>CNPJREQUISITANTE</c> e <c>CNPJDESTINO</c> (vazios por ora). A
     /// ausência de qualquer um causava HTTP 404 no WMS.
     /// </summary>
-    private string MontarQueryString(InterfaceWms identificador)
+    private string MontarQueryString(string identificador)
     {
         var sb = new StringBuilder();
-        sb.Append("?IDENTIFICADOR=").Append(Uri.EscapeDataString(identificador.ParaIdentificador()));
+        sb.Append("?IDENTIFICADOR=").Append(Uri.EscapeDataString(identificador));
         sb.Append("&REQUISITANTE=").Append(Uri.EscapeDataString(_opcoes.Requisitante));
         sb.Append("&CNPJREQUISITANTE").Append(ValorOpcional(_opcoes.CnpjRequisitante));
         sb.Append("&DESTINO=").Append(Uri.EscapeDataString(_opcoes.Destino));
