@@ -1,3 +1,5 @@
+using KitWmsIntegrador.Core.Pacote;
+
 namespace KitWmsIntegrador.Core.Relatorio;
 
 /// <summary>Totais exibidos no resumo do topo (HTML e PDF usam o mesmo objeto).</summary>
@@ -8,7 +10,12 @@ namespace KitWmsIntegrador.Core.Relatorio;
 /// <param name="NaoIntegradas">Notas não integradas.</param>
 /// <param name="ArquivosIgnorados">Arquivos não-XML ignorados pela integração (não são notas reais).</param>
 /// <param name="Transportes">Quantidade de transportes distintos.</param>
-/// <param name="NotasPorTransporte">Notas por transporte, na ordem do relatório.</param>
+/// <param name="NotasPorTransporte">Notas por transporte (PUXADA), na ordem do relatório.</param>
+/// <param name="NotasPuxada">Notas de tipo PUXADA (inclui as da raiz).</param>
+/// <param name="NotasTsp">Notas de tipo TSP (pasta PuxadaTSP).</param>
+/// <param name="NotasRaiz">Notas que vieram soltas na raiz da entrada (contadas também em PUXADA).</param>
+/// <param name="OndasTsp">Quantidade de ondas da TSP (uma por ZIP).</param>
+/// <param name="NotasPorOnda">Por onda TSP: notas e transportes distintos, na ordem do relatório.</param>
 public sealed record ResumoRelatorio(
     int Total,
     int Integradas,
@@ -17,13 +24,32 @@ public sealed record ResumoRelatorio(
     int NaoIntegradas,
     int ArquivosIgnorados,
     int Transportes,
-    IReadOnlyList<(string Transporte, int Notas)> NotasPorTransporte);
+    IReadOnlyList<(string Transporte, int Notas)> NotasPorTransporte,
+    int NotasPuxada = 0,
+    int NotasTsp = 0,
+    int NotasRaiz = 0,
+    int OndasTsp = 0,
+    IReadOnlyList<(string Onda, int Notas, int Transportes)>? NotasPorOnda = null);
 
-/// <summary>Grupo de linhas de um mesmo transporte.</summary>
-/// <param name="Transporte">Número do transporte.</param>
+/// <summary>Grupo de linhas de um mesmo transporte (PUXADA) ou de uma mesma onda (TSP).</summary>
+/// <param name="Transporte">Número do transporte; no grupo TSP é o nome da onda.</param>
 /// <param name="Linhas">Linhas ordenadas por nota.</param>
-public sealed record GrupoTransporte(string Transporte, IReadOnlyList<LinhaRelatorioErro> Linhas)
+/// <param name="Tipo">PUXADA ou TSP.</param>
+public sealed record GrupoTransporte(string Transporte, IReadOnlyList<LinhaRelatorioErro> Linhas, string Tipo = "PUXADA")
 {
+    /// <summary>Grupo de Puxada TSP (agrupado por onda).</summary>
+    public bool EhTsp => string.Equals(Tipo, "TSP", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Nome da onda (só no grupo TSP; vazio na PUXADA).</summary>
+    public string Onda => EhTsp ? Transporte : string.Empty;
+
+    /// <summary>Transportes distintos das notas do grupo (ignora nota sem transporte).</summary>
+    public int Transportes => Linhas
+        .Select(l => l.NumeroTransporte ?? string.Empty)
+        .Where(t => !string.IsNullOrWhiteSpace(t) && t != RegistroDiario.RotuloSemTransporte && t != RegistroDiario.RotuloSemTransporteTsp)
+        .Distinct(StringComparer.Ordinal)
+        .Count();
+
     /// <summary>Quantidade de notas do grupo.</summary>
     public int Notas => Linhas.Count;
 
@@ -49,20 +75,35 @@ public sealed record ModeloRelatorio(
     IReadOnlyList<GrupoTransporte> Grupos,
     IReadOnlyList<ProdutosRevisao> ProdutosRevisao)
 {
+    /// <summary>Rótulo do grupo TSP de linhas sem onda (ZIP inválido, arquivo que não é ZIP).</summary>
+    public const string SemOnda = "(sem onda)";
+
+    private static string ChaveOnda(LinhaRelatorioErro l) =>
+        string.IsNullOrWhiteSpace(l.Onda) ? SemOnda : l.Onda;
+
     /// <summary>Monta o modelo com ordenação estável por transporte e nota (ordinal).</summary>
     public static ModeloRelatorio Montar(IReadOnlyList<LinhaRelatorioErro> linhas)
     {
         ArgumentNullException.ThrowIfNull(linhas);
 
+        // PUXADA primeiro (por transporte, como sempre), TSP depois (por onda).
         var ordenadas = linhas
-            .OrderBy(l => l.NumeroTransporte ?? string.Empty, StringComparer.Ordinal)
+            .OrderBy(l => l.EhTsp ? 1 : 0)
+            .ThenBy(l => l.EhTsp ? ChaveOnda(l) : l.NumeroTransporte ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(l => l.NumeroNota ?? string.Empty, StringComparer.Ordinal)
             .ToList();
 
-        var grupos = ordenadas
+        var gruposPuxada = ordenadas
+            .Where(l => !l.EhTsp)
             .GroupBy(l => l.NumeroTransporte ?? string.Empty, StringComparer.Ordinal)
             .Select(g => new GrupoTransporte(g.Key, g.ToList()))
             .ToList();
+        var gruposTsp = ordenadas
+            .Where(l => l.EhTsp)
+            .GroupBy(ChaveOnda, StringComparer.Ordinal)
+            .Select(g => new GrupoTransporte(g.Key, g.ToList(), "TSP"))
+            .ToList();
+        var grupos = gruposPuxada.Concat(gruposTsp).ToList();
 
         var resumo = new ResumoRelatorio(
             // Total reflete apenas notas reais (nota fiscal); arquivos ignorados têm contador próprio.
@@ -72,8 +113,13 @@ public sealed record ModeloRelatorio(
             Pendentes: ordenadas.Count(l => !l.EstaIntegrada && l.StatusEfetivo == StatusLinhaRelatorio.Pendente),
             NaoIntegradas: ordenadas.Count(l => !l.ArquivoIgnorado && !l.EstaIntegrada && l.StatusEfetivo != StatusLinhaRelatorio.Pendente),
             ArquivosIgnorados: ordenadas.Count(l => l.ArquivoIgnorado),
-            Transportes: grupos.Count,
-            NotasPorTransporte: grupos.Select(g => (g.Transporte, g.Notas)).ToList());
+            Transportes: gruposPuxada.Count,
+            NotasPorTransporte: gruposPuxada.Select(g => (g.Transporte, g.Notas)).ToList(),
+            NotasPuxada: ordenadas.Count(l => !l.ArquivoIgnorado && !l.EhTsp),
+            NotasTsp: ordenadas.Count(l => !l.ArquivoIgnorado && l.EhTsp),
+            NotasRaiz: ordenadas.Count(l => !l.ArquivoIgnorado && l.EhRaiz),
+            OndasTsp: gruposTsp.Count(g => g.Transporte != SemOnda),
+            NotasPorOnda: gruposTsp.Where(g => g.Transporte != SemOnda).Select(g => (g.Transporte, g.Notas, g.Transportes)).ToList());
 
         var produtos = ordenadas
             .Where(l => l.RevisaoProdutoPendente)

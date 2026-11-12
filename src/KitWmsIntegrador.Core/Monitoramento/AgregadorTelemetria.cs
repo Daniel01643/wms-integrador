@@ -130,6 +130,9 @@ public static class AgregadorTelemetria
             ErrosPorCategoria: errosPorCategoria,
             ServicoDesde: servicoDesde,
             InicializacoesNoPeriodo: inicializacoes,
-            SemAtividade: totalPacotes == 0);
+            SemAtividade: totalPacotes == 0,
+            NotasPuxada: noPeriodo.Sum(p => p.NotasPuxada),
+            NotasTsp: noPeriodo.Sum(p => p.NotasTsp),
+            NotasRaiz: noPeriodo.Sum(p => p.NotasRaiz));
     }
 }

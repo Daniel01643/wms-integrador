@@ -43,10 +43,12 @@ internal static class RenderizadorPdf
     // Colunas: Nota, Transporte, Horário, Status, ID de processamento, Mensagem, Integrada, Tent.
     private static readonly string[] Cabecalhos =
     {
-        "Nota", "Transporte", "Horário", "Status", "ID de processamento", "Mensagem", "Integrada", "Tent.",
+        "Nota", "Transporte", "Tipo", "Origem", "Horário", "Status", "ID de processamento", "Mensagem", "Integrada", "Tent.",
     };
 
-    private static readonly double[] Larguras = { 58, 66, 84, 96, 104, 0, 46, 36 };
+    private const int ColMensagem = 7;
+    private static readonly double[] Larguras = { 52, 62, 38, 52, 78, 92, 98, 0, 42, 32 };
+    private static readonly XColor CCinzaRaiz = XColor.FromArgb(0x6B, 0x72, 0x80);
 
     private sealed class Bloco
     {
@@ -66,7 +68,7 @@ internal static class RenderizadorPdf
         var alturaPagina = XUnit.FromMillimeter(210).Point;
         var larguraUtil = larguraPagina - 2 * Margem;
         var colunas = (double[])Larguras.Clone();
-        colunas[5] = larguraUtil - colunas.Sum();
+        colunas[ColMensagem] = larguraUtil - colunas.Sum();
 
         using var medidor = XGraphics.CreateMeasureContext(
             new XSize(larguraPagina, alturaPagina), XGraphicsUnit.Point, XPageDirection.Downwards);
@@ -220,7 +222,16 @@ internal static class RenderizadorPdf
         blocos.Add(Cartoes(r, larguraUtil));
         var porTransporte = "Notas por transporte: " + string.Join("   ·   ",
             r.NotasPorTransporte.Select(n => $"{n.Transporte}: {IdentidadeVisual.Plural(n.Notas, "nota", "notas")}"));
-        var linhasPorte = TextoPdf.Quebrar(porTransporte, FNormal, larguraUtil, medidor);
+        var porTipo = $"Por tipo: PUXADA {r.NotasPuxada}   ·   TSP {r.NotasTsp}   ·   Notas da raiz: {r.NotasRaiz}";
+        if (r.NotasPorOnda is { Count: > 0 })
+        {
+            porTipo += "\nOndas da Puxada TSP: " + string.Join("   ·   ", r.NotasPorOnda.Select(o =>
+                $"{o.Onda}: {IdentidadeVisual.Plural(o.Notas, "nota", "notas")}, {IdentidadeVisual.Plural(o.Transportes, "transporte", "transportes")}"));
+        }
+
+        var linhasPorte = TextoPdf.Quebrar(porTransporte, FNormal, larguraUtil, medidor)
+            .Concat(porTipo.Split('\n').SelectMany(s => TextoPdf.Quebrar(s, FNormal, larguraUtil, medidor)))
+            .ToList();
         blocos.Add(new Bloco
         {
             Altura = linhasPorte.Count * EntreLinhas + 8,
@@ -272,7 +283,10 @@ internal static class RenderizadorPdf
         blocos.Add(cabecalho);
         foreach (var grupo in modelo.Grupos)
         {
-            var texto = $"Transporte {grupo.Transporte} — {IdentidadeVisual.Plural(grupo.Notas, "nota", "notas")}" +
+            var texto = (grupo.EhTsp
+                            ? $"Onda {grupo.Transporte} (TSP) — {IdentidadeVisual.Plural(grupo.Notas, "nota", "notas")}" +
+                              $" · {IdentidadeVisual.Plural(grupo.Transportes, "transporte", "transportes")}"
+                            : $"Transporte {grupo.Transporte} — {IdentidadeVisual.Plural(grupo.Notas, "nota", "notas")}") +
                         $" · {IdentidadeVisual.Plural(grupo.Integradas, "integrada", "integradas")}" +
                         $" · {grupo.ComProblema} com problema";
             blocos.Add(new Bloco
@@ -363,10 +377,12 @@ internal static class RenderizadorPdf
 
         var cNota = TextoPdf.Quebrar(l.NumeroNota, FNormal, largura(0), medidor);
         var cTransp = TextoPdf.Quebrar(l.NumeroTransporte, FNormal, largura(1), medidor);
-        var cHorario = TextoPdf.Quebrar(horario, FNormal, largura(2), medidor);
-        var cStatus = TextoPdf.Quebrar(l.StatusDescricao, FNegrito, largura(3) - 6, medidor);
+        var cTipo = TextoPdf.Quebrar(l.EhTsp ? "TSP" : "PUXADA", FNegrito, largura(2), medidor);
+        var cOrigem = TextoPdf.Quebrar(string.IsNullOrWhiteSpace(l.Origem) ? "-" : l.Origem, l.EhRaiz ? FPequena : FNormal, largura(3), medidor);
+        var cHorario = TextoPdf.Quebrar(horario, FNormal, largura(4), medidor);
+        var cStatus = TextoPdf.Quebrar(l.StatusDescricao, FNegrito, largura(5) - 6, medidor);
         var cProdutos = l.RevisaoProdutoPendente
-            ? TextoPdf.Quebrar("revisar: " + string.Join(", ", l.ProdutosProvisorios!), FPequena, largura(3), medidor)
+            ? TextoPdf.Quebrar("revisar: " + string.Join(", ", l.ProdutosProvisorios!), FPequena, largura(5), medidor)
             : new List<string>();
 
         var ids = new List<string>();
@@ -385,16 +401,16 @@ internal static class RenderizadorPdf
             ids.Add("-");
         }
 
-        var cIds = ids.SelectMany(t => TextoPdf.Quebrar(t, FNormal, largura(4), medidor)).ToList();
-        var cMsg = TextoPdf.Quebrar(l.UltimoErroResumido, FNormal, largura(5), medidor);
+        var cIds = ids.SelectMany(t => TextoPdf.Quebrar(t, FNormal, largura(6), medidor)).ToList();
+        var cMsg = TextoPdf.Quebrar(l.UltimoErroResumido, FNormal, largura(ColMensagem), medidor);
         var cInt = new List<string> { l.EstaIntegrada ? "S" : "N" };
         var cTent = new List<string> { l.Tentativas.ToString(CultureInfo.InvariantCulture) };
 
         var linhasStatus = cStatus.Count * EntreLinhas + 4 + (cProdutos.Count > 0 ? cProdutos.Count * 9 + 2 : 0);
         var altura = new[]
         {
-            cNota.Count * EntreLinhas, cTransp.Count * EntreLinhas, cHorario.Count * EntreLinhas,
-            linhasStatus, cIds.Count * EntreLinhas, cMsg.Count * EntreLinhas, EntreLinhas, EntreLinhas,
+            cNota.Count * EntreLinhas, cTransp.Count * EntreLinhas, cTipo.Count * EntreLinhas, cOrigem.Count * EntreLinhas,
+            cHorario.Count * EntreLinhas, linhasStatus, cIds.Count * EntreLinhas, cMsg.Count * EntreLinhas, EntreLinhas, EntreLinhas,
         }.Max() + 2 * PaddingCelula;
 
         var (corFundo, corTexto) = l.IntegradaRevisarProduto || l.EstaIntegrada ? (CVerde, XColors.White)
@@ -422,11 +438,14 @@ internal static class RenderizadorPdf
 
                 Coluna(0, cNota, FNormal, CTexto);
                 Coluna(1, cTransp, FNormal, CTexto);
-                Coluna(2, cHorario, FNormal, CTexto);
+                Coluna(2, cTipo, FNegrito, l.EhTsp ? CAzul : CTexto);
+                // Origem: "raiz" em cinza discreto; Puxada/PuxadaTSP em texto normal.
+                Coluna(3, cOrigem, l.EhRaiz ? FPequena : FNormal, l.EhRaiz ? CCinzaRaiz : CTexto);
+                Coluna(4, cHorario, FNormal, CTexto);
 
                 // Status: etiqueta preenchida + marca discreta de produto a revisar.
                 var alturaEtiqueta = cStatus.Count * EntreLinhas + 2;
-                g.DrawRectangle(new XSolidBrush(corFundo), x + 2, ty - 1, colunas[3] - 4, alturaEtiqueta);
+                g.DrawRectangle(new XSolidBrush(corFundo), x + 2, ty - 1, colunas[5] - 4, alturaEtiqueta);
                 for (var k = 0; k < cStatus.Count; k++)
                 {
                     Texto(g, cStatus[k], FNegrito, corTexto, x + PaddingCelula + 2, ty + k * EntreLinhas);
@@ -437,12 +456,12 @@ internal static class RenderizadorPdf
                     Texto(g, cProdutos[k], FPequena, CAzul, x + PaddingCelula, ty + alturaEtiqueta + 2 + k * 9);
                 }
 
-                x += colunas[3];
+                x += colunas[5];
 
-                Coluna(4, cIds, FNormal, CTexto);
-                Coluna(5, cMsg, FNormal, CTexto);
-                Coluna(6, cInt, FNormal, CTexto);
-                Coluna(7, cTent, FNormal, CTexto);
+                Coluna(6, cIds, FNormal, CTexto);
+                Coluna(ColMensagem, cMsg, FNormal, CTexto);
+                Coluna(8, cInt, FNormal, CTexto);
+                Coluna(9, cTent, FNormal, CTexto);
                 Divisoria(g, y + altura, colunas.Sum());
             },
         };

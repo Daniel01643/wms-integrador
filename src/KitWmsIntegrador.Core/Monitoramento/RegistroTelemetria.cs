@@ -19,6 +19,9 @@ namespace KitWmsIntegrador.Core.Monitoramento;
 /// <param name="ChamadasWms">Contagem heurística de chamadas por interface ("I50"/"I10"/"I30").</param>
 /// <param name="ChamadasWmsAproximado">Indica que <see cref="ChamadasWms"/> é heurístico (texto do histórico).</param>
 /// <param name="ErrosPorCategoria">Contagem de erros por categoria.</param>
+/// <param name="NotasPuxada">Notas de tipo PUXADA (inclui as da raiz). Linhas antigas leem 0.</param>
+/// <param name="NotasTsp">Notas de tipo TSP. Linhas antigas leem 0.</param>
+/// <param name="NotasRaiz">Notas que vieram soltas na raiz. Linhas antigas leem 0.</param>
 public sealed record RegistroTelemetria(
     string IdPacote,
     DateTimeOffset AberturaLocal,
@@ -35,4 +38,7 @@ public sealed record RegistroTelemetria(
     IReadOnlyDictionary<string, int> Tentativas,
     IReadOnlyDictionary<string, int> ChamadasWms,
     bool ChamadasWmsAproximado,
-    IReadOnlyDictionary<string, int> ErrosPorCategoria);
+    IReadOnlyDictionary<string, int> ErrosPorCategoria,
+    int NotasPuxada = 0,
+    int NotasTsp = 0,
+    int NotasRaiz = 0);

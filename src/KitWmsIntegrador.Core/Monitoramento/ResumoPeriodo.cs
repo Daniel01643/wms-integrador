@@ -34,6 +34,9 @@ namespace KitWmsIntegrador.Core.Monitoramento;
 /// <param name="ServicoDesde">Menor <see cref="EventoServico.QuandoLocal"/> conhecido, ou <c>null</c>.</param>
 /// <param name="InicializacoesNoPeriodo">Eventos "servico-iniciado" dentro da janela.</param>
 /// <param name="SemAtividade"><c>true</c> quando não houve pacotes no período.</param>
+/// <param name="NotasPuxada">Notas de tipo PUXADA no período (inclui as da raiz).</param>
+/// <param name="NotasTsp">Notas de tipo TSP no período.</param>
+/// <param name="NotasRaiz">Notas que vieram soltas na raiz da entrada no período.</param>
 public sealed record ResumoPeriodo(
     DateTimeOffset InicioPeriodo,
     DateTimeOffset FimPeriodo,
@@ -63,4 +66,7 @@ public sealed record ResumoPeriodo(
     IReadOnlyDictionary<string, int> ErrosPorCategoria,
     DateTimeOffset? ServicoDesde,
     int InicializacoesNoPeriodo,
-    bool SemAtividade);
+    bool SemAtividade,
+    int NotasPuxada = 0,
+    int NotasTsp = 0,
+    int NotasRaiz = 0);

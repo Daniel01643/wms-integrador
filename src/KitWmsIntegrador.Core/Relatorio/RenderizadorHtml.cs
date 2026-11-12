@@ -42,6 +42,9 @@ tr[hidden]{display:none}
 .st-integrada{background:#009A83}.st-revisar{background:#009A83}
 .st-pendente{background:#F5A623;color:#333333}.st-nao-integrada{background:#D32F2F}
 .st-ignorado{background:#6B7280}
+.tipo{display:inline-block;border-radius:3px;padding:1px 6px;font-weight:bold;font-size:11px;white-space:nowrap;background:#e8f4fb;color:#17479E}
+.tipo-tsp{background:#fdf3e0;color:#8a5a12}
+.raiz{display:inline-block;border:1px solid #C1C1C1;border-radius:10px;padding:0 7px;font-size:11px;color:#6B7280;background:#f4f4f4}
 .revmarca{display:block;margin-top:3px;font-size:11px;color:#17479E}
 .id{white-space:nowrap}
 .msg{min-width:280px}
@@ -66,9 +69,9 @@ var t=(q.value||'').toLowerCase(),st=s.value,vis=0,cont={};
 linhas.forEach(function(l){
 var ok=(!st||l.getAttribute('data-status')===st)&&(!t||l.getAttribute('data-texto').indexOf(t)>=0);
 l.hidden=!ok;
-if(ok){vis++;cont[l.getAttribute('data-transporte')]=true;}
+if(ok){vis++;cont[l.getAttribute('data-grupo')]=true;}
 });
-grupos.forEach(function(g){g.hidden=!cont[g.getAttribute('data-transporte')];});
+grupos.forEach(function(g){g.hidden=!cont[g.getAttribute('data-grupo')];});
 n.textContent='Mostrando '+vis+' de '+linhas.length;
 }
 q.addEventListener('input',aplicar);
@@ -135,6 +138,24 @@ aplicar();
         Card(sb, "ign", "Arquivos ignorados", r.ArquivosIgnorados);
         Card(sb, "", "Transportes", r.Transportes);
         sb.Append("</div>");
+        sb.Append("<p class=\"porte\"><b>Por tipo:</b> ")
+          .Append("<span class=\"chip\">PUXADA: ").Append(Esc(IdentidadeVisual.Plural(r.NotasPuxada, "nota", "notas"))).Append("</span>")
+          .Append("<span class=\"chip\">TSP: ").Append(Esc(IdentidadeVisual.Plural(r.NotasTsp, "nota", "notas"))).Append("</span>")
+          .Append("<span class=\"chip\">Notas da raiz: ").Append(r.NotasRaiz.ToString(CultureInfo.InvariantCulture)).Append("</span>")
+          .Append("</p>\n");
+        if (r.NotasPorOnda is { Count: > 0 })
+        {
+            sb.Append("<p class=\"porte\"><b>Ondas da Puxada TSP:</b> ");
+            foreach (var (onda, notas, transportes) in r.NotasPorOnda)
+            {
+                sb.Append("<span class=\"chip\">").Append(Esc(onda)).Append(": ")
+                  .Append(Esc(IdentidadeVisual.Plural(notas, "nota", "notas"))).Append(", ")
+                  .Append(Esc(IdentidadeVisual.Plural(transportes, "transporte", "transportes"))).Append("</span>");
+            }
+
+            sb.Append("</p>\n");
+        }
+
         sb.Append("<p class=\"porte\"><b>Notas por transporte:</b> ");
         foreach (var (transporte, notas) in r.NotasPorTransporte)
         {
@@ -191,7 +212,7 @@ aplicar();
         sb.Append("<table><thead><tr>");
         foreach (var h in new[]
                  {
-                     "Nota", "Transporte", "Horário", "Status", "ID de processamento",
+                     "Nota", "Transporte", "Tipo", "Origem", "Horário", "Status", "ID de processamento",
                      "Mensagem", "Integrada", "Tentativas",
                  })
         {
@@ -202,10 +223,20 @@ aplicar();
 
         foreach (var g in modelo.Grupos)
         {
-            sb.Append("<tr class=\"grupo\" data-transporte=\"").Append(Attr(g.Transporte)).Append("\"><td colspan=\"8\">")
-              .Append("Transporte ").Append(Esc(g.Transporte)).Append(" — ")
-              .Append(Esc(IdentidadeVisual.Plural(g.Notas, "nota", "notas"))).Append(" · ")
-              .Append(Esc(IdentidadeVisual.Plural(g.Integradas, "integrada", "integradas"))).Append(" · ")
+            sb.Append("<tr class=\"grupo\" data-grupo=\"").Append(Attr(g.Transporte)).Append("\"><td colspan=\"10\">");
+            if (g.EhTsp)
+            {
+                sb.Append("Onda ").Append(Esc(g.Transporte)).Append(" (TSP) — ")
+                  .Append(Esc(IdentidadeVisual.Plural(g.Notas, "nota", "notas"))).Append(" · ")
+                  .Append(Esc(IdentidadeVisual.Plural(g.Transportes, "transporte", "transportes"))).Append(" · ");
+            }
+            else
+            {
+                sb.Append("Transporte ").Append(Esc(g.Transporte)).Append(" — ")
+                  .Append(Esc(IdentidadeVisual.Plural(g.Notas, "nota", "notas"))).Append(" · ");
+            }
+
+            sb.Append(Esc(IdentidadeVisual.Plural(g.Integradas, "integrada", "integradas"))).Append(" · ")
               .Append(g.ComProblema.ToString(CultureInfo.InvariantCulture)).Append(" com problema")
               .Append("</td></tr>\n");
 
@@ -221,14 +252,29 @@ aplicar();
     private static void AppendLinha(StringBuilder sb, LinhaRelatorioErro l)
     {
         var chave = ChaveStatus(l);
-        var texto = $"{l.NumeroNota} {l.NumeroTransporte} {l.Mensagem} {l.IdTransacao} {l.IdDocumento}".ToLowerInvariant();
+        var texto = $"{l.NumeroNota} {l.NumeroTransporte} {l.Tipo} {l.Origem} {l.Onda} {l.Zip} {l.Mensagem} {l.IdTransacao} {l.IdDocumento}".ToLowerInvariant();
+        var grupo = l.EhTsp ? (string.IsNullOrWhiteSpace(l.Onda) ? ModeloRelatorio.SemOnda : l.Onda) : l.NumeroTransporte;
 
         sb.Append("<tr data-status=\"").Append(chave)
+          .Append("\" data-grupo=\"").Append(Attr(grupo))
           .Append("\" data-transporte=\"").Append(Attr(l.NumeroTransporte))
           .Append("\" data-nota=\"").Append(Attr(l.NumeroNota))
           .Append("\" data-texto=\"").Append(Attr(texto)).Append("\">");
         sb.Append("<td>").Append(Esc(l.NumeroNota)).Append("</td>");
         sb.Append("<td>").Append(Esc(l.NumeroTransporte)).Append("</td>");
+        sb.Append("<td><span class=\"tipo").Append(l.EhTsp ? " tipo-tsp" : string.Empty).Append("\">")
+          .Append(Esc(l.EhTsp ? "TSP" : "PUXADA")).Append("</span></td>");
+        sb.Append("<td>");
+        if (l.EhRaiz)
+        {
+            sb.Append("<span class=\"raiz\">raiz</span>");
+        }
+        else
+        {
+            sb.Append(string.IsNullOrWhiteSpace(l.Origem) ? "-" : Esc(l.Origem));
+        }
+
+        sb.Append("</td>");
         sb.Append("<td>").Append(Esc(IdentidadeVisual.Horario(l.HorarioErro))).Append("</td>");
 
         sb.Append("<td><span class=\"st st-").Append(chave).Append("\">").Append(Esc(l.StatusDescricao)).Append("</span>");

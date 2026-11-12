@@ -274,6 +274,13 @@ internal static class RenderizadorPdfResumo
             (r.ChamadasWmsAproximado ? "  —  contagem aproximada (estimada pelo histórico)." : string.Empty);
         blocos.Add(LinhaTexto(textoWms, medidor, larguraUtil));
 
+        // Notas por tipo (PUXADA x TSP) e as que vieram soltas na raiz.
+        blocos.Add(Titulo("Notas por tipo", comProximo: true));
+        var cabTipo = CabecalhoTabela(new[] { "Tipo", "Notas" }, ColunasErro(larguraUtil));
+        blocos.Add(cabTipo);
+        blocos.Add(LinhaDupla("PUXADA", r.NotasPuxada.ToString(ci), ColunasErro(larguraUtil)));
+        blocos.Add(LinhaDupla("TSP", r.NotasTsp.ToString(ci), ColunasErro(larguraUtil)));
+        blocos.Add(LinhaDupla("Da raiz (dentro da PUXADA)", r.NotasRaiz.ToString(ci), ColunasErro(larguraUtil)));
         // Erros por categoria.
         blocos.Add(Titulo("Erros por categoria", comProximo: true));
         if (r.ErrosPorCategoria.Count == 0)

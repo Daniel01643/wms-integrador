@@ -80,6 +80,7 @@ public static class CorpoEmailResumo
         AppendCabecalho(sb, temLogo);
         AppendPeriodo(sb, inicio, fim, periodo, ci);
         AppendCartoes(sb, r, xmlsInvalidos, ci);
+        AppendOndasTsp(sb, r);
         AppendProblemas(sb, linhas, maxLinhas, ci);
         AppendNotaAnexo(sb);
         AppendAssinatura(sb, temLogo);
@@ -154,7 +155,35 @@ public static class CorpoEmailResumo
         sb.Append("</tr><tr>");
         Cartao(sb, "Arquivos ignorados", r.ArquivosIgnorados, IdentidadeVisual.CinzaNeutro, IdentidadeVisual.CinzaNeutro, ci);
         Cartao(sb, "Transportes", r.Transportes, IdentidadeVisual.AzulClaro, IdentidadeVisual.Azul, ci);
+        sb.Append("</tr><tr>");
+        Cartao(sb, "PUXADA", r.NotasPuxada, IdentidadeVisual.AzulClaro, IdentidadeVisual.Azul, ci);
+        Cartao(sb, "TSP", r.NotasTsp, IdentidadeVisual.Ambar, "#B8741A", ci);
+        sb.Append("</tr><tr>");
+        Cartao(sb, "Notas da raiz", r.NotasRaiz, IdentidadeVisual.CinzaNeutro, IdentidadeVisual.CinzaNeutro, ci);
+        Cartao(sb, "Ondas TSP", r.OndasTsp, IdentidadeVisual.Ambar, "#B8741A", ci);
         sb.Append("</tr></table></td></tr>");
+    }
+
+    // Puxada TSP agrupada por onda (uma por ZIP), com a contagem de notas e de transportes.
+    private static void AppendOndasTsp(StringBuilder sb, ResumoRelatorio r)
+    {
+        if (r.NotasPorOnda is not { Count: > 0 })
+        {
+            return;
+        }
+
+        sb.Append("<tr><td style=\"padding:14px 24px 0;\">");
+        sb.Append("<p style=\"margin:0 0 4px;color:").Append(IdentidadeVisual.Azul)
+          .Append(";font-size:13px;font-weight:bold;\">Ondas da Puxada TSP</p>");
+        foreach (var (onda, notas, transportes) in r.NotasPorOnda)
+        {
+            sb.Append("<p style=\"margin:0;color:").Append(IdentidadeVisual.Texto).Append(";font-size:13px;\">")
+              .Append(Enc(onda)).Append(": ")
+              .Append(Enc(IdentidadeVisual.Plural(notas, "nota", "notas"))).Append(", ")
+              .Append(Enc(IdentidadeVisual.Plural(transportes, "transporte", "transportes"))).Append("</p>");
+        }
+
+        sb.Append("</td></tr>");
     }
 
     private static void Cartao(
@@ -182,7 +211,9 @@ public static class CorpoEmailResumo
     {
         var problemas = linhas
             .Where(l => !l.EstaIntegrada || l.IntegradaRevisarProduto)
-            .OrderBy(l => l.NumeroTransporte ?? string.Empty, StringComparer.Ordinal)
+            .OrderBy(l => l.EhTsp ? 1 : 0)
+            .ThenBy(l => l.EhTsp ? l.Onda ?? string.Empty : string.Empty, StringComparer.Ordinal)
+            .ThenBy(l => l.NumeroTransporte ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(l => l.NumeroNota ?? string.Empty, StringComparer.Ordinal)
             .ToList();
 
@@ -202,7 +233,7 @@ public static class CorpoEmailResumo
         sb.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"")
           .Append("border-collapse:collapse;border:1px solid ").Append(IdentidadeVisual.Cinza).Append(";font-size:13px;\">");
         sb.Append("<tr>");
-        foreach (var h in new[] { "Transporte", "Nota", "Status", "Mensagem" })
+        foreach (var h in new[] { "Transporte", "Nota", "Tipo", "Origem", "Status", "Mensagem" })
         {
             sb.Append("<th style=\"background:").Append(IdentidadeVisual.Azul)
               .Append(";color:#ffffff;text-align:left;padding:7px 9px;border:1px solid ")
@@ -217,8 +248,21 @@ public static class CorpoEmailResumo
             var fundo = i % 2 == 0 ? "#ffffff" : "#f5f9fd";
             i++;
             sb.Append("<tr style=\"background:").Append(fundo).Append(";\">");
-            CelulaProblema(sb, l.NumeroTransporte);
+            // Na TSP o grupo é a onda: aparece logo abaixo do transporte da nota.
+            CelulaProblema(sb, l.NumeroTransporte, l.EhTsp && !string.IsNullOrWhiteSpace(l.Onda) ? "Onda " + l.Onda : null);
             CelulaProblema(sb, l.NumeroNota);
+            CelulaProblema(sb, l.EhTsp ? "TSP" : "PUXADA");
+            if (l.EhRaiz)
+            {
+                sb.Append("<td style=\"padding:6px 9px;border:1px solid ").Append(IdentidadeVisual.Cinza)
+                  .Append(";vertical-align:top;color:").Append(IdentidadeVisual.CinzaNeutro)
+                  .Append(";font-size:11px;\">raiz</td>");
+            }
+            else
+            {
+                CelulaProblema(sb, string.IsNullOrWhiteSpace(l.Origem) ? "-" : l.Origem);
+            }
+
             sb.Append("<td style=\"padding:6px 9px;border:1px solid ").Append(IdentidadeVisual.Cinza).Append(";\">");
             AppendChipStatus(sb, l);
             sb.Append("</td>");
@@ -238,10 +282,17 @@ public static class CorpoEmailResumo
         sb.Append("</td></tr>");
     }
 
-    private static void CelulaProblema(StringBuilder sb, string? texto)
+    private static void CelulaProblema(StringBuilder sb, string? texto, string? complemento = null)
     {
         sb.Append("<td style=\"padding:6px 9px;border:1px solid ").Append(IdentidadeVisual.Cinza)
-          .Append(";vertical-align:top;\">").Append(Enc(texto)).Append("</td>");
+          .Append(";vertical-align:top;\">").Append(Enc(texto));
+        if (!string.IsNullOrEmpty(complemento))
+        {
+            sb.Append("<br /><span style=\"font-size:11px;color:").Append(IdentidadeVisual.CinzaNeutro).Append(";\">")
+              .Append(Enc(complemento)).Append("</span>");
+        }
+
+        sb.Append("</td>");
     }
 
     private static void AppendChipStatus(StringBuilder sb, LinhaRelatorioErro l)

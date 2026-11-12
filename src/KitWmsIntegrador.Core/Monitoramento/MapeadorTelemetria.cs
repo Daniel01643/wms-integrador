@@ -73,6 +73,9 @@ public static class MapeadorTelemetria
             Tentativas: tentativas,
             ChamadasWms: chamadasWms,
             ChamadasWmsAproximado: true,
-            ErrosPorCategoria: errosPorCategoria);
+            ErrosPorCategoria: errosPorCategoria,
+            NotasPuxada: resumo.NotasPuxada,
+            NotasTsp: resumo.NotasTsp,
+            NotasRaiz: resumo.NotasRaiz);
     }
 }

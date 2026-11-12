@@ -80,7 +80,8 @@ public static class CorpoEmailResumoSemanal
             AppendFrequenciaFaixa(sb, resumo, ci);
             AppendPerformance(sb, resumo, ci);
             AppendChamadasWms(sb, resumo, ci);
-            AppendErros(sb, resumo, ci);
+            AppendPorTipo(sb, resumo, ci);
+        AppendErros(sb, resumo, ci);
         }
 
         AppendSaude(sb, resumo, ci);
@@ -258,6 +259,25 @@ public static class CorpoEmailResumoSemanal
         }
 
         sb.Append("</p></td></tr>");
+    }
+
+    // Notas por tipo (PUXADA x TSP) e quantas vieram soltas na raiz da entrada.
+    private static void AppendPorTipo(StringBuilder sb, ResumoPeriodo r, CultureInfo ci)
+    {
+        AppendTitulo(sb, "Notas por tipo");
+        AppendTabelaInicio(sb, new[] { "Tipo", "Notas" });
+        var linhas = new[] { ("PUXADA", r.NotasPuxada), ("TSP", r.NotasTsp), ("Da raiz (dentro da PUXADA)", r.NotasRaiz) };
+        var i = 0;
+        foreach (var (tipo, qtd) in linhas)
+        {
+            var fundo = i++ % 2 == 0 ? "#ffffff" : "#f5f9fd";
+            sb.Append("<tr style=\"background:").Append(fundo).Append(";\">");
+            Celula(sb, tipo);
+            CelulaNumero(sb, qtd.ToString(ci));
+            sb.Append("</tr>");
+        }
+
+        AppendTabelaFim(sb);
     }
 
     private static void AppendErros(StringBuilder sb, ResumoPeriodo r, CultureInfo ci)
