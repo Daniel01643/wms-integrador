@@ -139,7 +139,7 @@ public sealed class FechadorPacote
 
             var assunto = $"Fechamento do pacote {fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
                           $"{resumo.Total} nota(s), {resumo.NaoIntegradas} não integrada(s), {resumo.Pendentes} pendente(s)";
-            var logo = IdentidadeVisual.LerLogoPng(_opcoesRelatorio.LogoPath);
+            var logo = IdentidadeVisual.ObterLogo(_opcoesRelatorio.LogoPath);
             var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, logo, periodo: periodo, pacote: dados);
             var nomePdf = (string.IsNullOrWhiteSpace(identificadorPacote)
                 ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)

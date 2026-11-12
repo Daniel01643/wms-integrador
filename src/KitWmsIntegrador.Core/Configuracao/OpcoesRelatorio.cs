@@ -16,10 +16,10 @@ public sealed class OpcoesRelatorio
     public string PastaSaida { get; set; } = "relatorios";
 
     /// <summary>
-    /// Caminho de um logo PNG (ex.: <c>docs/identidade/logo-friozem.png</c>) usado no
-    /// cabeçalho do HTML (base64) e do PDF. Vazio por padrão; se vazio ou inexistente, o
-    /// cabeçalho usa o texto "Friozem" na cor da marca, sem erro. Override por
-    /// <c>Relatorio__LogoPath</c>.
+    /// Caminho opcional de outro logo PNG (versão negativa/branca, que aparece sobre a faixa azul do
+    /// cabeçalho) para o HTML (base64), o PDF e o e-mail. Vazio por padrão: se vazio, inexistente ou
+    /// inválido, usa a logo Friozem embutida no programa (<c>IdentidadeVisual.ObterLogo</c>); só sem
+    /// ela cai no texto "Friozem". Override por <c>Relatorio__LogoPath</c>.
     /// </summary>
     public string LogoPath { get; set; } = string.Empty;
 }

@@ -11,9 +11,14 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
     <!-- PDF do relatório de erros (MIT, versão exata). Traz SixLabors.ImageSharp
-         transitivo (com CVEs conhecidas); o relatório é só texto/tabela, não usa
-         imagens, portanto a ressalva fica registrada sem ação. -->
+         transitivo (com CVEs conhecidas); o relatório usa imagem apenas para a logo Friozem (PNG embutido no
+         assembly ou o arquivo do Relatorio:LogoPath, ambos controlados pela empresa;
+         nunca imagem vinda de terceiros), portanto a ressalva fica registrada sem ação. -->
     <PackageReference Include="PdfSharpCore" Version="1.3.67" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Logo Friozem (versão negativa, 35 KB) embutida: relatório HTML/PDF e e-mail têm logo mesmo com LogoPath vazio. -->
+    <EmbeddedResource Include="Relatorio\Recursos\logo-friozem-negativo.png" LogicalName="logo-friozem-negativo.png" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="KitWmsIntegrador.Tests" />

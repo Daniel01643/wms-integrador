@@ -9,7 +9,7 @@ namespace KitWmsIntegrador.Core.Relatorio;
 /// <summary>
 /// Gera o resumo semanal em HTML (<see cref="CorpoEmailResumoSemanal"/>) e PDF
 /// (<see cref="RenderizadorPdfResumo"/>). A logo vem de <see cref="OpcoesRelatorio.LogoPath"/>
-/// via <see cref="IdentidadeVisual.LerLogoPng"/>, reaproveitando o mesmo padrão de
+/// via <see cref="IdentidadeVisual.ObterLogo"/>, reaproveitando o mesmo padrão de
 /// <see cref="GeradorRelatorio"/>. Registra o FontResolver da PdfSharpCore de forma idempotente,
 /// para o gerador rodar isolado (inclusive nos testes).
 /// </summary>
@@ -30,12 +30,12 @@ public sealed class GeradorResumoSemanal : IGeradorResumoSemanal
     /// <inheritdoc />
     public (string Html, ImagemInline? Imagem) GerarHtml(ResumoPeriodo resumo, string periodoLabel)
     {
-        var corpo = CorpoEmailResumoSemanal.Montar(resumo, periodoLabel, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath));
+        var corpo = CorpoEmailResumoSemanal.Montar(resumo, periodoLabel, IdentidadeVisual.ObterLogo(_opcoes.LogoPath));
         return (corpo.Html, corpo.ImagemEmbutida);
     }
 
     /// <inheritdoc />
     public byte[] GerarPdf(ResumoPeriodo resumo, string periodoLabel) =>
         RenderizadorPdfResumo.Renderizar(
-            resumo, periodoLabel, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath), DateTimeOffset.Now);
+            resumo, periodoLabel, IdentidadeVisual.ObterLogo(_opcoes.LogoPath), DateTimeOffset.Now);
 }

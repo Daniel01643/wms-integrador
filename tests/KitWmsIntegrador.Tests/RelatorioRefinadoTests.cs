@@ -125,7 +125,7 @@ public class RelatorioRefinadoTests
     {
         var html = Criar().GerarHtml(ExemplosRelatorio.Linhas(), Em);
 
-        foreach (var t in new[] { "Relatório de Erros de Integração", "Horário", "Não integrada", "Tentativas",
+        foreach (var t in new[] { "Relatório de Integração", "Horário", "Não integrada", "Tentativas",
                      "Integrada — revisar produto", "Transação:" })
         {
             Assert.Contains(t, html);
@@ -154,11 +154,20 @@ public class RelatorioRefinadoTests
             File.Delete(png);
         }
 
+        // LogoPath vazio/inexistente: usa a logo Friozem embutida (base64), nunca o texto.
         var sem = Criar().GerarHtml(ExemplosRelatorio.Linhas(), Em);
-        Assert.Contains("class=\"marca\">Friozem", sem);
+        Assert.Contains("data:image/png;base64,", sem);
+        Assert.DoesNotContain("class=\"marca\"", sem);
         var inexistente = Criar(@"C:\nao\existe\logo.png").GerarHtml(ExemplosRelatorio.Linhas(), Em);
-        Assert.Contains("class=\"marca\">Friozem", inexistente);
+        Assert.Contains("data:image/png;base64,", inexistente);
         Assert.NotEmpty(Criar(@"C:\nao\existe\logo.png").GerarPdf(ExemplosRelatorio.Linhas(), Em));
+
+        // Último recurso (sem nenhuma logo): marca em texto, na faixa do cabeçalho.
+        var semLogo = RenderizadorHtml.Renderizar(
+            ModeloRelatorio.Montar(ExemplosRelatorio.Linhas()), Em, logoPng: null);
+        Assert.Contains("class=\"marca\">Friozem", semLogo);
+        Assert.DoesNotContain("data:image/png;base64,", semLogo);
+        Assert.NotEmpty(RenderizadorPdf.Renderizar(ModeloRelatorio.Montar(ExemplosRelatorio.Linhas()), Em, logoPng: null));
     }
 
     [Fact]
@@ -329,7 +338,7 @@ public class RelatorioRefinadoTests
         Assert.Contains("áéíóúãõç ÁÉÍÓÚÃÕÇ", PdfTextoHelper.Texto(pdf));
 
         var texto = PdfTextoHelper.Texto(pdf);
-        Assert.Contains("Relatório de Erros de Integração", texto);
+        Assert.Contains("Relatório de Integração", texto);
         Assert.Contains("Não integrada", texto);
         // Na célula de status o texto quebra em duas linhas ("... — revisar" / "produto").
         Assert.Contains("Integrada — revisar", texto);

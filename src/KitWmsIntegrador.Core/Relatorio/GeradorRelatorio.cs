@@ -33,13 +33,13 @@ public sealed class GeradorRelatorio : IGeradorRelatorio
     public string GerarHtml(
         IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null) =>
         RenderizadorHtml.Renderizar(
-            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath), periodo, pacote);
+            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.ObterLogo(_opcoes.LogoPath), periodo, pacote);
 
     /// <inheritdoc />
     public byte[] GerarPdf(
         IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null) =>
         RenderizadorPdf.Renderizar(
-            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.LerLogoPng(_opcoes.LogoPath), periodo, pacote);
+            ModeloRelatorio.Montar(linhas), geradoEm, IdentidadeVisual.ObterLogo(_opcoes.LogoPath), periodo, pacote);
 
     /// <inheritdoc />
     public (string CaminhoHtml, string CaminhoPdf) GerarArquivos(
