@@ -1,4 +1,6 @@
 ﻿using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Email;
+using KitWmsIntegrador.Core.Pacote;
 using KitWmsIntegrador.Core.Relatorio;
 using Microsoft.Extensions.Options;
 
@@ -132,10 +134,67 @@ public class ExemplosRelatorio
         Directory.CreateDirectory(pasta);
 
         var gerador = new GeradorRelatorio(Options.Create(new OpcoesRelatorio { PastaSaida = pasta }));
-        var linhas = Linhas();
+        var (linhas, dados, periodo) = Exemplo();
         File.WriteAllText(
             Path.Combine(pasta, "relatorio-erros-exemplo.html"),
-            gerador.GerarHtml(linhas, GeradoEm), new System.Text.UTF8Encoding(true));
-        File.WriteAllBytes(Path.Combine(pasta, "relatorio-erros-exemplo.pdf"), gerador.GerarPdf(linhas, GeradoEm));
+            gerador.GerarHtml(linhas, GeradoEm, periodo, dados), new System.Text.UTF8Encoding(true));
+        File.WriteAllBytes(
+            Path.Combine(pasta, "relatorio-erros-exemplo.pdf"), gerador.GerarPdf(linhas, GeradoEm, periodo, dados));
+
+        // Corpo do e-mail de fechamento. No e-mail real a logo vai por CID (anexo inline); neste arquivo
+        // de exemplo ela é trocada por data URI só para a pré-visualização no navegador.
+        var corpo = CorpoEmailResumo.Montar(
+            linhas, 0, dados.Medicao!.Inicio, dados.Medicao.Fim, IdentidadeVisual.LogoEmbutidoPng, periodo: periodo, pacote: dados);
+        File.WriteAllText(
+            Path.Combine(pasta, "email-pacote-exemplo.html"), ComLogoInline(corpo.Html), new System.Text.UTF8Encoding(true));
+    }
+
+    private static string ComLogoInline(string html) =>
+        html.Replace(
+            "cid:" + CorpoEmailResumo.CidLogo,
+            "data:image/png;base64," + Convert.ToBase64String(IdentidadeVisual.LogoEmbutidoPng!),
+            StringComparison.Ordinal);
+
+    /// <summary>
+    /// Pacote de exemplo (SINTÉTICO): PUXADA (linhas acima) e duas ondas TSP, com medição de tempo
+    /// sintética (janela 30 s, leitura 4,2 s, integração no WMS 1 min 25 s).
+    /// </summary>
+    public static (IReadOnlyList<LinhaRelatorioErro> Linhas, DadosPacote Dados, PeriodoColeta Periodo) Exemplo()
+    {
+        var linhas = Linhas().Concat(TempoSintetico.Tsp().Linhas).ToList();
+        var inicio = new DateTimeOffset(2026, 11, 4, 9, 13, 30, TimeSpan.FromHours(-3));
+        var medicao = new MedicaoTempo(
+            inicio, inicio.AddSeconds(130), 130_000, 30_000, 4_200, 85_000, 79_800,
+            new[] { new MedicaoOnda("TSP-20261112-01-SJC", 13_000), new MedicaoOnda("TSP-20261112-02-SOROCABA", 35_000) });
+        var periodo = new PeriodoColeta(inicio.AddSeconds(-40), inicio.AddSeconds(20));
+        return (linhas, new DadosPacote("pacote_20261104_091330", medicao), periodo);
+    }
+
+    /// <summary>
+    /// Só com <c>GERAR_EXEMPLOS=1</c> e <c>PASTA_VISUAL</c>: grava, para a conferência visual, um pacote
+    /// TSP (2 ondas) e um PUXADA (HTML, PDF e corpo do e-mail), todos sintéticos.
+    /// </summary>
+    [Fact]
+    public void GerarConferenciaVisual()
+    {
+        var pasta = Environment.GetEnvironmentVariable("PASTA_VISUAL");
+        if (Environment.GetEnvironmentVariable("GERAR_EXEMPLOS") != "1" || string.IsNullOrWhiteSpace(pasta))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(pasta);
+        var gerador = new GeradorRelatorio(Options.Create(new OpcoesRelatorio { PastaSaida = pasta }));
+        var periodo = new PeriodoColeta(TempoSintetico.Inicio.AddSeconds(-40), TempoSintetico.Inicio.AddSeconds(20));
+        var geradoEm = TempoSintetico.Inicio.AddSeconds(96);
+        foreach (var (nome, p) in new[] { ("tsp", TempoSintetico.Tsp()), ("puxada", TempoSintetico.Puxada()) })
+        {
+            File.WriteAllText(Path.Combine(pasta, nome + ".html"), gerador.GerarHtml(p.Linhas, geradoEm, periodo, p.Dados));
+            File.WriteAllBytes(Path.Combine(pasta, nome + ".pdf"), gerador.GerarPdf(p.Linhas, geradoEm, periodo, p.Dados));
+            var corpo = CorpoEmailResumo.Montar(
+                p.Linhas, 0, p.Dados.Medicao!.Inicio, p.Dados.Medicao.Fim, IdentidadeVisual.LogoEmbutidoPng,
+                periodo: periodo, pacote: p.Dados);
+            File.WriteAllText(Path.Combine(pasta, "email-" + nome + ".html"), ComLogoInline(corpo.Html));
+        }
     }
 }
