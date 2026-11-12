@@ -18,7 +18,9 @@ public static class MapeadorTelemetria
         IReadOnlyList<RegistroDiario> registros,
         DateTimeOffset inicio,
         DateTimeOffset fim,
-        string idPacote)
+        string idPacote,
+        MedicaoTempo? medicao = null,
+        long tempoRelatorioMs = 0)
     {
         ArgumentNullException.ThrowIfNull(registros);
 
@@ -57,6 +59,14 @@ public static class MapeadorTelemetria
         var tempoTotalMs = (long)(fim - inicio).TotalMilliseconds;
         var tempoMedioPorNotaMs = tempoTotalMs / Math.Max(1, resumo.Total);
 
+        var ondas = resumo.NotasPorOnda is { Count: > 0 }
+            ? resumo.NotasPorOnda
+                .Select(o => new TelemetriaOnda(
+                    o.Onda, o.Notas, o.Transportes,
+                    medicao?.Ondas.FirstOrDefault(m => string.Equals(m.Onda, o.Onda, StringComparison.Ordinal))?.DuracaoMs ?? 0))
+                .ToList()
+            : null;
+
         return new RegistroTelemetria(
             IdPacote: idPacote,
             AberturaLocal: inicio.ToLocalTime(),
@@ -76,6 +86,12 @@ public static class MapeadorTelemetria
             ErrosPorCategoria: errosPorCategoria,
             NotasPuxada: resumo.NotasPuxada,
             NotasTsp: resumo.NotasTsp,
-            NotasRaiz: resumo.NotasRaiz);
+            NotasRaiz: resumo.NotasRaiz,
+            EsperaJanelaMs: medicao?.EsperaJanelaMs ?? 0,
+            LeituraMs: medicao?.LeituraMs ?? 0,
+            IntegracaoWmsMs: medicao?.IntegracaoFaseMs ?? 0,
+            ChamadasWmsMs: medicao?.ChamadasWmsMs ?? 0,
+            TempoRelatorioMs: Math.Max(0L, tempoRelatorioMs),
+            Ondas: ondas);
     }
 }

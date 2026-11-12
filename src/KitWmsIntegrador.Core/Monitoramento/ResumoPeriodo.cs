@@ -37,6 +37,7 @@ namespace KitWmsIntegrador.Core.Monitoramento;
 /// <param name="NotasPuxada">Notas de tipo PUXADA no período (inclui as da raiz).</param>
 /// <param name="NotasTsp">Notas de tipo TSP no período.</param>
 /// <param name="NotasRaiz">Notas que vieram soltas na raiz da entrada no período.</param>
+/// <param name="TempoWmsMedioPorNotaMs">Tempo médio das chamadas ao WMS por nota (ms), só dos pacotes com medição; 0 = sem medição.</param>
 public sealed record ResumoPeriodo(
     DateTimeOffset InicioPeriodo,
     DateTimeOffset FimPeriodo,
@@ -69,4 +70,5 @@ public sealed record ResumoPeriodo(
     bool SemAtividade,
     int NotasPuxada = 0,
     int NotasTsp = 0,
-    int NotasRaiz = 0);
+    int NotasRaiz = 0,
+    long TempoWmsMedioPorNotaMs = 0);

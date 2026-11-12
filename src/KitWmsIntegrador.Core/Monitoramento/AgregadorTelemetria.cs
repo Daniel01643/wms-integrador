@@ -67,6 +67,13 @@ public static class AgregadorTelemetria
             ? 0L
             : (long)Math.Round(noPeriodo.Sum(p => (double)p.TempoTotalMs) / totalPacotes);
 
+        // Tempo de WMS por nota: só pacotes com medição (ChamadasWmsMs > 0); pacotes antigos não puxam a média.
+        var medidos = noPeriodo.Where(p => p.ChamadasWmsMs > 0 && p.TotalNotas > 0).ToList();
+        var notasMedidas = medidos.Sum(p => p.TotalNotas);
+        var tempoWmsPorNota = notasMedidas == 0
+            ? 0L
+            : (long)Math.Round(medidos.Sum(p => (double)p.ChamadasWmsMs) / notasMedidas);
+
         var chamadasPorInterface = new Dictionary<string, int>();
         var chamadasAproximado = false;
         foreach (var p in noPeriodo)
@@ -133,6 +140,7 @@ public static class AgregadorTelemetria
             SemAtividade: totalPacotes == 0,
             NotasPuxada: noPeriodo.Sum(p => p.NotasPuxada),
             NotasTsp: noPeriodo.Sum(p => p.NotasTsp),
-            NotasRaiz: noPeriodo.Sum(p => p.NotasRaiz));
+            NotasRaiz: noPeriodo.Sum(p => p.NotasRaiz),
+            TempoWmsMedioPorNotaMs: tempoWmsPorNota);
     }
 }

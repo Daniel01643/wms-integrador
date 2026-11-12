@@ -261,7 +261,10 @@ internal static class RenderizadorPdfResumo
         blocos.Add(Titulo("Performance", comProximo: true));
         blocos.Add(LinhaTexto(
             $"Tempo médio por nota: {FormatarMs(r.TempoMedioPorNotaMs, ci)}   ·   " +
-            $"Tempo médio por pacote: {FormatarMs(r.TempoMedioPorPacoteMs, ci)}", medidor, larguraUtil));
+            $"Tempo médio por pacote: {FormatarMs(r.TempoMedioPorPacoteMs, ci)}" +
+            (r.TempoWmsMedioPorNotaMs > 0
+                ? $"   ·   Integração no WMS por nota: {FormatarMs(r.TempoWmsMedioPorNotaMs, ci)}"
+                : string.Empty), medidor, larguraUtil));
 
         // Chamadas WMS.
         blocos.Add(Titulo("Chamadas ao WMS", comProximo: true));

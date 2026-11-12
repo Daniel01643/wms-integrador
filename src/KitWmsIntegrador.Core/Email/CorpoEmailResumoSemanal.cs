@@ -233,8 +233,13 @@ public static class CorpoEmailResumoSemanal
         sb.Append("<tr><td style=\"padding:4px 24px 0;\">");
         sb.Append("<p style=\"margin:0;color:").Append(IdentidadeVisual.Texto).Append(";font-size:13px;\">")
           .Append("Tempo médio por nota: <b>").Append(FormatarMs(r.TempoMedioPorNotaMs, ci)).Append("</b><br />")
-          .Append("Tempo médio por pacote: <b>").Append(FormatarMs(r.TempoMedioPorPacoteMs, ci)).Append("</b>")
-          .Append("</p></td></tr>");
+          .Append("Tempo médio por pacote: <b>").Append(FormatarMs(r.TempoMedioPorPacoteMs, ci)).Append("</b>");
+        if (r.TempoWmsMedioPorNotaMs > 0)
+        {
+            sb.Append("<br />Integração no WMS por nota: <b>").Append(FormatarMs(r.TempoWmsMedioPorNotaMs, ci)).Append("</b>");
+        }
+
+        sb.Append("</p></td></tr>");
     }
 
     private static void AppendChamadasWms(StringBuilder sb, ResumoPeriodo r, CultureInfo ci)

@@ -100,7 +100,7 @@ public sealed class FechadorPacote
                 var idPacote = string.IsNullOrWhiteSpace(identificadorPacote)
                     ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)
                     : identificadorPacote;
-                _telemetria.RegistrarPacote(MapeadorTelemetria.De(registros, inicio, fim, idPacote));
+                _telemetria.RegistrarPacote(MapeadorTelemetria.De(registros, inicio, fim, idPacote, medicao, tempoRelatorioMs));
             }
             catch (Exception ex)
             {
