@@ -31,7 +31,9 @@ public sealed record RegistroDiario(
     string Tipo = "PUXADA",
     string Origem = "",
     string Onda = "",
-    string? Zip = null)
+    string? Zip = null,
+    DateTimeOffset? InicioNota = null,
+    long DuracaoWmsMs = 0)
 {
     /// <summary>Rótulo usado no relatório quando a nota/arquivo não tem transporte.</summary>
     public const string RotuloSemTransporte = "(sem transporte)";
