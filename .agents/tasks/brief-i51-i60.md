@@ -99,3 +99,29 @@ Relatorio, Email, Monitoramento e Worker.
 Design + revisão de design primeiro (pesado), depois plano, depois loop implementação/revisão
 (revisor por último, veredito em `c:\wms-integrador\.agents\tasks\review-i51-i60.json`).
 Relatório final em `c:\wms-integrador\.agents\tasks\relatorio-i51-i60.md`.
+
+## Deck e manuais (pedido do usuário, 12/11/2026: "tudo isso deve ser incluído no deck e nos manuais, conforme fizemos antes")
+
+- **Escopo:** fluxo I51 → I60 (`INE`), regra ENC → `IMP`, ajuste para quantidade separada, consulta
+  TODOS/UNICO a cada N min, ondas TSP no fluxo, relatório diário 12:00, chaves `I51:Habilitada`/`I60:Habilitada`,
+  e a **tela de devolução I40 como última alternativa**.
+- **Mudança de decisão:** antes a devolução (I40) ficava FORA dos manuais. Agora o usuário pediu "tudo isso"
+  nos manuais. Incluir a I40 nos manuais **apenas como "última alternativa"** (pronta, desligada por padrão),
+  numa seção própria e fácil de remover. Registrar no relatório final que a I40 entrou nos manuais, para o
+  orquestrador confirmar com o usuário.
+- **Status:** marcar com clareza o que está implementado e o que aguarda teste no homolog (proprietária BRF
+  pendente no fornecedor; detecção do ENC a confirmar).
+- **Manuais:** fontes em `c:\wms-integrador\docs\manuais\`. Gerar com
+  `powershell -NoProfile -ExecutionPolicy Bypass -File c:\wms-integrador\docs\manuais\gerar-manuais.ps1`.
+  PDFs via Edge:
+  `& 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' --headless=new --disable-gpu --no-pdf-header-footer "--print-to-pdf=<pdf>" ("file:///"+<html>.Replace('\','/'))`.
+  Seguir o padrão dos manuais já existentes (o mesmo usado para a Puxada TSP).
+- **Deck:** `c:\wms-integrador\docs\apresentacao\apresentacao.html` (UTF-8 COM BOM; 12 slides; logo em base64
+  grande em cada slide). Fazer **edições cirúrgicas**, sem reescrever o arquivo inteiro e preservando o BOM.
+  Incluir/atualizar o slide do fluxo (I50 → Separação → I51 → I60, ENC → IMP, I40 por último). Regerar
+  `apresentacao.pdf` pelo Edge e conferir com screenshots (cópia temporária com CSS injetado antes de `</head>`).
+  Usar classes de compactação já existentes (compact2/compact7/compact12) se o rodapé ou o slide estourar.
+- **Regra de esforço:** deck e manuais com esforço SOMENTE em horas (humanas e IA), nunca valores monetários.
+  Não inventar horas humanas. Não mexer no slide comparativo de horas (o orquestrador consolida).
+- **Ordem:** deck e manuais por último, depois da implementação aprovada no review, refletindo o que foi
+  realmente implementado.
