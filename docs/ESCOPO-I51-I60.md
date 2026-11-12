@@ -38,7 +38,7 @@ I50 aceita → AguardandoSeparacao → (I51 retornou) Separada → I60 enviada �
 | 4 | Separação parcial | Não existe: o retorno é um **evento configurado no WMS** que só dispara com a separação concluída. Se a I51 retornou, a separação ocorreu. |
 | 5 | Quantidade diferente | **Ajustar a I60 para a quantidade separada** e registrar a diferença (original × separada, item a item). Objetivo: garantir a associação; a I60 serve para devolução depois, se necessário. |
 | 6 | Nota da I60 | **Confirmado:** a I60 usa a **mesma NF-e (XML) da I50**, já guardada pelo integrador. |
-| 6a | Doccarga ENC (encerrado) | Quando o doccarga estiver em status **ENC**, enviar a I60 como **IMP** (`tipoOperacaoNota`/`Tpsit` = `IMP`, só importa a nota, sem associação automática) e **registrar o erro** ("doccarga encerrado") no estado e no relatório. Nos demais casos, a I60 segue a operação normal (associação automática, `IMB`). |
+| 6a | Doccarga ENC (encerrado) | Quando o doccarga estiver em status **ENC**, enviar a I60 como **IMP** (`tipoOperacaoNota`/`Tpsit` = `IMP`, só importa a nota, sem associação automática) e **registrar o erro** ("doccarga encerrado") no estado e no relatório. Nos demais casos, a I60 segue a operação normal **`INE`** (padrão do usuário; **não** usar `IMB`). |
 | 7 | Frequência | **Configurável**; padrão 5 minutos (há clientes que consultam de 5 em 5 min). Prazo de "atrasada" também configurável. |
 | 8 | Relatório | **Diário às 12:00** (HTML/PDF + e-mail). Avaliar também uma seção/relatório **por pacote**. |
 | 9 | Puxada TSP | **Ondas TSP também passam por este fluxo.** |
@@ -48,8 +48,8 @@ I50 aceita → AguardandoSeparacao → (I51 retornou) Separada → I60 enviada �
 ## Pontos a definir na implementação (planner)
 
 - **Como detectar o ENC** (a confirmar com o usuário): a I51 não traz o status do doccarga no
-  layout. Hipótese: a resposta da I60 `IMB` recusa com mensagem de doccarga encerrado. Nesse caso o
-  fluxo é: I60 `IMB` → recusa "encerrado" → reenvio como `IMP` → registro do erro. O texto da
+  layout. Hipótese: a resposta da I60 `INE` recusa com mensagem de doccarga encerrado. Nesse caso o
+  fluxo é: I60 `INE` → recusa "encerrado" → reenvio como `IMP` → registro do erro. O texto da
   mensagem de recusa deve ser **configurável** (lista de padrões).
 - **Risco do reenvio:** no homolog, reenviar uma nota que já entrou na interface devolveu
   "Nota [...] já existe, TpAcao precisa ser UPD!" (`docs\chamado\respostas-homolog.txt`). O reenvio

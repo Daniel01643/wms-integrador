@@ -58,10 +58,12 @@ Relatorio, Email, Monitoramento e Worker.
 4. Ao separar: montar a I60 com a MESMA NF-e (XML) da I50 (confirmado pelo usuário),
    AJUSTANDO as quantidades para as separadas; registrar original × separada por item.
 4a. Doccarga em status ENC (encerrado): enviar a I60 como `IMP` (`tipoOperacaoNota` e `Tpsit` = `IMP`;
-   exemplos de payload IMB/IMP em `c:\wms-integrador\docs\chamado\I60-associacao-automatica-IMB.json` e
-   `I60-associacao-manual-IMP.json`) e registrar o erro "doccarga encerrado" no estado e no relatório.
-   Caso normal: associação automática `IMB`. Detecção do ENC a confirmar com o usuário (ver escopo);
-   hipótese padrão: recusa da I60 `IMB` com mensagem de encerrado (padrões configuráveis) → reenvio `IMP`.
+   exemplo de payload IMP em `c:\wms-integrador\docs\chamado\I60-associacao-manual-IMP.json`)
+   e registrar o erro "doccarga encerrado" no estado e no relatório.
+   Caso normal: **`INE`** (padrão definido pelo usuário; NÃO usar `IMB` — o arquivo
+   `I60-associacao-automatica-IMB.json` é só referência de estrutura).
+   Detecção do ENC a confirmar com o usuário (ver escopo);
+   hipótese padrão: recusa da I60 `INE` com mensagem de encerrado (padrões configuráveis) → reenvio `IMP`.
    Atenção ao "Nota [...] já existe, TpAcao precisa ser UPD!" (`docs\chamado\respostas-homolog.txt`):
    o reenvio pode exigir `TpAcao = UPD`; deixar configurável e coberto por teste com WMS falso.
 5. I60 não é mais enviada junto da I50 quando `I51:Habilitada=true`. Com I51 desligada, o
