@@ -2,6 +2,7 @@ using System.Reflection;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Pacote;
+using KitWmsIntegrador.Core.Separacao;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +30,10 @@ public class Worker : BackgroundService
     private readonly OpcoesRelatorio _relatorio;
     private readonly OpcoesMonitoramento _monitoramento;
     private readonly OpcoesZip _zip;
+    private readonly ServicoRelatorioDiarioI60? _relatorioDiario;
+    private readonly OpcoesI51 _i51;
+    private readonly OpcoesI60 _i60;
+    private readonly OpcoesRelatorioI60 _relatorioI60;
 
     public Worker(
         ILogger<Worker> logger,
@@ -42,8 +47,16 @@ public class Worker : BackgroundService
         IOptions<OpcoesPacote> pacote,
         IOptions<OpcoesRelatorio> relatorio,
         IOptions<OpcoesMonitoramento> monitoramento,
-        IOptions<OpcoesZip> zip)
+        IOptions<OpcoesZip> zip,
+        IOptions<OpcoesI51>? i51 = null,
+        IOptions<OpcoesI60>? i60 = null,
+        IOptions<OpcoesRelatorioI60>? relatorioI60 = null,
+        ServicoRelatorioDiarioI60? relatorioDiario = null)
     {
+        _relatorioDiario = relatorioDiario;
+        _i51 = i51?.Value ?? new OpcoesI51();
+        _i60 = i60?.Value ?? new OpcoesI60();
+        _relatorioI60 = relatorioI60?.Value ?? new OpcoesRelatorioI60();
         _zip = zip.Value;
         _relatorio = relatorio.Value;
         _logger = logger;
@@ -84,6 +97,23 @@ public class Worker : BackgroundService
             _logger.LogError("Serviço não iniciado: corrija a seção 'Zip' do appsettings.");
             _lifetime.StopApplication();
             return;
+        }
+
+        // I51/I60/RelatorioI60: só validadas com a I51 ligada (desligada = comportamento anterior, nada novo roda).
+        if (_i51.Habilitada)
+        {
+            var problemasI51 = _i51.Validar().Concat(_i60.Validar()).Concat(_relatorioI60.Validar()).ToList();
+            if (problemasI51.Count > 0)
+            {
+                foreach (var problema in problemasI51)
+                {
+                    _logger.LogError("Configuração inválida: {Problema}", problema);
+                }
+
+                _logger.LogError("Serviço não iniciado: corrija as seções 'I51', 'I60' e 'RelatorioI60' do appsettings.");
+                _lifetime.StopApplication();
+                return;
+            }
         }
 
         // Garante as subpastas de depósito (Puxada e PuxadaTSP) dentro da entrada.
@@ -152,6 +182,17 @@ public class Worker : BackgroundService
                 _logger.LogError(ex, "Falha no ciclo do pacote; tentará novamente no próximo ciclo.");
             }
 
+            // Relatório diário da I51/I60 (12:00): try/catch PRÓPRIO, fora do ciclo do pacote, para que uma
+            // exceção do pacote não o impeça e vice-versa.
+            try
+            {
+                await ExecutarRelatorioDiarioAsync(stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
             try
             {
                 await Task.Delay(intervalo, stoppingToken).ConfigureAwait(false);
@@ -163,5 +204,30 @@ public class Worker : BackgroundService
         }
 
         _logger.LogInformation("Watcher encerrado.");
+    }
+
+    /// <summary>
+    /// Verifica e envia o relatório diário da I51/I60. Exceção é só logada (cancelamento propaga) e nunca
+    /// afeta o ciclo do pacote.
+    /// </summary>
+    public async Task ExecutarRelatorioDiarioAsync(CancellationToken ct)
+    {
+        if (_relatorioDiario is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _relatorioDiario.VerificarEEnviarAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha no relatório diário da I51/I60 (ignorada; não derruba o Worker).");
+        }
     }
 }

@@ -60,3 +60,7 @@ src/KitWmsIntegrador.Worker/relatorios/
 # ZIP de NF-e (puxada) tambem contem XML de cliente: nunca versionar. Vale para qualquer pasta.
 *.zip
 *.ZIP
+# Relatorio diario da I51/I60: lista real de destinatarios e marca do ultimo envio (runtime, nunca versionados).
+destinatarios-i60.txt
+ultimo-relatorio-i60.txt
+envio-manual-i51/

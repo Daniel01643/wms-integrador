@@ -10,6 +10,7 @@ using KitWmsIntegrador.Core.Orquestrador;
 using KitWmsIntegrador.Core.Pacote;
 using Microsoft.Extensions.Options;
 using KitWmsIntegrador.Core.Relatorio;
+using KitWmsIntegrador.Core.Separacao;
 using KitWmsIntegrador.Core.Tempo;
 using KitWmsIntegrador.Worker;
 using KitWmsIntegrador.Worker.Configuracao;
@@ -26,6 +27,24 @@ if (args.Contains(SmokeTestWms.Argumento))
 if (args.Contains(EnvioManualI60.Argumento))
 {
     return await EnvioManualI60.ExecutarAsync(args);
+}
+
+// Reenfileiramento manual da I60 (grava um pedido que o Worker em execução aplica no ciclo seguinte).
+if (args.Contains(ReenfileirarI60.Argumento))
+{
+    return await ReenfileirarI60.ExecutarAsync(args);
+}
+
+// Consulta UNICO da I51 para diagnóstico/homolog (o TODOS só roda pelo serviço).
+if (args.Contains(ConsultaManualI51.Argumento))
+{
+    return await ConsultaManualI51.ExecutarAsync(args);
+}
+
+// Relatório diário da I51/I60 sob demanda (sem esperar as 12:00).
+if (args.Contains(RelatorioManualI60.Argumento))
+{
+    return await RelatorioManualI60.ExecutarAsync(args);
 }
 
 // Envio manual de teste da I40 (devolução, Plano B fase 1): chave ou número + série (+ --xml opcional).
@@ -68,6 +87,15 @@ builder.Services
     .AddOptions<OpcoesI60>()
     .Bind(builder.Configuration.GetSection(OpcoesI60.Secao));
 
+// Retorno de separação (I51) como gatilho da I60 e relatório diário das 12:00. Tudo desligado por padrão:
+// com I51:Habilitada=false nada novo executa nem toca disco e a I60 segue o fluxo anterior.
+builder.Services
+    .AddOptions<OpcoesI51>()
+    .Bind(builder.Configuration.GetSection(OpcoesI51.Secao));
+builder.Services
+    .AddOptions<OpcoesRelatorioI60>()
+    .Bind(builder.Configuration.GetSection(OpcoesRelatorioI60.Secao));
+
 // Devolução pela I40 (Plano B, seção "Devolucao"). Desligada por padrão; na fase 1 só o modo
 // manual --enviar-i40 usa estas opções (tela web na fase 2).
 builder.Services
@@ -107,31 +135,8 @@ builder.Services
 
 builder.Services.AddSingleton<IClock, SystemClock>();
 
-builder.Services.AddHttpClient<IClienteWms, ClienteWmsHttp>((sp, http) =>
-{
-    var opcoes = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OpcoesWms>>().Value;
-    if (!string.IsNullOrWhiteSpace(opcoes.BaseUrl))
-    {
-        // BaseAddress precisa terminar em "/" para compor caminhos relativos.
-        var baseUrl = opcoes.BaseUrl.EndsWith('/') ? opcoes.BaseUrl : opcoes.BaseUrl + "/";
-        http.BaseAddress = new Uri(baseUrl);
-    }
-
-    http.Timeout = TimeSpan.FromSeconds(opcoes.TimeoutSegundos);
-})
-.ConfigurePrimaryHttpMessageHandler(() =>
-    // Windows Server 2012 R2: o WMS de producao exige TLS 1.2. Forcamos o protocolo no
-    // handler para nao depender do SChannel/registro do SO (que negociava de forma
-    // intermitente, causando 401 no GetToken). TLS 1.2 e TLS 1.3 quando disponivel.
-    new System.Net.Http.SocketsHttpHandler
-    {
-        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
-        {
-            EnabledSslProtocols =
-                System.Security.Authentication.SslProtocols.Tls12 |
-                System.Security.Authentication.SslProtocols.Tls13
-        }
-    });
+// Cliente WMS ÚNICO (singleton): Orquestrador, consulta da I51 e devolução compartilham token, lock e retry.
+builder.Services.AdicionarClienteWms();
 
 // Etapa 7: watcher de pasta + pacote + movimentação + limpeza + e-mail.
 // Pastas: "Pastas:Entrada" vazia herda o legado "Entrada:PastaEntrada".
@@ -197,6 +202,10 @@ builder.Services.AddSingleton<GerenciadorPacote>();
 builder.Services.AddSingleton<AuditoriaDevolucao>();
 builder.Services.AddSingleton<IServicoDevolucao, ServicoDevolucao>();
 builder.Services.AddHostedService<ServidorTelaDevolucao>();
+
+// Fluxo I51 -> I60 (repositório de estado, consulta, casamento, I60 pós-separação, relatório diário).
+builder.Services.AdicionarSeparacaoI51();
+builder.Services.AddHostedService<ConsultaI51Worker>();
 
 builder.Services.AddHostedService<Worker>();
 
