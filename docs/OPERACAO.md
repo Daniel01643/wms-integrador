@@ -25,7 +25,11 @@ Cada pacote tem a sua **própria subpasta** em `Processados` e em `Erro`, nomead
 
 | Pasta | Conteúdo |
 |---|---|
-| `<Entrada>` | XMLs a processar (somente `*.xml`, topo da pasta). |
+| `<Entrada>\Puxada` | ZIP (ou XML solto) de puxada normal: sobe como `PUXADA`. Ver seção 8. |
+| `<Entrada>\PuxadaTSP` | Somente ZIP de puxada TSP: sobe como `TSP`, uma onda por ZIP. Ver seção 8. |
+| `<Entrada>` (raiz) | XML/ZIP solto, aceito como `PUXADA` com Origem `raiz` (se `Pastas:AceitarRaiz=true`). |
+| `<Entrada>\Estado\tsp\ondas.json` | Sequencial do dia e onda de cada ZIP TSP (reprocesso). Não apagar com o serviço rodando. |
+| `<Entrada>\Estado\tmp` | Extração temporária dos ZIPs; apagada ao fim de cada ZIP. |
 | `<Entrada>\Processados\pacote_<yyyyMMdd_HHmmss>\<arquivo>.xml` | Notas integradas, pendentes na interface, integradas com produto a revisar e reprocessos "já existe" — uma subpasta por pacote. |
 | `<Entrada>\Erro\pacote_<yyyyMMdd_HHmmss>\<Categoria>\<arquivo>.xml` | Notas não integradas e XMLs inválidos, mais `arquivo.xml.motivo.txt` com o detalhe — a categoria fica **aninhada** sob a subpasta do pacote. |
 | `<Entrada>\Estado` | Diário do pacote em andamento (`pacote-atual.jsonl`). Não apagar com o serviço rodando. |
@@ -34,6 +38,8 @@ Cada pacote tem a sua **própria subpasta** em `Processados` e em `Erro`, nomead
 Categorias de `Erro` (uma pasta por tipo de erro):
 
 - `XmlInvalido`: o XML não pôde ser lido (inclui arquivo truncado).
+- `ZipInvalido`: o ZIP não pôde ser aberto (corrompido, com senha, sem XML, acima de `Zip:MaxArquivos`
+  ou `Zip:MaxTamanhoMb`); o ZIP vai para essa pasta com `.motivo.txt`.
 - `SemTransporte`: sem "Transporte: N" nas informações complementares.
 - `ProdutoNaoCadastrado`: produto continua não cadastrado após as tentativas.
 - `EmpresaNaoLocalizada`: empresa não localizada pelo WMS.
@@ -306,7 +312,77 @@ falhar, o resumo **não falha**: o HTML e o PDF são gravados em `<telemetria>\r
 - Valores padrão de janela de coleta, backoff e timeout são estimativas a validar em operação.
 - Não validado contra WMS ou SMTP reais (somente testes automatizados com fakes).
 
-## 8. Devolução pela I40: tela de chaves (Plano B)
+## 8. Puxada e Puxada TSP (ZIP por pasta)
+
+Desde 12/11/2026 a entrada tem duas pastas de depósito. O colaborador salva **somente o ZIP**
+(sem e-mail, sem Outlook). Escopo e decisões: [`ESCOPO-PUXADA-TSP.md`](ESCOPO-PUXADA-TSP.md).
+Desenho: [`ARQUITETURA.md`](ARQUITETURA.md), §2.2.
+
+| Pasta | Aceita | Tipo | Onda no WMS (`nroagrupseparacao`) |
+|---|---|---|---|
+| `Puxada` | ZIP e XML solto | `PUXADA` | Número do transporte de cada nota (como sempre). |
+| `PuxadaTSP` | Só ZIP | `TSP` | Uma por ZIP: `TSP-AAAAMMDD-NN-NOME`. |
+| raiz da entrada | XML/ZIP solto | `PUXADA` (Origem `raiz`) | Número do transporte. |
+
+### 8.1. Configuração
+
+Na seção `Pastas` e na nova seção `Zip` do `appsettings` (override por env com `__`, ex.:
+`Pastas__AceitarRaiz`):
+
+| Chave | Padrão | Efeito |
+|---|---|---|
+| `Pastas:Puxada` | `Puxada` | Nome da subpasta da puxada normal. |
+| `Pastas:PuxadaTsp` | `PuxadaTSP` | Nome da subpasta da puxada TSP. |
+| `Pastas:AceitarRaiz` | `true` | `true`: XML/ZIP solto na raiz sobe como `PUXADA` com Origem `raiz`. `false`: fica parado na entrada, sem erro e sem processamento. |
+| `Zip:MaxArquivos` | `1000` | Máximo de arquivos dentro de um ZIP. |
+| `Zip:MaxTamanhoMb` | `500` | Máximo, em MB, do conteúdo descompactado de um ZIP. |
+
+O serviço cria `Puxada` e `PuxadaTSP` na entrada se faltarem. Os nomes das duas pastas não podem
+repetir nem coincidir com `Processados`, `Erro` ou `Estado`; configuração inválida impede o início
+(erro no log). Os dois `appsettings` versionados já trazem as chaves.
+
+### 8.2. Regras do ZIP
+
+- O ZIP só é aberto quando está pronto (mesmo detector de arquivo pronto dos XMLs).
+- Entram só arquivos `.xml`; outro tipo vira `ExtensaoInvalida`. ZIP dentro de ZIP não é aberto.
+  Nomes com `..` ou caminho absoluto são ignorados.
+- ZIP corrompido, com senha, sem XML ou acima dos limites: `Erro\pacote_*\ZipInvalido` + `.motivo.txt`.
+- O mesmo XML repetido em dois ZIPs é processado uma vez; o repetido aparece como "Arquivo ignorado
+  (XML repetido)".
+- Os XMLs e o ZIP original ficam em `Processados\pacote_*\`.
+- XML solto (ou qualquer não-ZIP) na `PuxadaTSP` vai para `ExtensaoInvalida`: sem ZIP não há nome de onda.
+
+### 8.3. Nome da onda da TSP
+
+Formato `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA` (`XML'S SOROCABA.zip`) ou
+`TSP-20261111-02-SJC` (`XML'S SJC.zip`).
+
+- Data do relógio do servidor; `NN` é o sequencial do dia (reinicia a cada dia).
+- `NOME`: nome do ZIP sem extensão, sem as palavras `XML`/`XMLS` e apóstrofos, maiúsculas, sem acento,
+  só letras, números e hífen, **cortado em 14 caracteres** (a parte fixa tem 16; o WMS aceita até 30).
+- Sem nome aproveitável: `TSP-AAAAMMDD-NN`.
+- **Reprocesso:** o mesmo ZIP (mesmo conteúdo, por hash) reaproveita a mesma onda, então reenviar não
+  cria uma segunda onda. Um ZIP diferente com o mesmo nome ganha novo `NN`.
+- O DocCarga continua sendo um por nota. Nota de TSP sem transporte sobe normalmente.
+
+### 8.4. O que o relatório e o e-mail mostram
+
+- Colunas **Tipo** (`PUXADA` ou `TSP`) e **Origem** (`Puxada`, `PuxadaTSP` ou `raiz`) em cada nota.
+- PUXADA agrupada por transporte; TSP agrupada por **onda**, com a quantidade de notas e de
+  transportes distintos; a coluna Transporte mostra o transporte de cada nota ("(sem)" se não houver).
+- Resumo do relatório e e-mail de fechamento: notas por tipo (PUXADA e TSP) e "Notas da raiz". O resumo
+  semanal soma as notas por tipo.
+- **Pasta errada:** o sistema não detecta nem bloqueia. Conferir Tipo e Origem no relatório; para
+  corrigir, ajustar a onda no WMS (a nota já subiu) e orientar o colaborador sobre a pasta certa.
+  Notas com Origem `raiz` entram no relatório justamente para análise.
+
+### 8.5. Pontos a validar no homolog
+
+- Na TSP o `numeroPlanejamento` da I50 repete o nome da onda (como na puxada repete o transporte).
+  Confirmar que o WMS aceita. Roteiro: [`ROTEIRO-TESTE-PUXADA-TSP.md`](ROTEIRO-TESTE-PUXADA-TSP.md).
+- Ainda sem teste com ZIP real no homolog (os testes automatizados usam ZIPs sintéticos, sem WMS).
+
+## 9. Devolução pela I40: tela de chaves (Plano B)
 
 Recurso **desligado** (`Devolucao:Habilitada=false`). Nada foi ligado em produção. Quando ligado, o
 Worker abre uma página web simples na porta `Devolucao:Porta` (padrão 8085), sem login, onde o
@@ -329,5 +405,5 @@ resultado por chave.
 - **Isolamento:** falha da tela (porta ocupada, erro) é registrada e não derruba o ciclo de pacotes.
 - **Segurança:** não há login. Libere a porta no firewall **somente para a rede interna**
   (`docs/INSTALACAO-SERVIDOR.md`, seção 3.12).
-- **Ligar/desligar:** `Devolucao__Habilitada=true|false` e reiniciar o serviço (Manual Técnico, seção 8.4).
+- **Ligar/desligar:** `Devolucao__Habilitada=true|false` e reiniciar o serviço (a devolução não consta nos manuais oficiais).
 - **Verificar:** `GET http://<servidor>:<porta>/api/saude` deve responder `{"status":"ok"}`.

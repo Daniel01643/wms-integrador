@@ -70,7 +70,9 @@ C:\Friozem\importacao_notas\          (APP — binários, config, logs)
     └── deploy\              (FONTE DE VERDADE dos scripts .ps1 de operação no servidor — RDP)
 
 C:\Friozem\kitbrf\                     (ENTRADA — dados; pasta LOCAL compartilhada na rede)
-├── (XMLs a processar, no topo)
+├── Puxada\          (ZIP ou XML de puxada normal — Tipo PUXADA)
+├── PuxadaTSP\       (somente ZIP de puxada TSP — Tipo TSP)
+├── (XML solto na raiz: aceito como puxada, Origem "raiz", se Pastas:AceitarRaiz=true)
 ├── Processados\pacote_<...>\
 ├── Erro\pacote_<...>\
 └── Estado\  (diário + telemetria\)
@@ -79,7 +81,7 @@ C:\Friozem\kitbrf\                     (ENTRADA — dados; pasta LOCAL compartil
 A **pasta de entrada** (`Pastas:Entrada`) é uma **pasta LOCAL do próprio servidor**, default
 `C:\Friozem\kitbrf` — separada da raiz do app. O serviço a acessa por caminho **local**, então
 **LocalSystem basta** (não é UNC, não exige conta de domínio). Essa pasta é **compartilhada na
-rede via SMB** (share `kitbrf`) para que os usuários depositem os XMLs de fora — rode
+rede via SMB** (share `kitbrf`) para que os usuários depositem os ZIPs (nas subpastas `Puxada` e `PuxadaTSP`, ver §3.4c) de fora — rode
 `deploy\compartilhar-pasta.ps1` (ver §3.4b). `Processados`, `Erro`, `Estado` e a telemetria
 resolvem **dentro** dessa pasta (ver `docs\OPERACAO.md`).
 
@@ -197,6 +199,22 @@ Cria a pasta local (se faltar), cria/atualiza o compartilhamento SMB `kitbrf` (F
 Administradores, Change/escrita para o principal gravador) e concede `Modify` NTFS ao mesmo
 principal, mantendo a herança de Administradores/SYSTEM. Idempotente, suporta `-WhatIf`. No
 Server 2012 R2 usa os cmdlets `SmbShare`; se indisponíveis, cai para `net share`.
+
+### 3.4c Criar as pastas de depósito Puxada e PuxadaTSP
+Os colaboradores depositam **ZIPs** em duas subpastas do share `kitbrf`: `Puxada` (puxada normal) e
+`PuxadaTSP` (puxada TSP). O serviço as cria sozinho ao iniciar, mas crie antes para já deixar o
+compartilhamento pronto (PowerShell como Administrador, no servidor):
+```powershell
+New-Item -ItemType Directory -Force -Path 'C:\Friozem\kitbrf\Puxada','C:\Friozem\kitbrf\PuxadaTSP'
+Get-ChildItem 'C:\Friozem\kitbrf' -Directory | Select-Object Name
+```
+Compartilhamento: as subpastas aparecem dentro do share `\\SRVAPPALC02\kitbrf` e herdam as permissões
+da pasta pai (a ACL NTFS aplicada pelo `compartilhar-pasta.ps1` usa herança para pastas e arquivos),
+então **não** é preciso criar outro share nem rodar o script de novo. Confirme com um usuário
+gravador que ele consegue copiar um arquivo para cada subpasta. Os nomes são configuráveis em
+`Pastas:Puxada` e `Pastas:PuxadaTsp`; os limites do ZIP, em `Zip:MaxArquivos` e `Zip:MaxTamanhoMb`
+(detalhes em `docs\OPERACAO.md`, seção 8). O molde `deploy\config-exemplo\appsettings.Production.json`
+já traz as chaves.
 
 ### 3.5 Configurar os segredos de HOMOLOGAÇÃO (no servidor)
 ```powershell

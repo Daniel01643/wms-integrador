@@ -16,6 +16,9 @@ iteração. Ver `BRIEFING.md` para as regras de negócio.
 > configurável (`I60:TipoOperacaoNota`, padrão `INE`). A retenção de `Processados`/`Erro` passou
 > para 60 dias. O Plano B (devolução pela I40) está arquitetado em `ARQUITETURA-PLANO-B-I40.md`
 > (não implementado).
+>
+> **Atualização (12/11/2026, Puxada TSP):** a entrada tem as subpastas `Puxada` e `PuxadaTSP` (e a raiz,
+> aceita como puxada), os ZIPs são lidos com segurança e a TSP sobe com uma onda por ZIP. Ver §2.2.
 
 ---
 
@@ -87,7 +90,7 @@ Toda a lógica testável fica no Core (`Core/Pacote`, `Core/Email`); o `Worker` 
 | `Worker` | Loop contínuo: limpeza na partida e a cada 24 h; `GerenciadorPacote.CicloAsync` a cada `Pacote:IntervaloVarreduraSegundos`. Exceção de ciclo só é logada. |
 | `DetectorArquivoPronto` | Polling (não `FileSystemWatcher`, que perde eventos em pasta de rede). Arquivo pronto = mesmo tamanho/data em 2 ciclos, estável há `EstabilizacaoSegundos` (relógio `IClock`) e abertura com `FileShare.None`. Acima de `TimeoutArquivoSegundos` vira "instável" e não bloqueia o fechamento. |
 | `GerenciadorPacote` | Máquina de estados do pacote (abaixo): janela de coleta fixa, foto da pasta, backoff e retomada com reconciliação. |
-| `ProcessadorLote` | Parse → `AgrupadorTransporte` → ondas (transportes) com `SemaphoreSlim(MaxTransportesConcorrentes)`; dentro da onda, uma nota por vez no `IOrquestrador`; classifica o destino, move logo após cada nota e registra no diário. |
+| `ProcessadorLote` | Abre os ZIPs (`LeitorZipSeguro`); parse → `AgrupadorTransporte` (PUXADA) ou uma onda por ZIP (TSP, §2.2) → ondas (transportes) com `SemaphoreSlim(MaxTransportesConcorrentes)`; dentro da onda, uma nota por vez no `IOrquestrador`; classifica o destino, move logo após cada nota e registra no diário. |
 | `ClassificadorCategoriaErro` / `OrganizadorArquivos` | Destino (`Processados`/`Erro\<Categoria>`) e movimentação com sidecar `.motivo.txt`. |
 | `DiarioPacote` | JSONL `Estado\pacote-atual.jsonl` (append + flush) para retomar o pacote após queda. |
 | `FechadorPacote` | Relatório HTML+PDF `pacote_<yyyyMMdd_HHmmss>` em `Relatorio:PastaSaida` (sempre) e e-mail conforme `PoliticaEnvioEmail`. |
@@ -115,6 +118,66 @@ WMS barra a duplicata ("já existe", §5) e o processador a trata como processad
 reinício, o pacote é reaberto com as linhas do diário e o relatório final contém também o
 que foi enviado antes da queda. Se o move falhar após o envio, o arquivo entra num conjunto
 em memória "enviado, mover pendente": o move é repetido, nunca o envio.
+
+---
+
+### 2.2 Puxada e Puxada TSP (12/11/2026): pastas, ZIP e onda
+
+A entrada passou a ter duas subpastas de depósito. O **tipo** da nota vem da pasta, sem detecção
+automática: `Puxada` e raiz = `PUXADA`; `PuxadaTSP` = `TSP`. Escopo e decisões em
+[`ESCOPO-PUXADA-TSP.md`](ESCOPO-PUXADA-TSP.md).
+
+```mermaid
+flowchart LR
+    subgraph Entrada["Entrada (C:\\Friozem\\kitbrf)"]
+        P[Puxada<br/>ZIP ou XML]
+        T[PuxadaTSP<br/>somente ZIP]
+        R[raiz<br/>XML solto, se AceitarRaiz]
+    end
+    LZ[LeitorZipSeguro<br/>Estado\\tmp, limites, só XML]
+    GP[Agrupador por transporte<br/>onda = transporte]
+    NO[NomeadorOndaTsp + RegistroOndasTsp<br/>Estado\\tsp\\ondas.json]
+    OR[Orquestrador<br/>1 DocCarga por nota]
+    REL[Relatório e e-mail<br/>colunas Tipo e Origem]
+
+    P -->|PUXADA| LZ
+    R -->|PUXADA, Origem raiz| GP
+    LZ -->|ZIP da Puxada| GP
+    T -->|TSP| LZ
+    LZ -->|ZIP da PuxadaTSP| NO
+    GP --> OR
+    NO -->|uma onda por ZIP| OR
+    OR --> REL
+```
+
+Regras de implementação:
+
+- **Pastas:** `ClassificadorEntrada.ClassificarPastas` lista (só o topo) `Puxada`, `PuxadaTSP` e a
+  raiz (se `Pastas:AceitarRaiz`). `Processados`, `Erro` e `Estado` não são entrada. A `PuxadaTSP`
+  aceita só ZIP; qualquer outro arquivo definitivo cai como `ExtensaoInvalida`.
+- **ZIP:** `LeitorZipSeguro` (`System.IO.Compression`, sem NuGet novo) extrai para `Estado\tmp\<id>`,
+  achata nomes, ignora caminho perigoso (`..`, absoluto), aceita só `.xml`, não abre ZIP aninhado e
+  respeita `Zip:MaxArquivos` e `Zip:MaxTamanhoMb` (tamanho declarado e bytes realmente copiados). ZIP
+  ilegível, com senha, vazio de XML ou acima dos limites vira `CategoriaErro.ZipInvalido`
+  (`Erro\<pacote>\ZipInvalido` + `.motivo.txt`). Os XMLs e o ZIP original vão para
+  `Processados\pacote_*\` (o layout continua servindo à busca por `NFE<chave>.XML`).
+- **Repetidos:** a mesma chave de NF-e processada uma vez por pacote; a repetida é registrada como
+  `ArquivoIgnorado` ("XML repetido").
+- **Onda da TSP:** `TSP-AAAAMMDD-NN-NOME` (prefixo fixo, data do servidor, sequencial do dia, nome do ZIP
+  limpo). Parte fixa de 16 caracteres, NOME cortado em 14, total máximo 30 (limite de
+  `nroagrupseparacao` na I50). Sem nome: `TSP-AAAAMMDD-NN`. `RegistroOndasTsp` grava em
+  `Estado\tsp\ondas.json` (gravação atômica) o último sequencial do dia e o hash SHA-256 de cada ZIP, de
+  modo que reenviar o mesmo ZIP reaproveita a mesma onda.
+- **Agrupamento:** PUXADA continua por `AgrupadorTransporte` (onda = transporte). TSP cria uma onda por
+  ZIP: todas as notas do ZIP seguem para o `IOrquestrador` com o mesmo `nroagrupseparacao`; o DocCarga
+  continua sendo um por nota. Nota de TSP sem transporte no `infCpl` sobe normalmente.
+- **Relatório:** cada linha do diário (`RegistroDiario`) e do relatório (`LinhaRelatorioErro`) carrega
+  `Tipo`, `Origem`, `Onda` e `Zip`. O HTML/PDF ganha as colunas Tipo e Origem; a TSP é agrupada por onda
+  (com notas e transportes distintos) e a PUXADA por transporte. O e-mail e a telemetria contam notas
+  por tipo e da raiz (campos novos no fim dos registros, com valor padrão, então diário e telemetria
+  antigos continuam legíveis).
+- **Premissa a validar no homolog:** na TSP o `numeroPlanejamento` da I50 repete o nome da onda (como na
+  puxada repete o transporte), pois o `Orquestrador` usa o mesmo argumento para os dois campos.
 
 ---
 

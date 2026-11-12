@@ -1,7 +1,10 @@
 # Escopo: Puxada e Puxada TSP (ZIP por pasta)
 
-Status: **escopo fechado em 11/11/2026. Nada implementado.** A execução (workflow) fica para
-12/11/2026. Este documento é a fonte para o workflow.
+Status: **escopo fechado em 11/11/2026; implementado e documentado em 12/11/2026** (código revisado e
+aprovado; documentação e manuais atualizados). Falta o teste com ZIP real no homolog
+(`ROTEIRO-TESTE-PUXADA-TSP.md`). Premissas assumidas na implementação: XML solto na `PuxadaTSP` vira
+`ExtensaoInvalida`; XML repetido no pacote é ignorado (fica em `Processados`); `numeroPlanejamento` da
+I50 repete o nome da onda na TSP (a validar no homolog).
 
 ## 1. O problema
 
@@ -26,7 +29,7 @@ importam os XMLs e criam à mão um agrupamento de onda por TSP, com separação
 4. **O relatório mostra o tipo de cada nota (`TSP` ou `PUXADA`)** e a onda a que pertence. Se o
    colaborador colocar na pasta errada, ele vê no relatório e corrige.
 5. **Uma onda por ZIP** na TSP.
-6. **Nome da onda da TSP:** data + sequencial do dia + nome do ZIP. Se o ZIP não tiver nome
+6. **Nome da onda da TSP:** prefixo `TSP-` + data + sequencial do dia + nome do ZIP. Se o ZIP não tiver nome
    aproveitável, sobe só com data e sequencial. O relatório mostra a onda, então dá para corrigir.
 7. O sequencial pode ser **um por dia** (reinicia a cada dia).
 8. **Guarda:** as notas (XML) ficam como hoje; o e-mail não é guardado.
@@ -63,17 +66,21 @@ recusar a raiz, é só uma opção de configuração (`Pastas:AceitarRaiz=false`
 - O ZIP só é aberto depois de pronto (detector de arquivo pronto que já existe).
 
 ### 3.3 Nome da onda da TSP
-Formato: `AAAAMMDD-NN-NOME`, por exemplo `20261111-01-SOROCABA`.
+Formato: `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA`.
+(Decisão de 12/11/2026: o prefixo `TSP-` identifica a onda da Puxada TSP no WMS. A puxada normal
+não muda: a onda continua sendo o número do transporte.)
 
+- `TSP-`: prefixo fixo, só nas ondas da Puxada TSP.
 - `AAAAMMDD`: data do processamento, no relógio do servidor.
 - `NN`: sequencial do dia, com 2 dígitos (`01`, `02`, ...). Um novo número a cada ZIP TSP
   diferente no dia. Reinicia no dia seguinte. Guardado em `Estado`.
 - `NOME`: nome do arquivo ZIP, limpo: sem extensão, sem a palavra `XML`/`XMLS` e sem apóstrofo,
   em maiúsculas, sem acento, só letras, números e hífen. Ex.: `XML'S SOROCABA.zip` -> `SOROCABA`;
   `XML'S SJC.zip` -> `SJC`.
-- Se sobrar nome vazio: onda `AAAAMMDD-NN`.
-- Limite do campo no WMS: `nroagrupseparacao` aceita **0 a 30** caracteres (manual da I50). O nome é
-  cortado para caber (fica com no máximo 18 caracteres de nome).
+- Se sobrar nome vazio: onda `TSP-AAAAMMDD-NN` (15 caracteres).
+- Limite do campo no WMS: `nroagrupseparacao` aceita **0 a 30** caracteres (manual da I50). A parte fixa
+  `TSP-AAAAMMDD-NN-` ocupa 16 caracteres, então o NOME é cortado para **no máximo 14 caracteres**.
+  `TSP-20261111-01-SOROCABA` tem 24 caracteres e cabe.
 - **Reprocesso:** o mesmo ZIP (mesmo conteúdo, por hash) reaproveita a mesma onda. Assim reenviar o
   mesmo ZIP não cria uma segunda onda.
 - O DocCarga continua sendo **um por nota**; só o agrupador da onda muda.
@@ -83,7 +90,7 @@ Sem mudança: onda = número do transporte da nota. Nota sem transporte vira pen
 
 ### 3.5 Relatório (HTML e PDF) e e-mail de fechamento
 - Cada nota ganha a coluna **Tipo** (`PUXADA` ou `TSP`).
-- Nas TSP, o agrupamento do relatório é por **onda** (`20261111-01-SOROCABA`), com a quantidade de
+- Nas TSP, o agrupamento do relatório é por **onda** (`TSP-20261111-01-SOROCABA`), com a quantidade de
   notas e de transportes distintos, e a coluna **Transporte** mostra o transporte de cada nota.
 - Nas puxadas normais, o agrupamento continua por transporte.
 - Nota de TSP **sem** transporte no `infCpl` sobe normalmente (a TSP não depende do transporte); a
