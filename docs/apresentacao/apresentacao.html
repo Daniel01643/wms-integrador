@@ -359,7 +359,7 @@
     <div class="bd">
       <p class="lead">Do desenho à produção em aprox. 6 dias úteis. Duração aproximada de trabalho por etapa (horas humanas + IA).</p>
       <table class="tbl compact">
-        <caption>Etapas do projeto — esforço por dia (29/10 a 10/11/2026)</caption>
+        <caption>Etapas do projeto — esforço por dia (29/10 a 12/11/2026)</caption>
         <thead>
           <tr><th>Dia</th><th>Etapas / entregas</th><th>Duração aprox.</th></tr>
         </thead>
@@ -372,10 +372,12 @@
           <tr><td>06/11</td><td>Virada e validação em PRODUÇÃO · não-XML (ExtensaoInvalida) · placa na I50 · TLS 1.2 + GetToken resiliente · manuais embarcados · 5 releases</td><td>Aprox. 10,5 h<br>(6 h humanas + 4,5 IA)</td></tr>
           <tr><td>09/11</td><td>Acabamento da apresentação, resumo semanal no servidor, retomada da I60</td><td>Aprox. 8,9 h<br>(4,9 h humanas + 4,0 IA)</td></tr>
           <tr><td>10/11</td><td>I60 Plano A: testes no homolog · pausado, depende do fornecedor · I40 (devolução) validada no homolog e tela de chaves implementada</td><td>Aprox. 12,0 h<br>(4,5 h humanas + 7,5 IA)</td></tr>
+          <tr><td>11/11</td><td>Repositório no GitHub (XMLs fora) · tela da I40 com busca por número+série, sem placa · escopo da Puxada TSP fechado</td><td>Aprox. 5,5 h<br>(2,0 h humanas + 3,5 IA)</td></tr>
+          <tr><td>12/11</td><td>Puxada TSP (ZIP por pasta, onda única por ZIP) · implementada, teste no homolog a fazer</td><td>Horas humanas a informar<br>(IA aprox. 2,5 h)</td></tr>
           <tr><td>Planejada</td><td>Apresentação e treinamento</td><td>+1,0 h humana</td></tr>
         </tbody>
       </table>
-      <p class="foot-note">Entregas transversais, sem número de etapa próprio: monitoramento/resumo semanal e o ciclo de atualização de versão (release/rollback). Total do esforço: <b>26,25 h humanas</b> (25,25 h + 1,0 h de apresentação/treinamento) e <b>aprox. 14,4 h de IA</b> (estimada pelo tempo de sessão) na entrega inicial. Retomada (09-10/11: I60 e devolução I40): <b>9,4 h humanas</b> e <b>aprox. 11,5 h de IA</b>.</p>
+      <p class="foot-note">Entregas transversais, sem número de etapa próprio: monitoramento/resumo semanal e o ciclo de atualização de versão (release/rollback). Total do esforço: <b>26,25 h humanas</b> (25,25 h + 1,0 h de apresentação/treinamento) e <b>aprox. 14,4 h de IA</b> (estimada pelo tempo de sessão) na entrega inicial. Retomada (09-11/11: I60, devolução I40 e escopo da Puxada TSP): <b>11,4 h humanas</b> e <b>aprox. 15,0 h de IA</b>; 12/11 (Puxada TSP): horas humanas a informar e aprox. 2,5 h de IA.</p>
     </div>
     <div class="ft"><span>Friozem | Integrador Notas Fiscais KIT → WMS</span><span>8 / 12</span></div>
   </section>
@@ -490,7 +492,7 @@
             <li>Placa do veículo lida do XML e gravada no WMS</li>
             <li>Robustez: TLS 1.2 forçado, GetToken com retry, não-XML tratado</li>
             <li>Manuais embarcados no servidor · resumo semanal por e-mail</li>
-            <li>Mais de 450 testes automatizados · 5 releases publicadas</li>
+            <li>Mais de 580 testes automatizados · 5 releases publicadas</li>
           </ul>
         </div>
         <div class="box a">
@@ -499,6 +501,7 @@
             <li>401 intermitente no GetToken (mitigado por retry)</li>
             <li>Compatível com a conta de integração ainda em provisionamento — deve estabilizar</li>
             <li>I60 (associação automática): testada no homolog; pausada, depende do fornecedor</li>
+            <li>Puxada TSP (ZIP por pasta, onda única por ZIP): em andamento; implementada, teste com ZIP real no homolog</li>
           </ul>
         </div>
         <div class="box b">
@@ -509,6 +512,7 @@
             <li>Planejar atualização do SO do servidor</li>
             <li>Devolução pela I40: formato validado no homolog; tela de chaves pronta, a testar no homolog</li>
             <li>Retenção de XML ampliada para 60 dias</li>
+            <li>Puxada TSP: testar no homolog, criar as pastas Puxada e PuxadaTSP e publicar a release</li>
           </ul>
         </div>
       </div>
