@@ -16,6 +16,10 @@ namespace KitWmsIntegrador.Core.Relatorio;
 /// <param name="Status">Status base; quando nulo, deriva de <paramref name="Integrada"/>.</param>
 /// <param name="ProdutosProvisorios">Códigos de produtos criados por contenção (I30), a revisar.</param>
 /// <param name="Historico">Histórico completo das chamadas (exibido apenas no HTML).</param>
+/// <param name="Tipo">PUXADA ou TSP (decidido pela pasta de origem).</param>
+/// <param name="Origem">raiz, Puxada ou PuxadaTSP (pasta onde o arquivo foi depositado).</param>
+/// <param name="Onda">Nome da onda da TSP (vazio na PUXADA).</param>
+/// <param name="Zip">Nome do ZIP de onde a nota saiu (vazio se XML solto).</param>
 public record LinhaRelatorioErro(
     string NumeroNota,
     string NumeroTransporte,
@@ -27,8 +31,18 @@ public record LinhaRelatorioErro(
     string IdDocumento = "",
     StatusLinhaRelatorio? Status = null,
     IReadOnlyList<string>? ProdutosProvisorios = null,
-    IReadOnlyList<string>? Historico = null)
+    IReadOnlyList<string>? Historico = null,
+    string Tipo = "PUXADA",
+    string Origem = "",
+    string Onda = "",
+    string Zip = "")
 {
+    /// <summary>Nota de Puxada TSP (pasta PuxadaTSP): agrupada por onda em vez de transporte.</summary>
+    public bool EhTsp => string.Equals(Tipo, "TSP", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Nota que veio solta na raiz da entrada (etiqueta discreta "raiz" no relatório).</summary>
+    public bool EhRaiz => string.Equals(Origem, "raiz", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Limite de caracteres do último erro resumido.</summary>
     public const int LimiteMensagemResumida = 160;
 

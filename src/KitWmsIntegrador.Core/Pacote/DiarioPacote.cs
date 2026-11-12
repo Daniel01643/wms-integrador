@@ -27,7 +27,11 @@ public sealed record RegistroDiario(
     IReadOnlyList<string> Historico,
     CategoriaErro? Categoria,
     DestinoArquivo Destino,
-    string? IdentificadorPacote = null)
+    string? IdentificadorPacote = null,
+    string Tipo = "PUXADA",
+    string Origem = "",
+    string Onda = "",
+    string? Zip = null)
 {
     /// <summary>Rótulo usado no relatório quando a nota/arquivo não tem transporte.</summary>
     public const string RotuloSemTransporte = "(sem transporte)";
@@ -47,7 +51,11 @@ public sealed record RegistroDiario(
         IdDocumento ?? string.Empty,
         Status,
         ProdutosProvisorios ?? Array.Empty<string>(),
-        Historico ?? Array.Empty<string>());
+        Historico ?? Array.Empty<string>(),
+        string.IsNullOrWhiteSpace(Tipo) ? TipoNotaExtensoes.RotuloPuxada : Tipo,
+        Origem ?? string.Empty,
+        Onda ?? string.Empty,
+        Zip ?? string.Empty);
 }
 
 /// <summary>

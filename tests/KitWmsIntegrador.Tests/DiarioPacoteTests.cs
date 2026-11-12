@@ -69,4 +69,41 @@ public sealed class DiarioPacoteTests : IDisposable
 
         Assert.Equal(RegistroDiario.RotuloSemTransporte, linha.NumeroTransporte);
     }
-}
+
+    [Fact]
+    public void CamposNovos_TipoOrigemOndaZip_IdaEVolta()
+    {
+        var diario = Criar();
+        diario.Registrar(Registro("a.xml", "1") with { Tipo = "TSP", Origem = "PuxadaTSP", Onda = "20261112-01-SJC", Zip = "XMLS SJC.zip" });
+
+        var lido = Criar().Ler().Single();
+
+        Assert.Equal("TSP", lido.Tipo);
+        Assert.Equal("PuxadaTSP", lido.Origem);
+        Assert.Equal("20261112-01-SJC", lido.Onda);
+        Assert.Equal("XMLS SJC.zip", lido.Zip);
+        var linha = lido.ParaLinha();
+        Assert.True(linha.EhTsp);
+        Assert.False(linha.EhRaiz);
+        Assert.Equal("20261112-01-SJC", linha.Onda);
+    }
+
+    [Fact]
+    public void LinhaAntigaSemCamposNovos_LeComPadroes()
+    {
+        var diario = Criar();
+        Directory.CreateDirectory(Path.GetDirectoryName(diario.Caminho)!);
+        File.WriteAllText(diario.Caminho,
+            "{\"Arquivo\":\"a.xml\",\"XmlInvalido\":false,\"NumeroNota\":\"7\",\"NumeroTransporte\":\"T9\"," +
+            "\"Horario\":\"2025-01-10T12:00:00+00:00\",\"Mensagem\":\"ok\",\"Integrada\":true,\"Tentativas\":1," +
+            "\"Status\":\"Integrada\",\"IdTransacao\":\"\",\"IdDocumento\":\"\",\"ProdutosProvisorios\":[]," +
+            "\"Historico\":[],\"Categoria\":null,\"Destino\":\"Processados\",\"IdentificadorPacote\":\"pacote_1\"}\n");
+
+        var lido = diario.Ler().Single();
+
+        Assert.Equal("PUXADA", lido.Tipo);
+        Assert.Equal(string.Empty, lido.Origem);
+        Assert.Equal(string.Empty, lido.Onda);
+        Assert.False(lido.ParaLinha().EhTsp);
+        Assert.Equal("T9", lido.ParaLinha().NumeroTransporte);
+    }}
