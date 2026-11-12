@@ -34,6 +34,18 @@ public sealed class OpcoesPasta
     /// <summary>Pasta de estado/diário do pacote (relativa à Entrada ou absoluta).</summary>
     public string Estado { get; set; } = "Estado";
 
+    /// <summary>Subpasta da entrada para puxadas normais (ZIP ou XML). Sobe como PUXADA.</summary>
+    public string Puxada { get; set; } = "Puxada";
+
+    /// <summary>Subpasta da entrada para puxadas TSP (só ZIP). Tudo que está aqui sobe como TSP.</summary>
+    public string PuxadaTsp { get; set; } = "PuxadaTSP";
+
+    /// <summary>
+    /// Quando verdadeiro (padrão), XML/ZIP soltos na RAIZ da entrada continuam aceitos como
+    /// PUXADA normal (Origem "raiz"). Falso: arquivos da raiz ficam parados na entrada.
+    /// </summary>
+    public bool AceitarRaiz { get; set; } = true;
+
     /// <summary>Organização dos arquivos dentro da pasta de erro.</summary>
     public OrganizacaoErro OrganizacaoErro { get; set; } = OrganizacaoErro.PorCategoria;
 
@@ -112,6 +124,12 @@ public sealed class OpcoesPasta
     /// <summary>Estado resolvido contra a Entrada.</summary>
     public string CaminhoEstado => Resolver(Estado);
 
+    /// <summary>Puxada resolvida contra a Entrada.</summary>
+    public string CaminhoPuxada => Resolver(Puxada);
+
+    /// <summary>PuxadaTSP resolvida contra a Entrada.</summary>
+    public string CaminhoPuxadaTsp => Resolver(PuxadaTsp);
+
     /// <summary>Devolve a lista de problemas da configuração (vazia = válida).</summary>
     public IReadOnlyList<string> Validar() => Validar(null);
 
@@ -174,6 +192,36 @@ public sealed class OpcoesPasta
         {
             problemas.Add("Pastas:Estado deve ser informada.");
             return problemas;
+        }
+
+        if (string.IsNullOrWhiteSpace(Puxada) || string.IsNullOrWhiteSpace(PuxadaTsp))
+        {
+            problemas.Add("Pastas:Puxada e Pastas:PuxadaTsp devem ser informadas.");
+            return problemas;
+        }
+
+        var puxada = CaminhoPuxada;
+        var puxadaTsp = CaminhoPuxadaTsp;
+        var especiais = new[] { ("Processados", processados), ("Erro", erro), ("Estado", CaminhoEstado) };
+        foreach (var (nome, caminho) in new[] { ("Puxada", puxada), ("PuxadaTsp", puxadaTsp) })
+        {
+            if (EhRaiz(caminho) || Mesmo(caminho, entrada))
+            {
+                problemas.Add($"Pastas:{nome} não pode ser a Entrada nem a raiz de um drive ({caminho}).");
+            }
+
+            foreach (var (outroNome, outro) in especiais)
+            {
+                if (Mesmo(caminho, outro) || EstaDentro(caminho, outro) || EstaDentro(outro, caminho))
+                {
+                    problemas.Add($"Pastas:{nome} não pode ser igual nem estar aninhada com Pastas:{outroNome}.");
+                }
+            }
+        }
+
+        if (Mesmo(puxada, puxadaTsp) || EstaDentro(puxada, puxadaTsp) || EstaDentro(puxadaTsp, puxada))
+        {
+            problemas.Add("Pastas:Puxada e Pastas:PuxadaTsp não podem ser a mesma pasta nem estar uma dentro da outra.");
         }
 
         var protegidas = new List<(string Nome, string Caminho)> { ("Pastas:Estado", CaminhoEstado) };

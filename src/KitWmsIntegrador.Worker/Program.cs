@@ -145,6 +145,10 @@ builder.Services
             pastas.Entrada = legado.Value.PastaEntrada;
         }
     });
+// Limites do leitor de ZIP (seção "Zip").
+builder.Services
+    .AddOptions<OpcoesZip>()
+    .Bind(builder.Configuration.GetSection(OpcoesZip.Secao));
 builder.Services
     .AddOptions<OpcoesPacote>()
     .Bind(builder.Configuration.GetSection(OpcoesPacote.Secao));

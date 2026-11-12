@@ -28,6 +28,7 @@ public class Worker : BackgroundService
     private readonly OpcoesPacote _pacote;
     private readonly OpcoesRelatorio _relatorio;
     private readonly OpcoesMonitoramento _monitoramento;
+    private readonly OpcoesZip _zip;
 
     public Worker(
         ILogger<Worker> logger,
@@ -40,8 +41,10 @@ public class Worker : BackgroundService
         IOptions<OpcoesPasta> pastas,
         IOptions<OpcoesPacote> pacote,
         IOptions<OpcoesRelatorio> relatorio,
-        IOptions<OpcoesMonitoramento> monitoramento)
+        IOptions<OpcoesMonitoramento> monitoramento,
+        IOptions<OpcoesZip> zip)
     {
+        _zip = zip.Value;
         _relatorio = relatorio.Value;
         _logger = logger;
         _lifetime = lifetime;
@@ -68,6 +71,32 @@ public class Worker : BackgroundService
             _logger.LogError("Serviço não iniciado: corrija a seção 'Pastas' do appsettings.");
             _lifetime.StopApplication();
             return;
+        }
+
+        var problemasZip = _zip.Validar();
+        if (problemasZip.Count > 0)
+        {
+            foreach (var problema in problemasZip)
+            {
+                _logger.LogError("Configuração inválida: {Problema}", problema);
+            }
+
+            _logger.LogError("Serviço não iniciado: corrija a seção 'Zip' do appsettings.");
+            _lifetime.StopApplication();
+            return;
+        }
+
+        // Garante as subpastas de depósito (Puxada e PuxadaTSP) dentro da entrada.
+        foreach (var subpasta in new[] { _pastas.CaminhoPuxada, _pastas.CaminhoPuxadaTsp })
+        {
+            try
+            {
+                Directory.CreateDirectory(subpasta);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Não foi possível criar a pasta {Pasta}.", subpasta);
+            }
         }
 
         _logger.LogInformation(

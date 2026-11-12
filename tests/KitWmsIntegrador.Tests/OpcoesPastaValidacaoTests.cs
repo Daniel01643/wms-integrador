@@ -63,4 +63,42 @@ public class OpcoesPastaValidacaoTests
     {
         Assert.NotEmpty(Op(estado: "Erro").Validar());
     }
+
+    [Fact]
+    public void Padroes_PuxadaPuxadaTspERaiz()
+    {
+        var o = Op();
+        Assert.Equal("Puxada", o.Puxada);
+        Assert.Equal("PuxadaTSP", o.PuxadaTsp);
+        Assert.True(o.AceitarRaiz);
+        Assert.Equal(Path.Combine(Raiz, "Puxada"), o.CaminhoPuxada);
+        Assert.Equal(Path.Combine(Raiz, "PuxadaTSP"), o.CaminhoPuxadaTsp);
+    }
+
+    [Theory]
+    [InlineData("", "PuxadaTSP")]
+    [InlineData("Puxada", " ")]
+    public void Puxadas_Vazias_SaoRecusadas(string puxada, string tsp)
+    {
+        var o = Op();
+        o.Puxada = puxada;
+        o.PuxadaTsp = tsp;
+        Assert.Contains(o.Validar(), p => p.Contains("Puxada"));
+    }
+
+    [Theory]
+    [InlineData("Puxada", "Puxada")]
+    [InlineData("Puxada", "Puxada\\TSP")]
+    [InlineData("Processados", "PuxadaTSP")]
+    [InlineData("Puxada", "Erro")]
+    [InlineData("Estado", "PuxadaTSP")]
+    [InlineData("Puxada", "Processados\\TSP")]
+    [InlineData(".", "PuxadaTSP")]
+    public void Puxadas_IguaisOuAninhadas_SaoRecusadas(string puxada, string tsp)
+    {
+        var o = Op();
+        o.Puxada = puxada;
+        o.PuxadaTsp = tsp;
+        Assert.NotEmpty(o.Validar());
+    }
 }
