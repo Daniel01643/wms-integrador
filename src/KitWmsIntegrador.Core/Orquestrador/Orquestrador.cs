@@ -39,6 +39,7 @@ public sealed class Orquestrador : IOrquestrador
     private readonly IConstrutorI60 _i60;
     private readonly ClassificadorRetorno _classificador;
     private readonly OpcoesI60 _opcoesI60;
+    private readonly OpcoesI51 _opcoesI51;
     private readonly IClock _clock;
     private readonly ILogger<Orquestrador> _logger;
 
@@ -51,8 +52,10 @@ public sealed class Orquestrador : IOrquestrador
         ClassificadorRetorno classificador,
         IOptions<OpcoesI60> opcoesI60,
         IClock clock,
-        ILogger<Orquestrador> logger)
+        ILogger<Orquestrador> logger,
+        IOptions<OpcoesI51>? opcoesI51 = null)
     {
+        _opcoesI51 = opcoesI51?.Value ?? new OpcoesI51();
         _cliente = cliente;
         _i50 = i50;
         _i10 = i10;
@@ -150,7 +153,12 @@ public sealed class Orquestrador : IOrquestrador
             // (b) Sucesso: integra (e envia I60 só se a flag estiver ligada).
             if (_classificador.EhSucesso(respI50))
             {
-                if (_opcoesI60.Habilitada)
+                // Com a I51 ligada, a I60 NÃO sai junto da I50: só depois do retorno da separação.
+                if (_opcoesI60.Habilitada && _opcoesI51.Habilitada)
+                {
+                    historico.Add("I60 adiada: será enviada após o retorno da separação (I51).");
+                }
+                else if (_opcoesI60.Habilitada)
                 {
                     var respI60 = await Chamar(() => _cliente
                         .EnviarAsync(InterfaceWms.I60, _i60.Construir(nota), cancellationToken))

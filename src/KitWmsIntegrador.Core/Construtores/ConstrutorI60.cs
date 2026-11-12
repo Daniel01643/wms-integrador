@@ -29,7 +29,16 @@ public sealed class ConstrutorI60 : IConstrutorI60
     }
 
     /// <inheritdoc />
-    public PayloadI60 Construir(NotaFiscal nota)
+    public PayloadI60 Construir(NotaFiscal nota) => ConstruirCore(nota, null);
+
+    /// <inheritdoc />
+    public PayloadI60 Construir(NotaFiscal nota, ParametrosI60 parametros)
+    {
+        ArgumentNullException.ThrowIfNull(parametros);
+        return ConstruirCore(nota, parametros);
+    }
+
+    private PayloadI60 ConstruirCore(NotaFiscal nota, ParametrosI60? parametros)
     {
         ArgumentNullException.ThrowIfNull(nota);
 
@@ -41,25 +50,36 @@ public sealed class ConstrutorI60 : IConstrutorI60
             : nota.TransportadoraCnpj!;
 
         var volumes = nota.Volumes;
-        var qtdeTotal = nota.Itens.Sum(i => i.Quantidade);
         // qtdeVolume = soma das quantidades em caixas dos itens (a mesma quantidade que a I50
         // envia por item e que o código customizado do WMS soma em QTD_VOLUMES do DocCarga).
         // NÃO usa transp/vol/qVol do XML: assim I50 -> PL/SQL e I60 batem por construção.
         // Diagnóstico (I60:QtdeVolumeZero=true): envia 0 para testar a conferência do WMS.
-        var qtdeVolume = _i60.QtdeVolumeZero ? 0m : CalcularQtdeVolume(nota);
 
         var itens = new List<ItemNotaVendaI60>(nota.Itens.Count);
         for (var i = 0; i < nota.Itens.Count; i++)
         {
             var item = nota.Itens[i];
+            var quantidade = item.Quantidade;
+            if (parametros?.Quantidades is { } ajustadas)
+            {
+                // Quantidade separada (I51) por sequência; item sem entrada é omitido (I51:ItemSemRetorno=Omitir).
+                var achada = ajustadas.FirstOrDefault(q => q.Sequencia == i + 1);
+                if (achada is null)
+                {
+                    continue;
+                }
+
+                quantidade = achada.Quantidade;
+            }
+
             itens.Add(new ItemNotaVendaI60
             {
                 NumeroSequencialItem = i + 1,
                 CodProduto = item.CodigoProduto,
-                QtdeProduto = item.Quantidade,
-                QtdeProdutoConfirmada = item.Quantidade,
+                QtdeProduto = quantidade,
+                QtdeProdutoConfirmada = quantidade,
                 // A CONFIRMAR: sem fator de conversão, qtdeEmbalagem replica qCom.
-                QtdeEmbalagem = item.Quantidade,
+                QtdeEmbalagem = quantidade,
                 // Valor unitário = vUnCom do XML (confirmado).
                 ValorOriginalItem = item.ValorUnitario,
                 ValorAtualItem = item.ValorUnitario,
@@ -68,9 +88,18 @@ public sealed class ConstrutorI60 : IConstrutorI60
             });
         }
 
-        var tipoOperacao = string.IsNullOrWhiteSpace(_i60.TipoOperacaoNota)
-            ? OpcoesI60.TipoOperacaoNotaPadrao
-            : _i60.TipoOperacaoNota.Trim();
+        var qtdeTotal = itens.Sum(i => i.QtdeProduto);
+        var qtdeVolume = _i60.QtdeVolumeZero
+            ? 0m
+            : parametros?.QtdeVolume ?? (parametros?.Quantidades is null
+                ? CalcularQtdeVolume(nota)
+                : Math.Round(qtdeTotal, 0, MidpointRounding.AwayFromZero));
+
+        var tipoOperacao = !string.IsNullOrWhiteSpace(parametros?.TipoOperacaoNota)
+            ? parametros!.TipoOperacaoNota!.Trim()
+            : string.IsNullOrWhiteSpace(_i60.TipoOperacaoNota)
+                ? OpcoesI60.TipoOperacaoNotaPadrao
+                : _i60.TipoOperacaoNota.Trim();
 
         var notaVenda = new NotaVendaI60
         {
@@ -104,6 +133,7 @@ public sealed class ConstrutorI60 : IConstrutorI60
             // Tipo de operação: configurável (I60:TipoOperacaoNota), sem release.
             Tpsit = tipoOperacao,
             TipoOperacaoNota = tipoOperacao,
+            Tpacao = string.IsNullOrWhiteSpace(parametros?.Tpacao) ? "I" : parametros!.Tpacao!.Trim(),
             // Campos fixos (tipoNota="AR", formaTransporte="PR", tpacao="I", Tpnota="NV")
             // vêm dos defaults do DTO.
         };

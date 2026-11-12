@@ -14,6 +14,12 @@ public interface IConstrutorI60
     /// <summary>Constrói o DTO tipado da I60 para a nota.</summary>
     PayloadI60 Construir(NotaFiscal nota);
 
+    /// <summary>
+    /// Constrói a I60 com quantidades ajustadas, tipo de operação e tpacao do fluxo I51 → I60.
+    /// O método sem parâmetros permanece inalterado.
+    /// </summary>
+    PayloadI60 Construir(NotaFiscal nota, ParametrosI60 parametros);
+
     /// <summary>Constrói o DTO e serializa para o JSON exato esperado pela API.</summary>
     string ConstruirJson(NotaFiscal nota);
 }

@@ -5,6 +5,7 @@ using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Modelos;
 using KitWmsIntegrador.Core.Orquestrador;
 using KitWmsIntegrador.Core.Relatorio;
+using KitWmsIntegrador.Core.Separacao;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,6 +32,8 @@ public sealed class ProcessadorLote
     private readonly IClock _clock;
     private readonly OpcoesPacote _opcoes;
     private readonly ILogger<ProcessadorLote> _logger;
+    private readonly IRegistradorSeparacao? _separacao;
+    private static readonly ClassificadorRetorno ClassificadorJaExiste = new();
 
     // Arquivos já enviados ao WMS cujo move falhou: NUNCA reenviar, só repetir o move.
     private readonly ConcurrentDictionary<string, MovePendente> _movePendentes =
@@ -48,8 +51,10 @@ public sealed class ProcessadorLote
         IOptions<OpcoesPacote> opcoes,
         LeitorZipSeguro leitorZip,
         RegistroOndasTsp ondasTsp,
-        ILogger<ProcessadorLote> logger)
+        ILogger<ProcessadorLote> logger,
+        IRegistradorSeparacao? separacao = null)
     {
+        _separacao = separacao;
         _leitorZip = leitorZip ?? throw new ArgumentNullException(nameof(leitorZip));
         _ondasTsp = ondasTsp ?? throw new ArgumentNullException(nameof(ondasTsp));
         _orquestrador = orquestrador ?? throw new ArgumentNullException(nameof(orquestrador));
@@ -433,6 +438,7 @@ public sealed class ProcessadorLote
                     var resultado = resultados.Count > 0
                         ? resultados[0]
                         : throw new InvalidOperationException("O Orquestrador não devolveu resultado para a nota.");
+                    RegistrarSeparacao(nota, resultado, arquivo, ctx, transporte, identificadorPacote);
                     Concluir(registros, arquivo, resultado, identificadorPacote, ctx, ctx.EhTsp ? exibido : null, inicioNota);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -450,6 +456,33 @@ public sealed class ProcessadorLote
         finally
         {
             semaforo.Release();
+        }
+    }
+
+    // I51: registra a nota aceita (ou pendente/já existente) para acompanhar a separação. Só loga em falha.
+    private void RegistrarSeparacao(
+        NotaFiscal nota, ResultadoIntegracaoNota resultado, string arquivo, Ctx ctx, string transporte, string identificadorPacote)
+    {
+        if (_separacao is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var aceita = resultado.Integrada
+                         || resultado.Estado == EstadoIntegracao.Pendente
+                         || ClassificadorJaExiste.EhJaExiste(resultado.UltimaMensagem);
+            if (!aceita || _classificador.DestinoDe(resultado) != DestinoArquivo.Processados)
+            {
+                return;
+            }
+
+            _separacao.Registrar(nota, arquivo, ctx.Tipo, ctx.Onda, transporte, identificadorPacote);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Falha ao registrar a nota {Nota} no acompanhamento da separação.", nota.Numero);
         }
     }
 
