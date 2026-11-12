@@ -145,8 +145,13 @@ erros/pendências (no máximo 20 linhas; quando excede, nota "ver todas no PDF a
 ressalvas, um bloco verde "sem pendências" no lugar da tabela. No rodapé vai a **assinatura do sistema**
 (KitWms Integrador — integração automática de notas fiscais com o WMS; contato `sac@friozem.com.br`;
 `www.friozem.com.br`), sem telefones nem pessoas. A logo é embutida por **CID** (imagem inline, não `data:` URI,
-para o Outlook não bloquear); vem de `Relatorio:LogoPath` — sem logo válida, o cabeçalho e a assinatura caem
-para o texto "Friozem", sem erro. PDF detalhado segue anexo. **Um e-mail por pacote.** `Email:EnviarQuando`: `Sempre` (padrão: todo pacote fechado envia), `ComProblema` (só se há não integrada, pendente, produto a revisar ou XML
+para o Outlook não bloquear). Por padrão é a **logo Friozem embutida no programa** (versão negativa, sobre a faixa
+azul; na assinatura, sobre um selo azul); `Relatorio:LogoPath` só a substitui por outro PNG. O texto "Friozem" só
+aparece se nenhuma logo estiver disponível. Logo após os cartões vem o cartão **"Tempo de integração"** (resumo do
+pacote, etapas e, só quando há TSP, a tabela por onda), com **os mesmos números** do relatório HTML/PDF; a geração
+do relatório não entra nele (ver `RELATORIO-LOGS.md`, seção "Tempo de integração"). Pacote sem medição (antigo ou
+retomado) mostra só o que foi medido, ou omite o cartão. Layout só em tabelas com CSS inline (Outlook). PDF
+detalhado segue anexo. **Um e-mail por pacote.** `Email:EnviarQuando`: `Sempre` (padrão: todo pacote fechado envia), `ComProblema` (só se há não integrada, pendente, produto a revisar ou XML
 inválido) ou `Nunca`. O envio vem **desligado** (`Habilitado=false`) até o SMTP real ser preenchido em `email.settings.json`. Sem SMTP configurado nada falha: o serviço só registra no log e o relatório fica salvo em disco (`Relatorio:PastaSaida`).
 
 Configuração na seção `Email` (placeholders em `appsettings.json`, **sem senha**):
@@ -227,7 +232,13 @@ Worker** (sem Task Scheduler), em horário **local** do servidor. A seção de c
 ### 6.1. O que é coletado e onde fica
 
 - **`telemetria.jsonl`** — uma linha por **pacote fechado** (totais por status, média de notas por
-  pacote, tempos médios, tentativas, chamadas ao WMS e erros por categoria).
+  pacote, tempos médios, tentativas, chamadas ao WMS e erros por categoria). Desde 12/11/2026 também
+  traz os tempos medidos: `EsperaJanelaMs`, `LeituraMs`, `IntegracaoWmsMs` (fase de integração, tempo
+  de parede), `ChamadasWmsMs` (soma das chamadas I50/I10/I30/I60), `TempoRelatorioMs` (geração e
+  gravação do HTML+PDF, que não cabe no próprio relatório) e `Ondas` (por onda TSP: notas,
+  transportes, duração). Os campos são **opcionais**: linhas antigas continuam sendo lidas, com 0/vazio.
+  O resumo semanal ganha a linha **"Integração no WMS por nota"** (soma de `ChamadasWmsMs` ÷ notas,
+  só dos pacotes com medição); ela não aparece enquanto nenhum pacote tiver medição.
 - **`servico.jsonl`** — eventos de **saúde** do serviço (ex.: `servico-iniciado` na partida, com a
   versão do assembly).
 
@@ -372,6 +383,9 @@ Formato `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA` (`XML'S S
   transportes distintos; a coluna Transporte mostra o transporte de cada nota ("(sem)" se não houver).
 - Resumo do relatório e e-mail de fechamento: notas por tipo (PUXADA e TSP) e "Notas da raiz". O resumo
   semanal soma as notas por tipo.
+- Cabeçalho do relatório: `Pacote <id> · PUXADA`, `· TSP` ou `· PUXADA + TSP` (pacote misto).
+- Bloco "Tempo de integração": na TSP, tabela por onda (onda, notas, transportes, tempo da onda), que
+  substitui os "chips" de ondas; na PUXADA, só o resumo e as etapas (sem listar transportes).
 - **Pasta errada:** o sistema não detecta nem bloqueia. Conferir Tipo e Origem no relatório; para
   corrigir, ajustar a onda no WMS (a nota já subiu) e orientar o colaborador sobre a pasta certa.
   Notas com Origem `raiz` entram no relatório justamente para análise.

@@ -176,6 +176,18 @@ Regras de implementação:
   (com notas e transportes distintos) e a PUXADA por transporte. O e-mail e a telemetria contam notas
   por tipo e da raiz (campos novos no fim dos registros, com valor padrão, então diário e telemetria
   antigos continuam legíveis).
+- **Tempo de integração (12/11/2026):** medido com o `IClock` em quatro pontos. `Orquestrador` soma a
+  duração das chamadas ao WMS de cada nota (`ResultadoIntegracaoNota.DuracaoWmsMs`); `ProcessadorLote`
+  mede a leitura (`UltimaLeituraMs`) e grava no diário o início e a duração de WMS de cada nota
+  (`RegistroDiario.InicioNota`, `DuracaoWmsMs`, campos novos no fim, com padrão); `GerenciadorPacote`
+  mede a espera da janela (abertura até a foto) e passa `EtapasPacote` ao `FechadorPacote`, que monta
+  `MedicaoTempo` (fase de integração, soma do WMS e tempo por onda TSP saem do diário, então sobrevivem
+  a uma queda) e entrega `DadosPacote` (id + medição) ao `IGeradorRelatorio` e ao `CorpoEmailResumo`.
+  HTML, PDF e e-mail diagramam o mesmo `BlocoTempo`. A geração do relatório é medida com `Stopwatch`
+  no `FechadorPacote` e vai só para a telemetria (`TempoRelatorioMs`), pois não cabe dentro dele.
+  Telemetria: `EsperaJanelaMs`, `LeituraMs`, `IntegracaoWmsMs`, `ChamadasWmsMs`, `TempoRelatorioMs`,
+  `Ondas` (opcionais; linhas antigas leem 0/nulo). Cabeçalho do relatório: logo negativa embutida no
+  Core (`IdentidadeVisual.ObterLogo`: `LogoPath` -> embutida -> texto) e título "Relatório de Integração".
 - **Premissa a validar no homolog:** na TSP o `numeroPlanejamento` da I50 repete o nome da onda (como na
   puxada repete o transporte), pois o `Orquestrador` usa o mesmo argumento para os dois campos.
 

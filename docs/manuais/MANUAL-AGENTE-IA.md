@@ -89,6 +89,11 @@ Pontos de comportamento confirmados no código/`docs/OPERACAO.md`:
 | `tests\KitWmsIntegrador.Tests` | Testes (xUnit) com fakes de WMS/SMTP. |
 
 Telemetria é **JSON Lines** (`.jsonl`): uma linha por evento (pacote fechado / saúde do serviço).
+Campos de tempo do pacote (opcionais, linhas antigas leem 0/nulo): `EsperaJanelaMs`, `LeituraMs`,
+`IntegracaoWmsMs`, `ChamadasWmsMs`, `TempoRelatorioMs` e `Ondas`. Medição em `Orquestrador`
+(chamadas WMS), `ProcessadorLote` (leitura, início/duração por nota no diário), `GerenciadorPacote`
+(janela) e `FechadorPacote` (`MedicaoTempo` -> `DadosPacote` -> `BlocoTempo`, igual no HTML/PDF/e-mail).
+Logo do relatório: recurso embutido no Core (`Relatorio\Recursos\logo-friozem-negativo.png`).
 
 ## 3. Como diagnosticar falhas
 

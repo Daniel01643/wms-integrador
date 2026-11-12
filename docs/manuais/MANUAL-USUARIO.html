@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-12</span>
-    <span>Vers&atilde;o: 2026.11.12-6bdab9b</span>
+    <span>Vers&atilde;o: 2026.11.12-dcda19a</span>
   </div>
 </section>
   <header class="hd">
@@ -315,6 +315,15 @@
 </tbody></table>
 <p>Para ver o relatório, abra a pasta <code>relatorios</code> e dê dois cliques no arquivo <code>.html</code> (abre no navegador) ou no <code>.pdf</code>.</p>
 <h2>5. Como ler o relatório (os status)</h2>
+<p>O relatório se chama <strong>"Relatório de Integração"</strong> (antes "Relatório de Erros de Integração": ele mostra todas as notas do pacote, não só as com erro).</p>
+<h3>O cabeçalho</h3>
+<p>No topo há uma faixa azul com a logo da Friozem e o título. Logo abaixo, uma linha com três informações:</p>
+<ul>
+<li><strong>Pacote</strong> <code>pacote_&lt;data_hora&gt;</code> e o tipo: <code>PUXADA</code>, <code>TSP</code> ou <code>PUXADA + TSP</code> (quando o pacote teve as duas pastas);</li>
+<li><strong>Gerado em</strong>: data e hora em que o relatório foi gerado;</li>
+<li><strong>Coleta</strong>: horário do primeiro e do último arquivo gravado na pasta para este pacote.</li>
+</ul>
+<h3>Os status</h3>
 <p>O relatório mostra uma linha por nota, com um <strong>status</strong>. Estes são os status reais exibidos:</p>
 <table>
 <thead><tr>
@@ -377,9 +386,18 @@
 <li><strong>TSP:</strong> as notas ficam agrupadas <strong>por onda</strong> (por exemplo, <code>TSP-20261111-01-SOROCABA</code>), com a quantidade de notas e de transportes de cada onda. A coluna Transporte mostra o transporte de cada nota; se a nota não tiver transporte, aparece "(sem)" e ela sobe normalmente.</li>
 <li>O resumo do relatório e o e-mail de fechamento também contam as notas por tipo e as notas da raiz.</li>
 </ul>
+<h3>Tempo de integração</h3>
+<p>Logo depois do resumo vem o bloco <strong>"Tempo de integração"</strong>, medido pelo próprio sistema:</p>
+<ul>
+<li><strong>Resumo do pacote:</strong> início, fim, duração total, quantidade de notas, tempo médio por nota e notas por segundo.</li>
+<li><strong>Etapas:</strong> quanto tempo o sistema esperou a janela de coleta (o tempo para você terminar de depositar os arquivos), quanto levou para ler os ZIP/XML e quanto levou a <strong>integração no WMS</strong>. A coluna <strong>"Por nota"</strong> da integração no WMS é o tempo que o WMS levou por nota; é o número para comparar com o lançamento manual na tela.</li>
+<li><strong>Por onda</strong> (só quando o pacote tem TSP): cada onda com a quantidade de notas, de transportes e o tempo da onda (da primeira à última nota). Na puxada normal essa tabela não aparece; o detalhe por transporte está nos grupos da tabela de notas.</li>
+</ul>
+<p>O tempo para gerar o próprio relatório não aparece nele (o relatório ainda não existia). Se uma linha não aparecer, é porque aquele tempo não foi medido (por exemplo, pacote retomado depois de uma queda do servidor).</p>
+<p>A linha com a lista "Notas por transporte" saiu do resumo; a quantidade de notas de cada transporte continua no título de cada grupo da tabela ("Transporte X — 12 notas · 12 integradas · 0 com problema").</p>
 <p><strong>Depositou na pasta errada?</strong> Confira Tipo e Origem no relatório. Se o ZIP subiu como puxada e era TSP (ou o contrário), avise o responsável pela operação do WMS para ajustar a onda e deposite o ZIP na pasta certa nas próximas vezes. O sistema não bloqueia nem corrige sozinho.</p>
 <h2>6. O e-mail de fechamento</h2>
-<p>Ao fechar um pacote, o sistema pode enviar um <strong>e-mail de fechamento</strong> com o resumo (quantas integraram, quantas ficaram pendentes, quantas não integraram etc.) e o <strong>PDF do pacote em anexo</strong>.</p>
+<p>Ao fechar um pacote, o sistema pode enviar um <strong>e-mail de fechamento</strong> com o resumo (quantas integraram, quantas ficaram pendentes, quantas não integraram etc.), o mesmo bloco **"Tempo de integração"<strong> do relatório (com os mesmos números) e o </strong>PDF do pacote em anexo**.</p>
 <p>Se você está na lista de destinatários, recebe esse e-mail automaticamente. Para entrar ou sair da lista, fale com o responsável técnico/TI (a lista é configurada no servidor).</p>
 <h2>7. Boas práticas</h2>
 <ul>

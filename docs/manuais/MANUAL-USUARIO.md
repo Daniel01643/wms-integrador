@@ -97,6 +97,21 @@ navegador) ou no `.pdf`.
 
 ## 5. Como ler o relatório (os status)
 
+O relatório se chama **"Relatório de Integração"** (antes "Relatório de Erros de Integração": ele
+mostra todas as notas do pacote, não só as com erro).
+
+### O cabeçalho
+
+No topo há uma faixa azul com a logo da Friozem e o título. Logo abaixo, uma linha com três
+informações:
+
+- **Pacote** `pacote_<data_hora>` e o tipo: `PUXADA`, `TSP` ou `PUXADA + TSP` (quando o pacote teve
+  as duas pastas);
+- **Gerado em**: data e hora em que o relatório foi gerado;
+- **Coleta**: horário do primeiro e do último arquivo gravado na pasta para este pacote.
+
+### Os status
+
 O relatório mostra uma linha por nota, com um **status**. Estes são os status reais exibidos:
 
 | Status no relatório | O que significa | O que você deve fazer |
@@ -131,6 +146,28 @@ Como o relatório agrupa:
   nota; se a nota não tiver transporte, aparece "(sem)" e ela sobe normalmente.
 - O resumo do relatório e o e-mail de fechamento também contam as notas por tipo e as notas da raiz.
 
+### Tempo de integração
+
+Logo depois do resumo vem o bloco **"Tempo de integração"**, medido pelo próprio sistema:
+
+- **Resumo do pacote:** início, fim, duração total, quantidade de notas, tempo médio por nota e notas
+  por segundo.
+- **Etapas:** quanto tempo o sistema esperou a janela de coleta (o tempo para você terminar de
+  depositar os arquivos), quanto levou para ler os ZIP/XML e quanto levou a **integração no WMS**. A
+  coluna **"Por nota"** da integração no WMS é o tempo que o WMS levou por nota; é o número para
+  comparar com o lançamento manual na tela.
+- **Por onda** (só quando o pacote tem TSP): cada onda com a quantidade de notas, de transportes e o
+  tempo da onda (da primeira à última nota). Na puxada normal essa tabela não aparece; o detalhe por
+  transporte está nos grupos da tabela de notas.
+
+O tempo para gerar o próprio relatório não aparece nele (o relatório ainda não existia). Se uma linha
+não aparecer, é porque aquele tempo não foi medido (por exemplo, pacote retomado depois de uma queda
+do servidor).
+
+A linha com a lista "Notas por transporte" saiu do resumo; a quantidade de notas de cada transporte
+continua no título de cada grupo da tabela ("Transporte X — 12 notas · 12 integradas · 0 com
+problema").
+
 **Depositou na pasta errada?** Confira Tipo e Origem no relatório. Se o ZIP subiu como puxada e era
 TSP (ou o contrário), avise o responsável pela operação do WMS para ajustar a onda e deposite o ZIP
 na pasta certa nas próximas vezes. O sistema não bloqueia nem corrige sozinho.
@@ -138,7 +175,8 @@ na pasta certa nas próximas vezes. O sistema não bloqueia nem corrige sozinho.
 ## 6. O e-mail de fechamento
 
 Ao fechar um pacote, o sistema pode enviar um **e-mail de fechamento** com o resumo (quantas
-integraram, quantas ficaram pendentes, quantas não integraram etc.) e o **PDF do pacote em anexo**.
+integraram, quantas ficaram pendentes, quantas não integraram etc.), o mesmo bloco **"Tempo de
+integração"** do relatório (com os mesmos números) e o **PDF do pacote em anexo**.
 
 Se você está na lista de destinatários, recebe esse e-mail automaticamente. Para entrar ou sair
 da lista, fale com o responsável técnico/TI (a lista é configurada no servidor).

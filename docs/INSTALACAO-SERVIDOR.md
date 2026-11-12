@@ -409,6 +409,9 @@ O Worker (host genérico) lê, em ordem: `appsettings.json` (na release) + `apps
 - **Scripts de operação**: vivem de forma **permanente** em `tools\deploy` (fonte de verdade no
   servidor). `instalar.ps1`/`publicar-release.ps1` os **replicam/atualizam** (idempotente) junto da
   release, então acompanham a versão. O técnico opera a partir dessa pasta (RDP).
+- **Logo do relatório/e-mail**: vem **embutida no programa** (nada a copiar no servidor).
+  `Relatorio:LogoPath` é opcional e só serve para trocar por outro PNG (de preferência a versão
+  negativa/branca, que aparece sobre a faixa azul do cabeçalho); vazio = logo embutida.
 
 ---
 

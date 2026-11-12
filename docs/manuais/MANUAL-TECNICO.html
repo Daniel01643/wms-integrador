@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-12</span>
-    <span>Vers&atilde;o: 2026.11.12-6bdab9b</span>
+    <span>Vers&atilde;o: 2026.11.12-dcda19a</span>
   </div>
 </section>
   <header class="hd">
@@ -722,6 +722,54 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <li>A limpeza automática <strong>nunca</strong> toca essas pastas.</li>
 <li>Dentro do <code>Estado</code> há também <code>tsp\ondas.json</code> (sequencial do dia e onda de cada ZIP da Puxada TSP; ver seção 8.4) e <code>tmp\</code> (extração temporária dos ZIPs, apagada a cada ZIP processado).</li>
 </ul>
+<h3>10.1. Tempo de integração: campos e como é medido</h3>
+<p>O relatório, o PDF e o e-mail de fechamento mostram o bloco <strong>"Tempo de integração"</strong>. Os tempos são <strong>medidos</strong> pelo relógio do sistema (não estimados):</p>
+<table>
+<thead><tr>
+<th>Campo na telemetria (<code>telemetria.jsonl</code>)</th>
+<th>O que mede</th>
+<th>Onde é medido</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>EsperaJanelaMs</code></td>
+<td>Abertura do pacote até a foto da pasta (janela de coleta)</td>
+<td><code>GerenciadorPacote</code></td>
+</tr>
+<tr>
+<td><code>LeituraMs</code></td>
+<td>Leitura dos ZIP/XML</td>
+<td><code>ProcessadorLote</code></td>
+</tr>
+<tr>
+<td><code>IntegracaoWmsMs</code></td>
+<td>Fase de integração: início da 1ª nota até o registro da última (tempo de parede)</td>
+<td><code>ProcessadorLote</code></td>
+</tr>
+<tr>
+<td><code>ChamadasWmsMs</code></td>
+<td>Soma das chamadas ao WMS (I50, I10, I30 e, se ligada, I60) de todas as notas</td>
+<td><code>Orquestrador</code></td>
+</tr>
+<tr>
+<td><code>TempoRelatorioMs</code></td>
+<td>Geração e gravação do HTML+PDF do pacote</td>
+<td><code>FechadorPacote</code></td>
+</tr>
+<tr>
+<td><code>Ondas</code></td>
+<td>Por onda TSP: <code>Onda</code>, <code>Notas</code>, <code>Transportes</code>, <code>DuracaoMs</code></td>
+<td>diário do pacote</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Por nota no WMS</strong> = <code>ChamadasWmsMs</code> ÷ notas. É o número para comparar com o lançamento manual (hoje ~12 s por nota na tela). O resumo semanal mostra a linha "Integração no WMS por nota" só quando há pacotes com essa medição.</li>
+<li>Os campos são <strong>opcionais</strong>: linhas antigas da telemetria continuam sendo lidas (valem 0/vazio). O diário do pacote também ganhou <code>InicioNota</code> e <code>DuracaoWmsMs</code> por nota, com o mesmo cuidado.</li>
+<li><strong>Limitação:</strong> o tempo de geração do relatório não pode aparecer dentro do próprio relatório. Ele fica <strong>só na telemetria</strong> (<code>TempoRelatorioMs</code>); o relatório e o e-mail mostram as etapas concluídas antes.</li>
+<li>Pacote retomado depois de uma queda: espera da janela e leitura ficam sem valor (0 na telemetria, linha omitida no relatório); integração no WMS e ondas saem do diário e continuam corretas.</li>
+</ul>
+<h3>10.2. Logo do relatório e do e-mail</h3>
+<p>A logo Friozem (versão negativa, branca) vem <strong>embutida no programa</strong>. <code>Relatorio:LogoPath</code> é opcional e só troca por outro PNG; vazio, inexistente ou inválido = logo embutida. Nada a copiar no servidor.</p>
 <blockquote><p>Nota de configuração: o caminho físico de <code>Estado</code>/telemetria depende de <code>Pastas:Estado</code>/<code>Monitoramento:CaminhoTelemetria</code>. Para ficarem em <code>C:\Friozem\importacao_notas\data</code> (fora do share), esses valores precisam ser **caminhos absolutos** no <code>appsettings.Production.json</code>. Confirme o valor efetivo em produção antes de supor onde estão (ver lacuna no resumo).</p></blockquote>
 <h2>11. O serviço não sobe — diagnóstico e TLS 1.2</h2>
 <p>Passos na ordem:</p>

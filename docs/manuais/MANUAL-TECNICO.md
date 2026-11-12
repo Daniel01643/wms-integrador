@@ -539,6 +539,35 @@ de propósito.
 - Dentro do `Estado` há também `tsp\ondas.json` (sequencial do dia e onda de cada ZIP da Puxada TSP;
   ver seção 8.4) e `tmp\` (extração temporária dos ZIPs, apagada a cada ZIP processado).
 
+### 10.1. Tempo de integração: campos e como é medido
+
+O relatório, o PDF e o e-mail de fechamento mostram o bloco **"Tempo de integração"**. Os tempos são
+**medidos** pelo relógio do sistema (não estimados):
+
+| Campo na telemetria (`telemetria.jsonl`) | O que mede | Onde é medido |
+|---|---|---|
+| `EsperaJanelaMs` | Abertura do pacote até a foto da pasta (janela de coleta) | `GerenciadorPacote` |
+| `LeituraMs` | Leitura dos ZIP/XML | `ProcessadorLote` |
+| `IntegracaoWmsMs` | Fase de integração: início da 1ª nota até o registro da última (tempo de parede) | `ProcessadorLote` |
+| `ChamadasWmsMs` | Soma das chamadas ao WMS (I50, I10, I30 e, se ligada, I60) de todas as notas | `Orquestrador` |
+| `TempoRelatorioMs` | Geração e gravação do HTML+PDF do pacote | `FechadorPacote` |
+| `Ondas` | Por onda TSP: `Onda`, `Notas`, `Transportes`, `DuracaoMs` | diário do pacote |
+
+- **Por nota no WMS** = `ChamadasWmsMs` ÷ notas. É o número para comparar com o lançamento manual
+  (hoje ~12 s por nota na tela). O resumo semanal mostra a linha "Integração no WMS por nota" só
+  quando há pacotes com essa medição.
+- Os campos são **opcionais**: linhas antigas da telemetria continuam sendo lidas (valem 0/vazio). O
+  diário do pacote também ganhou `InicioNota` e `DuracaoWmsMs` por nota, com o mesmo cuidado.
+- **Limitação:** o tempo de geração do relatório não pode aparecer dentro do próprio relatório. Ele fica
+  **só na telemetria** (`TempoRelatorioMs`); o relatório e o e-mail mostram as etapas concluídas antes.
+- Pacote retomado depois de uma queda: espera da janela e leitura ficam sem valor (0 na telemetria,
+  linha omitida no relatório); integração no WMS e ondas saem do diário e continuam corretas.
+
+### 10.2. Logo do relatório e do e-mail
+
+A logo Friozem (versão negativa, branca) vem **embutida no programa**. `Relatorio:LogoPath` é opcional
+e só troca por outro PNG; vazio, inexistente ou inválido = logo embutida. Nada a copiar no servidor.
+
 > Nota de configuração: o caminho físico de `Estado`/telemetria depende de
 > `Pastas:Estado`/`Monitoramento:CaminhoTelemetria`. Para ficarem em
 > `C:\Friozem\importacao_notas\data` (fora do share), esses valores precisam ser **caminhos
