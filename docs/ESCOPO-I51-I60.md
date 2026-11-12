@@ -45,6 +45,17 @@ I50 aceita → AguardandoSeparacao → (I51 retornou) Separada → I60 enviada �
 | — | Liga/desliga | Tudo atrás de chave: `I51:Habilitada` e `I60:Habilitada`, **desligadas por padrão**. |
 | — | Testes no WMS | Somente depois que o fornecedor resolver a proprietária BRF (01.838.723/0098-50) no homolog. |
 
+## Ordem das alternativas para devolução (decisão do usuário, 12/11/2026)
+
+1. **I60 associada** (fluxo I51 → I60 `INE`): caminho principal; a devolução usa a nota associada.
+2. **I60 como `IMP`** (doccarga ENC): nota importada sem associação, erro registrado.
+3. **Tela de envio de devolução pela I40** (Plano B, `docs\ARQUITETURA-PLANO-B-I40.md`):
+   **última alternativa**, mas deve ficar **pronta e funcionando** (testada no homolog), atrás de
+   `Devolucao:Habilitada` (hoje false). Continua **fora dos manuais oficiais** até decisão em contrário.
+   O trabalho da I51/I60 **não pode quebrar** a tela da I40 (testes de regressão obrigatórios).
+   Ideia a avaliar no relatório diário: listar as notas que só ficaram como `IMP`/rejeitadas como
+   candidatas à devolução pela I40.
+
 ## Pontos a definir na implementação (planner)
 
 - **Como detectar o ENC** (a confirmar com o usuário): a I51 não traz o status do doccarga no
@@ -66,6 +77,7 @@ I50 aceita → AguardandoSeparacao → (I51 retornou) Separada → I60 enviada �
 
 - Fornecedor: proprietária BRF "Proprietaria/Chave - 01.838.723/0098-50 nao encontrada" no homolog.
 - Usuário: configurar o EDI da I51 (WEBSERVI) em homolog e produção; informar os identificadores finais.
+- Teste da tela de devolução I40 no homolog (roteiro `docs\ROTEIRO-TESTE-I40.md`), junto do teste da I51/I60.
 
 ## Estimativa (somente horas)
 

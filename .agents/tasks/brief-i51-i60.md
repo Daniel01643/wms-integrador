@@ -66,6 +66,12 @@ Relatorio, Email, Monitoramento e Worker.
    hipótese padrão: recusa da I60 `INE` com mensagem de encerrado (padrões configuráveis) → reenvio `IMP`.
    Atenção ao "Nota [...] já existe, TpAcao precisa ser UPD!" (`docs\chamado\respostas-homolog.txt`):
    o reenvio pode exigir `TpAcao = UPD`; deixar configurável e coberto por teste com WMS falso.
+4b. Tela de devolução pela I40 (Plano B; `c:\wms-integrador\docs\ARQUITETURA-PLANO-B-I40.md`,
+   roteiro `c:\wms-integrador\docs\ROTEIRO-TESTE-I40.md`): é a ÚLTIMA alternativa para devolução, mas deve
+   continuar PRONTA E FUNCIONANDO atrás de `Devolucao:Habilitada` (false nos appsettings). Não pode
+   quebrar: rodar/ampliar os testes existentes da I40 (tipoOperacaoNota IMP, InverterPartes=false, busca
+   por chave OU número+série, sem placa/motorista). Avaliar listar no relatório diário as notas que
+   ficaram `IMP`/rejeitadas como candidatas à devolução pela I40. Continua FORA dos manuais oficiais.
 5. I60 não é mais enviada junto da I50 quando `I51:Habilitada=true`. Com I51 desligada, o
    comportamento atual permanece idêntico.
 6. Ondas TSP também passam pelo fluxo.
