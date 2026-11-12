@@ -113,7 +113,12 @@ public sealed record ModeloRelatorio(
             Pendentes: ordenadas.Count(l => !l.EstaIntegrada && l.StatusEfetivo == StatusLinhaRelatorio.Pendente),
             NaoIntegradas: ordenadas.Count(l => !l.ArquivoIgnorado && !l.EstaIntegrada && l.StatusEfetivo != StatusLinhaRelatorio.Pendente),
             ArquivosIgnorados: ordenadas.Count(l => l.ArquivoIgnorado),
-            Transportes: gruposPuxada.Count,
+            // Transportes distintos de todas as notas (PUXADA, TSP e raiz), qualquer status.
+            Transportes: ordenadas
+                .Select(l => l.NumeroTransporte ?? string.Empty)
+                .Where(t => !string.IsNullOrWhiteSpace(t) && t != RegistroDiario.RotuloSemTransporte && t != RegistroDiario.RotuloSemTransporteTsp)
+                .Distinct(StringComparer.Ordinal)
+                .Count(),
             NotasPorTransporte: gruposPuxada.Select(g => (g.Transporte, g.Notas)).ToList(),
             NotasPuxada: ordenadas.Count(l => !l.ArquivoIgnorado && !l.EhTsp),
             NotasTsp: ordenadas.Count(l => !l.ArquivoIgnorado && l.EhTsp),

@@ -75,9 +75,32 @@ public sealed class RelatorioTipoOrigemTests : IDisposable
         Assert.Equal(7, r.NotasTsp);
         Assert.Equal(1, r.NotasRaiz);
         Assert.Equal(2, r.OndasTsp);
-        Assert.Equal(2, r.Transportes);
+        Assert.Equal(8, r.Transportes);
         Assert.Contains((OndaSoro, 5, 4), r.NotasPorOnda!);
         Assert.Contains((OndaSjc, 2, 2), r.NotasPorOnda!);
+    }
+
+    [Fact]
+    public void Modelo_PacoteSoTsp_NaoIntegrado_CartaoTransportesContaTransportesDistintos()
+    {
+        var linhas = new List<LinhaRelatorioErro>();
+        var transportes = new[] { "1000000001", "1000000002", "1000000003", "1000000004" };
+        for (var i = 0; i < 4; i++)
+        {
+            linhas.Add(L((3001 + i).ToString(), transportes[i], "TSP", "PuxadaTSP", OndaSoro,
+                integrada: false, status: StatusLinhaRelatorio.Pendente, mensagem: "Pendente de teste"));
+        }
+
+        linhas.Add(L("3101", "1000000010", "TSP", "PuxadaTSP", OndaSjc, integrada: false));
+        linhas.Add(L("3102", "1000000011", "TSP", "PuxadaTSP", OndaSjc, integrada: false));
+        linhas.Add(L("3103", "1000000011", "TSP", "PuxadaTSP", OndaSjc, integrada: false));
+
+        var m = ModeloRelatorio.Montar(linhas);
+
+        Assert.Equal(6, m.Resumo.Transportes);
+        Assert.Equal(0, m.Resumo.Integradas);
+        Assert.Equal(0, m.Resumo.NotasPuxada);
+        Assert.Contains("<b>6</b>Transportes</div>", Gerador().GerarHtml(linhas, Em));
     }
 
     [Fact]
