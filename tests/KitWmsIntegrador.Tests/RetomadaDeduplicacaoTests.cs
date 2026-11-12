@@ -24,14 +24,14 @@ public sealed class RetomadaDeduplicacaoTests : IDisposable
 
         public List<IReadOnlyList<LinhaRelatorioErro>> Pacotes { get; } = new();
 
-        public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null)
+        public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null)
         {
             Pacotes.Add(linhas);
-            return _real.GerarHtml(linhas, geradoEm, periodo);
+            return _real.GerarHtml(linhas, geradoEm, periodo, pacote);
         }
 
-        public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
-            _real.GerarPdf(linhas, geradoEm, periodo);
+        public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null) =>
+            _real.GerarPdf(linhas, geradoEm, periodo, pacote);
 
         public (string CaminhoHtml, string CaminhoPdf) GerarArquivos(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
             _real.GerarArquivos(linhas, geradoEm);

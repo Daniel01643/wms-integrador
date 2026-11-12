@@ -49,7 +49,7 @@ public sealed class FechadorPacote
     /// <summary>Devolve verdadeiro se o pacote pode ser considerado fechado (relatório gravado ou nada a reportar).</summary>
     public async Task<bool> FecharAsync(
         IReadOnlyList<RegistroDiario> registros, DateTimeOffset inicio, DateTimeOffset fim, CancellationToken ct,
-        PeriodoColeta? periodo = null, string? identificadorPacote = null)
+        PeriodoColeta? periodo = null, string? identificadorPacote = null, EtapasPacote? etapas = null)
     {
         if (registros.Count == 0)
         {
@@ -61,10 +61,17 @@ public sealed class FechadorPacote
         var xmlsInvalidos = registros.Count(r => r.XmlInvalido);
         byte[] pdf;
 
+        // Medição de tempo (IClock): o relatório mostra só o que terminou antes de ser renderizado.
+        // O tempo da própria geração (abaixo) não cabe dentro dele: vai só para a telemetria.
+        var medicao = MedicaoTempo.De(registros, inicio, fim, etapas?.EsperaJanelaMs, etapas?.LeituraMs);
+        var dados = new DadosPacote(identificadorPacote, medicao);
+        var cronometro = System.Diagnostics.Stopwatch.StartNew();
+        long tempoRelatorioMs;
+
         try
         {
-            var html = _gerador.GerarHtml(linhas, fim, periodo);
-            pdf = _gerador.GerarPdf(linhas, fim, periodo);
+            var html = _gerador.GerarHtml(linhas, fim, periodo, dados);
+            pdf = _gerador.GerarPdf(linhas, fim, periodo, dados);
 
             Directory.CreateDirectory(_opcoesRelatorio.PastaSaida);
             // O id do pacote (calculado na abertura) é a base do nome; sem ele (chamada legada),
@@ -76,6 +83,7 @@ public sealed class FechadorPacote
             var caminhoPdf = Path.Combine(_opcoesRelatorio.PastaSaida, baseNome + ".pdf");
             await File.WriteAllTextAsync(caminhoHtml, html, Encoding.UTF8, CancellationToken.None).ConfigureAwait(false);
             await File.WriteAllBytesAsync(caminhoPdf, pdf, CancellationToken.None).ConfigureAwait(false);
+            tempoRelatorioMs = cronometro.ElapsedMilliseconds;
             _logger.LogInformation("Relatório do pacote salvo em {Html} e {Pdf}.", caminhoHtml, caminhoPdf);
         }
         catch (Exception ex)
@@ -132,7 +140,7 @@ public sealed class FechadorPacote
             var assunto = $"Fechamento do pacote {fim.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)} - " +
                           $"{resumo.Total} nota(s), {resumo.NaoIntegradas} não integrada(s), {resumo.Pendentes} pendente(s)";
             var logo = IdentidadeVisual.LerLogoPng(_opcoesRelatorio.LogoPath);
-            var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, logo, periodo: periodo);
+            var corpo = CorpoEmailResumo.Montar(linhas, xmlsInvalidos, inicio, fim, logo, periodo: periodo, pacote: dados);
             var nomePdf = (string.IsNullOrWhiteSpace(identificadorPacote)
                 ? "pacote_" + fim.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)
                 : identificadorPacote) + ".pdf";

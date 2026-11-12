@@ -55,6 +55,11 @@ public sealed class GerenciadorPacote
     private int _fotosVazias;
     private bool _retomado;
 
+    // Etapas medidas do pacote em andamento (null = desconhecido). Pacote retomado de queda não as tem.
+    private long? _esperaJanelaMs;
+    private long? _leituraMs;
+    private bool _pacoteRetomado;
+
     /// <summary>Cria o gerenciador.</summary>
     public GerenciadorPacote(
         IClock clock,
@@ -163,6 +168,12 @@ public sealed class GerenciadorPacote
                 _fotosVazias = 0;
                 _proximaFoto = DateTimeOffset.MinValue;
                 _periodo = PeriodoColeta.Calcular(foto);
+                if (!_pacoteRetomado)
+                {
+                    // Espera da janela: abertura do pacote até a foto (medida com o IClock).
+                    _esperaJanelaMs = Math.Max(0L, (long)(agora - _inicio!.Value).TotalMilliseconds);
+                }
+
                 Estado = EstadoPacote.Processando;
                 _logger.LogInformation(
                     "Foto da pasta: {Arquivos} arquivo(s); primeira gravação {Primeira:dd/MM/yyyy HH:mm:ss}, última {Ultima:dd/MM/yyyy HH:mm:ss}.",
@@ -182,6 +193,11 @@ public sealed class GerenciadorPacote
 
                 var novos = await _processador.ProcessarAsync(fotoXml, _idPacote, ct).ConfigureAwait(false);
                 _registros.AddRange(novos);
+                if (!_pacoteRetomado)
+                {
+                    _leituraMs = _processador.UltimaLeituraMs;
+                }
+
                 Estado = EstadoPacote.Fechando;
             }
         }
@@ -209,6 +225,8 @@ public sealed class GerenciadorPacote
         _proximaFoto = agora.AddSeconds(espera);
         _inicio = null;
         _periodo = null;
+        _esperaJanelaMs = null;
+        _leituraMs = null;
         Estado = EstadoPacote.Ocioso;
         _logger.LogInformation(
             "Foto sem arquivos prontos (ainda em gravação); nova tentativa após {Espera:0}s.", espera);
@@ -223,7 +241,9 @@ public sealed class GerenciadorPacote
         {
             var registros = ConsolidadorRegistros.Consolidar(_registros);
             var id = _idPacote ?? IdDe(inicio);
-            ok = await _fechador.FecharAsync(registros, inicio, _clock.UtcNow, ct, _periodo, id).ConfigureAwait(false);
+            ok = await _fechador.FecharAsync(
+                registros, inicio, _clock.UtcNow, ct, _periodo, id,
+                new EtapasPacote(_esperaJanelaMs, _leituraMs)).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -241,6 +261,9 @@ public sealed class GerenciadorPacote
         _inicio = null;
         _idPacote = null;
         _periodo = null;
+        _esperaJanelaMs = null;
+        _leituraMs = null;
+        _pacoteRetomado = false;
         Estado = EstadoPacote.Ocioso;
         _logger.LogInformation("Pacote fechado.");
     }
@@ -259,6 +282,10 @@ public sealed class GerenciadorPacote
             return;
         }
 
+        // Pacote retomado: espera da janela e leitura não são conhecidas (as linhas somem do relatório).
+        _pacoteRetomado = true;
+        _esperaJanelaMs = null;
+        _leituraMs = null;
         var registros = ConsolidadorRegistros.Consolidar(lidos);
 
         // Restaura o id do diário (primeiro registro que o traga) para reconciliar os moves na

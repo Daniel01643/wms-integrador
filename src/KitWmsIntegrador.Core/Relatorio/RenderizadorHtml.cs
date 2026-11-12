@@ -81,7 +81,8 @@ aplicar();
 ";
 
     public static string Renderizar(
-        ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo = null)
+        ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo = null,
+        DadosPacote? pacote = null)
     {
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html>\n");

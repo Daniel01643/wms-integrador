@@ -29,20 +29,20 @@ public sealed class GeradorMedido : IGeradorRelatorio
 
     public int MaiorPdfBytes { get; private set; }
 
-    public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null)
+    public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null)
     {
         var sw = Stopwatch.StartNew();
-        var html = _interno.GerarHtml(linhas, geradoEm, periodo);
+        var html = _interno.GerarHtml(linhas, geradoEm, periodo, pacote);
         var ms = sw.Elapsed.TotalMilliseconds;
         TempoHtmlMs += ms;
         MaiorHtmlMs = Math.Max(MaiorHtmlMs, ms);
         return html;
     }
 
-    public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null)
+    public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null)
     {
         var sw = Stopwatch.StartNew();
-        var pdf = _interno.GerarPdf(linhas, geradoEm, periodo);
+        var pdf = _interno.GerarPdf(linhas, geradoEm, periodo, pacote);
         var ms = sw.Elapsed.TotalMilliseconds;
         TempoPdfMs += ms;
         MaiorPdfMs = Math.Max(MaiorPdfMs, ms);

@@ -30,11 +30,11 @@ public sealed class GerenciadorPacoteTests : IDisposable
 
         public bool Quebrar { get; set; }
 
-        public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
-            Quebrar ? throw new IOException("sem espaço") : _real.GerarHtml(linhas, geradoEm, periodo);
+        public string GerarHtml(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null) =>
+            Quebrar ? throw new IOException("sem espaço") : _real.GerarHtml(linhas, geradoEm, periodo, pacote);
 
-        public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null) =>
-            _real.GerarPdf(linhas, geradoEm, periodo);
+        public byte[] GerarPdf(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm, PeriodoColeta? periodo = null, DadosPacote? pacote = null) =>
+            _real.GerarPdf(linhas, geradoEm, periodo, pacote);
 
         public (string CaminhoHtml, string CaminhoPdf) GerarArquivos(IReadOnlyList<LinhaRelatorioErro> linhas, DateTimeOffset geradoEm) =>
             _real.GerarArquivos(linhas, geradoEm);

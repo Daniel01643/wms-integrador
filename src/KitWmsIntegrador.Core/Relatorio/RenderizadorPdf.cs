@@ -58,7 +58,9 @@ internal static class RenderizadorPdf
         public Bloco? Cabecalho;
     }
 
-    public static byte[] Renderizar(ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo = null)
+    public static byte[] Renderizar(
+        ModeloRelatorio modelo, DateTimeOffset geradoEm, byte[]? logoPng, PeriodoColeta? periodo = null,
+        DadosPacote? pacote = null)
     {
         using var documento = new PdfDocument();
         documento.Info.Title = IdentidadeVisual.Titulo;

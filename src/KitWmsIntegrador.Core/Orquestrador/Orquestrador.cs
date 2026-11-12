@@ -119,13 +119,29 @@ public sealed class Orquestrador : IOrquestrador
         var idDocumento = string.Empty;
         var produtosProvisorios = new List<string>();
 
+        // Tempo acumulado das chamadas ao WMS (I50/I10/I30/I60) desta nota, medido com o IClock.
+        // Só mede: não influencia nenhuma decisão do fluxo.
+        long wmsMs = 0;
+        async Task<RespostaWms> Chamar(Func<Task<RespostaWms>> envio)
+        {
+            var antes = _clock.UtcNow;
+            try
+            {
+                return await envio().ConfigureAwait(false);
+            }
+            finally
+            {
+                wmsMs += Math.Max(0L, (long)(_clock.UtcNow - antes).TotalMilliseconds);
+            }
+        }
+
         while (tentativas < MaxTentativas)
         {
             cancellationToken.ThrowIfCancellationRequested();
             tentativas++;
 
-            var respI50 = await _cliente
-                .EnviarAsync(InterfaceWms.I50, _i50.Construir(nota, transporte), cancellationToken)
+            var respI50 = await Chamar(() => _cliente
+                .EnviarAsync(InterfaceWms.I50, _i50.Construir(nota, transporte), cancellationToken))
                 .ConfigureAwait(false);
             ultimaMensagem = _classificador.PrimeiraMensagem(respI50);
             (idTransacao, idDocumento) = Capturar(respI50);
@@ -136,8 +152,8 @@ public sealed class Orquestrador : IOrquestrador
             {
                 if (_opcoesI60.Habilitada)
                 {
-                    var respI60 = await _cliente
-                        .EnviarAsync(InterfaceWms.I60, _i60.Construir(nota), cancellationToken)
+                    var respI60 = await Chamar(() => _cliente
+                        .EnviarAsync(InterfaceWms.I60, _i60.Construir(nota), cancellationToken))
                         .ConfigureAwait(false);
                     historico.Add($"I60: {Descrever(respI60, _classificador.PrimeiraMensagem(respI60))}");
                 }
@@ -153,14 +169,15 @@ public sealed class Orquestrador : IOrquestrador
                     IdTransacao = idTransacao,
                     IdDocumento = idDocumento,
                     ProdutosProvisorios = produtosProvisorios,
+                    DuracaoWmsMs = wmsMs,
                 };
             }
 
             // (c) Empresa não localizada: envia I10 e reenvia a I50 (nova tentativa).
             if (_classificador.EhEmpresaNaoLocalizada(respI50))
             {
-                var respI10 = await _cliente
-                    .EnviarAsync(InterfaceWms.I10, _i10.Construir(nota), cancellationToken)
+                var respI10 = await Chamar(() => _cliente
+                    .EnviarAsync(InterfaceWms.I10, _i10.Construir(nota), cancellationToken))
                     .ConfigureAwait(false);
                 historico.Add($"I10 (empresa): {Descrever(respI10, _classificador.PrimeiraMensagem(respI10))}");
                 continue;
@@ -170,8 +187,8 @@ public sealed class Orquestrador : IOrquestrador
             // de revisão (produto provisório) e reenvia a I50 (nova tentativa).
             if (_classificador.EhProdutoNaoCadastrado(respI50))
             {
-                var respI30 = await _cliente
-                    .EnviarAsync(InterfaceWms.I30, _i30.Construir(nota), cancellationToken)
+                var respI30 = await Chamar(() => _cliente
+                    .EnviarAsync(InterfaceWms.I30, _i30.Construir(nota), cancellationToken))
                     .ConfigureAwait(false);
                 pendenteRevisaoProduto = true;
                 foreach (var item in nota.Itens)
@@ -197,6 +214,7 @@ public sealed class Orquestrador : IOrquestrador
                     IdTransacao = idTransacao,
                     IdDocumento = idDocumento,
                     ProdutosProvisorios = produtosProvisorios,
+                    DuracaoWmsMs = wmsMs,
                 };
             }
 
@@ -210,6 +228,7 @@ public sealed class Orquestrador : IOrquestrador
                 IdTransacao = idTransacao,
                 IdDocumento = idDocumento,
                 ProdutosProvisorios = produtosProvisorios,
+                DuracaoWmsMs = wmsMs,
             };
         }
 
@@ -228,6 +247,7 @@ public sealed class Orquestrador : IOrquestrador
             IdTransacao = idTransacao,
             IdDocumento = idDocumento,
             ProdutosProvisorios = produtosProvisorios,
+            DuracaoWmsMs = wmsMs,
         };
     }
 

@@ -39,6 +39,12 @@ public sealed record ResultadoIntegracaoNota(
     /// </summary>
     public IReadOnlyList<string> ProdutosProvisorios { get; init; } = Array.Empty<string>();
 
+    /// <summary>
+    /// Soma, em ms, das chamadas ao WMS (I50/I10/I30/I60) desta nota, medida com o <c>IClock</c>.
+    /// Zero quando não houve chamada (ex.: nota sem transporte) ou o resultado não foi medido.
+    /// </summary>
+    public long DuracaoWmsMs { get; init; }
+
     /// <summary>Verdadeiro quando há produto provisório a revisar no cadastro.</summary>
     public bool RevisaoProdutoPendente => ProdutosProvisorios.Count > 0;
 }

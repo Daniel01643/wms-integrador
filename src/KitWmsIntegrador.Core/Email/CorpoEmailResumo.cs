@@ -56,7 +56,8 @@ public static class CorpoEmailResumo
         DateTimeOffset fim,
         byte[]? logoPng = null,
         int maxLinhas = MaxLinhasPadrao,
-        PeriodoColeta? periodo = null)
+        PeriodoColeta? periodo = null,
+        DadosPacote? pacote = null)
     {
         ArgumentNullException.ThrowIfNull(linhas);
         var r = ModeloRelatorio.Montar(linhas).Resumo;

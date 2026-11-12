@@ -63,6 +63,12 @@ public sealed class ProcessadorLote
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Duração, em ms (medida com o <c>IClock</c>), da fase de leitura (ZIP/XML) da última chamada de
+    /// <c>ProcessarAsync</c>. Um pacote tem uma chamada; antes de qualquer chamada vale 0.
+    /// </summary>
+    public long UltimaLeituraMs { get; private set; }
+
     /// <summary>Arquivos enviados ao WMS cujo move ainda está pendente (não bloqueiam o fechamento).</summary>
     public IReadOnlyCollection<string> MovePendentes => _movePendentes.Keys.ToList();
 
@@ -213,6 +219,7 @@ public sealed class ProcessadorLote
             var lidos = new List<Lido>();
             var zips = new List<ZipTratado>();
             var chaves = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var inicioLeitura = _clock.UtcNow;
             foreach (var entrada in ordenados)
             {
                 ct.ThrowIfCancellationRequested();
@@ -232,6 +239,8 @@ public sealed class ProcessadorLote
                     LerXml(entrada.Caminho, Ctx.De(entrada), null, identificadorPacote, lidos, chaves, registros);
                 }
             }
+
+            UltimaLeituraMs = Math.Max(0L, (long)(_clock.UtcNow - inicioLeitura).TotalMilliseconds);
 
             if (lidos.Count > 0)
             {
@@ -416,6 +425,7 @@ public sealed class ProcessadorLote
                 var (arquivo, _, ctx) = arquivoDe[nota];
                 // TSP: o argumento é o nome da onda; o relatório mostra o transporte da própria nota.
                 var exibido = ctx.EhTsp ? nota.NumeroTransporte ?? string.Empty : transporte;
+                var inicioNota = _clock.UtcNow;
                 try
                 {
                     var resultados = await _orquestrador.IntegrarAsync(new[] { nota }, transporte, ct)
@@ -423,7 +433,7 @@ public sealed class ProcessadorLote
                     var resultado = resultados.Count > 0
                         ? resultados[0]
                         : throw new InvalidOperationException("O Orquestrador não devolveu resultado para a nota.");
-                    Concluir(registros, arquivo, resultado, identificadorPacote, ctx, ctx.EhTsp ? exibido : null);
+                    Concluir(registros, arquivo, resultado, identificadorPacote, ctx, ctx.EhTsp ? exibido : null, inicioNota);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -431,7 +441,8 @@ public sealed class ProcessadorLote
                     var motivo = "Exceção ao integrar: " + ex.Message;
                     Finalizar(registros, Registro(arquivo, false, nota.Numero, exibido, motivo, false, 0,
                             StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
-                            new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro, identificadorPacote, ctx),
+                            new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro, identificadorPacote, ctx,
+                            inicioNota),
                         arquivo);
                 }
             }
@@ -444,7 +455,7 @@ public sealed class ProcessadorLote
 
     private void Concluir(
         ConcurrentQueue<RegistroDiario> registros, string arquivo, ResultadoIntegracaoNota r,
-        string identificadorPacote, Ctx ctx, string? transporteExibido)
+        string identificadorPacote, Ctx ctx, string? transporteExibido, DateTimeOffset? inicioNota = null)
     {
         var destino = _classificador.DestinoDe(r);
         var categoria = destino == DestinoArquivo.Erro ? _classificador.Classificar(r) : (CategoriaErro?)null;
@@ -464,7 +475,7 @@ public sealed class ProcessadorLote
 
         Finalizar(registros, Registro(arquivo, false, r.NumeroNota, transporteExibido ?? r.NumeroTransporte, mensagem, r.Integrada,
                 r.Tentativas, status, r.IdTransacao, r.IdDocumento, r.ProdutosProvisorios, r.Historico,
-                categoria, destino, identificadorPacote, ctx),
+                categoria, destino, identificadorPacote, ctx, inicioNota, r.DuracaoWmsMs),
             arquivo);
     }
 
@@ -504,12 +515,13 @@ public sealed class ProcessadorLote
         string arquivo, bool xmlInvalido, string nota, string transporte, string mensagem, bool integrada,
         int tentativas, StatusLinhaRelatorio status, string idTransacao, string idDocumento,
         IReadOnlyList<string>? produtos, IReadOnlyList<string> historico, CategoriaErro? categoria,
-        DestinoArquivo destino, string identificadorPacote, Ctx? ctx = null) =>
+        DestinoArquivo destino, string identificadorPacote, Ctx? ctx = null,
+        DateTimeOffset? inicioNota = null, long duracaoWmsMs = 0) =>
         new(arquivo, xmlInvalido, nota ?? string.Empty, transporte ?? string.Empty, _clock.UtcNow, mensagem,
             integrada, tentativas, status, idTransacao ?? string.Empty, idDocumento ?? string.Empty,
             produtos ?? Array.Empty<string>(), historico ?? Array.Empty<string>(), categoria, destino,
             identificadorPacote, ctx?.Tipo ?? TipoNotaExtensoes.RotuloPuxada, ctx?.Origem ?? string.Empty,
-            ctx?.Onda ?? string.Empty, ctx?.Zip);
+            ctx?.Onda ?? string.Empty, ctx?.Zip, inicioNota, duracaoWmsMs);
 
     private static DateTime ObterCriacao(string caminho)
     {
