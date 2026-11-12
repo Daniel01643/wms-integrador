@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-11</span>
-    <span>Vers&atilde;o: 2026.11.11-86f03d0</span>
+    <span>Gerado em: 2026-11-12</span>
+    <span>Vers&atilde;o: 2026.11.12-6bdab9b</span>
   </div>
 </section>
   <header class="hd">
@@ -109,7 +109,7 @@
 <h2>Índice</h2>
 <ol>
 <li><a href="#1-o-que-o-sistema-faz">O que o sistema faz</a></li>
-<li><a href="#2-como-depositar-os-xmls">Como depositar os XMLs</a></li>
+<li><a href="#2-como-depositar-os-zips-e-xmls">Como depositar os ZIPs (e XMLs)</a></li>
 <li><a href="#3-o-que-acontece-depois-que-você-solta-os-arquivos">O que acontece depois que você solta os arquivos</a></li>
 <li><a href="#4-onde-ver-o-resultado">Onde ver o resultado</a></li>
 <li><a href="#5-como-ler-o-relatório-os-status">Como ler o relatório (os status)</a></li>
@@ -120,7 +120,7 @@
 </ol>
 <hr />
 <h2>1. O que o sistema faz</h2>
-<p>O KitWms Integrador lê os arquivos XML de nota fiscal que você deposita numa pasta de rede, integra cada nota ao WMS automaticamente e organiza o resultado em pastas e relatórios. Você só precisa depositar os arquivos; o resto é automático.</p>
+<p>O KitWms Integrador lê os arquivos ZIP (ou XML) de nota fiscal que você deposita numa pasta de rede, integra cada nota ao WMS automaticamente e organiza o resultado em pastas e relatórios. Você só precisa depositar os arquivos; o resto é automático.</p>
 <figure class="diagrama"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" font-family="Arial, Helvetica, sans-serif" role="img" aria-label="Fluxo operacional: do e-mail ao relatorio">
   <defs>
     <marker id="setaU" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
@@ -242,7 +242,7 @@
   <text x="364" y="523" fill="#333333" font-size="12.5">Nao integrada</text>
 </svg>
 </figure>
-<h2>2. Como depositar os XMLs</h2>
+<h2>2. Como depositar os ZIPs (e XMLs)</h2>
 <ol>
 <li>Abra o <strong>Explorador de Arquivos</strong> (Windows Explorer).</li>
 <li>Na barra de endereço, digite o caminho do compartilhamento de rede e pressione <strong>Enter</strong>:</li>
@@ -251,15 +251,42 @@
 <p>Se o nome do servidor não funcionar, use o endereço IP:</p>
 <pre><code>   \\200.200.200.213\kitbrf</code></pre>
 <ol>
-<li><strong>Copie</strong> (ou arraste) os arquivos <strong><code>.xml</code></strong> das notas para dentro dessa pasta.</li>
+<li>Abra a pasta que corresponde ao tipo de importação (veja abaixo).</li>
+<li><strong>Copie</strong> (ou arraste) o arquivo <strong><code>.zip</code></strong> com as notas para dentro dela.</li>
 <li>Pronto. A partir daí o sistema cuida do resto.</li>
 </ol>
-<blockquote><p>Deposite os arquivos <strong>na raiz</strong> do compartilhamento (soltos na pasta <code>kitbrf</code>). Não crie subpastas para eles; o sistema só lê os <code>.xml</code> que estão no topo.</p></blockquote>
+<p>O compartilhamento tem duas pastas de depósito. Escolha a pasta conforme o tipo da importação:</p>
+<table>
+<thead><tr>
+<th>Pasta</th>
+<th>Quando usar</th>
+<th>O que o sistema faz</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>Puxada</code></td>
+<td>Puxada normal</td>
+<td>Sobe como <strong>PUXADA</strong>: uma onda de separação para cada transporte das notas.</td>
+</tr>
+<tr>
+<td><code>PuxadaTSP</code></td>
+<td>Puxada TSP (notas carregadas em um único veículo)</td>
+<td>Sobe como <strong>TSP</strong>: <strong>uma onda por ZIP</strong>, com todas as notas do ZIP.</td>
+</tr>
+</tbody></table>
+<p>Regras simples:</p>
+<ul>
+<li>Salve <strong>somente o arquivo ZIP</strong> (o mesmo que vem no e-mail). Não precisa abrir o e-mail nem o ZIP.</li>
+<li>A pasta <code>PuxadaTSP</code> aceita <strong>só ZIP</strong>. A pasta <code>Puxada</code> aceita ZIP e também XML solto.</li>
+<li>Na TSP, o nome do ZIP vira parte do nome da onda (por exemplo, <code>XML'S SOROCABA.zip</code> gera uma onda com o nome <code>SOROCABA</code>). Se o ZIP não tiver um nome aproveitável, a onda sobe só com data e número.</li>
+<li>O sistema <strong>não adivinha</strong> a pasta: tudo o que estiver em <code>PuxadaTSP</code> sobe como TSP e tudo o que estiver em <code>Puxada</code> sobe como puxada. Se depositar na pasta errada, o relatório mostra (seção 5) e dá para corrigir.</li>
+<li>XML solto na <strong>raiz</strong> do compartilhamento (fora das duas pastas) continua sendo aceito e é tratado como <strong>puxada normal</strong>. No relatório ele aparece com a origem <strong>raiz</strong>, para ser analisado.</li>
+</ul>
 <h2>3. O que acontece depois que você solta os arquivos</h2>
 <p>Em poucos segundos o sistema:</p>
 <ol>
-<li><strong>Lê</strong> os XMLs que você soltou.</li>
-<li><strong>Agrupa</strong> as notas por transporte e <strong>integra</strong> cada uma no WMS.</li>
+<li><strong>Lê</strong> os ZIPs (e XMLs) que você soltou. Os ZIPs são abertos automaticamente.</li>
+<li><strong>Agrupa</strong> as notas (na <code>Puxada</code>, por transporte; na <code>PuxadaTSP</code>, uma onda por ZIP) e <strong>integra</strong> cada uma no WMS.</li>
 <li><strong>Move</strong> cada arquivo para a pasta de resultado (Processados ou Erro), organizado por <strong>pacote</strong> (um lote de notas processadas juntas).</li>
 <li><strong>Gera o relatório</strong> (HTML e PDF) daquele pacote.</li>
 <li>Pode <strong>enviar um e-mail</strong> de fechamento com o resumo e o PDF em anexo.</li>
@@ -275,11 +302,11 @@
 <tbody>
 <tr>
 <td><code>Processados\pacote_&lt;data_hora&gt;\</code></td>
-<td>Notas que entraram bem (integradas, pendentes na interface ou integradas com produto a revisar), organizadas por pacote.</td>
+<td>Notas que entraram bem (integradas, pendentes na interface ou integradas com produto a revisar), organizadas por pacote. Os ZIPs processados ficam guardados aqui, junto das notas.</td>
 </tr>
 <tr>
 <td><code>Erro\pacote_&lt;data_hora&gt;\</code></td>
-<td>Notas que <strong>não</strong> foram integradas e XMLs inválidos. Ao lado de cada arquivo há um <code>.motivo.txt</code> com o detalhe do problema.</td>
+<td>Notas que <strong>não</strong> foram integradas, XMLs inválidos e ZIPs que não puderam ser abertos (pasta <code>ZipInvalido</code>). Ao lado de cada arquivo há um <code>.motivo.txt</code> com o detalhe do problema.</td>
 </tr>
 <tr>
 <td><code>relatorios\</code></td>
@@ -324,6 +351,33 @@
 </tbody></table>
 <p>Além dos status, o relatório mostra um contador de <strong>XMLs inválidos</strong>: são arquivos que nem puderam ser lidos (por exemplo, arquivo corrompido ou cortado pela metade). Eles <strong>não</strong> viram linha de nota — aparecem como um número no resumo e o arquivo vai para <code>Erro\XmlInvalido</code>. Nesse caso, gere o XML de novo e deposite outra vez.</p>
 <p>Outras colunas úteis do relatório: Nota, Transporte, Horário, Mensagem (último erro) e Tentativas.</p>
+<h3>Tipo e Origem: conferir se o ZIP foi para a pasta certa</h3>
+<p>Duas colunas mostram por onde cada nota entrou:</p>
+<table>
+<thead><tr>
+<th>Coluna</th>
+<th>Valores</th>
+<th>O que significa</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Tipo</strong></td>
+<td><code>PUXADA</code> ou <code>TSP</code></td>
+<td>Como a nota foi tratada. Vem da pasta onde o ZIP foi depositado: <code>PuxadaTSP</code> = <code>TSP</code>; <code>Puxada</code> e raiz = <code>PUXADA</code>.</td>
+</tr>
+<tr>
+<td><strong>Origem</strong></td>
+<td><code>Puxada</code>, <code>PuxadaTSP</code> ou <code>raiz</code></td>
+<td>A pasta de onde a nota veio. <code>raiz</code> indica XML solto direto na raiz do compartilhamento, tratado como puxada normal.</td>
+</tr>
+</tbody></table>
+<p>Como o relatório agrupa:</p>
+<ul>
+<li><strong>PUXADA:</strong> as notas ficam agrupadas <strong>por transporte</strong>, como sempre.</li>
+<li><strong>TSP:</strong> as notas ficam agrupadas <strong>por onda</strong> (por exemplo, <code>TSP-20261111-01-SOROCABA</code>), com a quantidade de notas e de transportes de cada onda. A coluna Transporte mostra o transporte de cada nota; se a nota não tiver transporte, aparece "(sem)" e ela sobe normalmente.</li>
+<li>O resumo do relatório e o e-mail de fechamento também contam as notas por tipo e as notas da raiz.</li>
+</ul>
+<p><strong>Depositou na pasta errada?</strong> Confira Tipo e Origem no relatório. Se o ZIP subiu como puxada e era TSP (ou o contrário), avise o responsável pela operação do WMS para ajustar a onda e deposite o ZIP na pasta certa nas próximas vezes. O sistema não bloqueia nem corrige sozinho.</p>
 <h2>6. O e-mail de fechamento</h2>
 <p>Ao fechar um pacote, o sistema pode enviar um <strong>e-mail de fechamento</strong> com o resumo (quantas integraram, quantas ficaram pendentes, quantas não integraram etc.) e o <strong>PDF do pacote em anexo</strong>.</p>
 <p>Se você está na lista de destinatários, recebe esse e-mail automaticamente. Para entrar ou sair da lista, fale com o responsável técnico/TI (a lista é configurada no servidor).</p>
@@ -331,25 +385,27 @@
 <ul>
 <li><strong>Não tente apagar</strong> arquivos do compartilhamento. Você tem permissão para <strong>gravar e ler</strong>, mas <strong>não para excluir</strong> — o próprio sistema organiza e move os arquivos.</li>
 <li>Depois de soltar um lote, <strong>espere alguns segundos</strong> antes de soltar o próximo. O sistema junta em um pacote os arquivos que chegam dentro de uma pequena janela de tempo; dar um intervalo entre os lotes deixa os pacotes mais organizados.</li>
-<li>Deposite somente arquivos <strong><code>.xml</code></strong> de nota fiscal, soltos na raiz do compartilhamento.</li>
+<li>Deposite <strong>ZIPs</strong> de nota fiscal nas pastas <code>Puxada</code> ou <code>PuxadaTSP</code>. Não coloque outros tipos de arquivo dentro do ZIP e não coloque um ZIP dentro de outro.</li>
+<li>Use sempre a pasta certa: o tipo (PUXADA ou TSP) é definido pela pasta.</li>
 <li>Confira o relatório e a pasta <code>Erro</code> depois de depositar, para saber se algo precisa de correção.</li>
 </ul>
 <h2>8. Como reenviar uma nota corrigida</h2>
 <ol>
 <li>Corrija a nota que apareceu como <strong>Não integrada</strong> (gere o XML novamente, já corrigido).</li>
 <li>Abra o compartilhamento <code>\\SRVAPPALC02\kitbrf</code> (ou <code>\\200.200.200.213\kitbrf</code>).</li>
-<li><strong>Copie o XML corrigido</strong> para a raiz da pasta, como faz com qualquer nota nova.</li>
+<li><strong>Copie o arquivo corrigido</strong> (ZIP ou XML) para a pasta certa (<code>Puxada</code> ou <code>PuxadaTSP</code>), como faz com qualquer nota nova. Reenviar o mesmo ZIP na <code>PuxadaTSP</code> reaproveita a mesma onda.</li>
 <li>O sistema processa de novo e gera um novo resultado/relatório.</li>
 </ol>
 <p>Não é preciso apagar nada da pasta <code>Erro</code>: basta depositar o arquivo corrigido novamente.</p>
 <h2>9. Perguntas frequentes</h2>
 <p><strong>Depositei o arquivo e não aconteceu nada na hora. É normal?</strong> Sim. O sistema verifica a pasta a cada poucos segundos e ainda espera uma pequena janela para juntar o lote. Aguarde alguns segundos e confira as pastas <code>Processados</code>/<code>Erro</code> e <code>relatorios</code>.</p>
 <p><strong>Posso apagar os arquivos antigos do compartilhamento?</strong> Não, e você não tem permissão para isso. O próprio sistema faz a limpeza das pastas de resultado automaticamente depois de alguns dias.</p>
+<p><strong>O ZIP apareceu em <code>Erro\...\ZipInvalido</code>. O que houve?</strong> O ZIP não pôde ser aberto (corrompido, protegido por senha, vazio de XML ou maior que o limite aceito). O motivo está no <code>.motivo.txt</code> ao lado. Gere o ZIP de novo e deposite outra vez.</p>
 <p><strong>Soltei vários XMLs de uma vez. Eles vão para o mesmo pacote?</strong> Os que chegarem dentro da mesma janela de coleta entram no mesmo pacote. Os que chegam depois formam o próximo pacote.</p>
 <p><strong>Uma nota apareceu como "Pendente". Deu erro?</strong> Não necessariamente. "Pendente" quer dizer que a nota foi importada e está aguardando processamento na tela do WMS. Acompanhe pelo WMS.</p>
 <p><strong>O que é "Integrada — revisar produto"?</strong> A nota entrou no WMS normalmente, mas há um produto provisório que alguém precisa revisar depois no WMS. A integração em si deu certo.</p>
 <p><strong>Não recebi o e-mail de fechamento.</strong> O envio depende de você estar na lista de destinatários e do e-mail estar configurado. Fale com a TI para incluir seu endereço.</p>
-<p><strong>E se eu colocar um arquivo que não é XML?</strong> O sistema <strong>não</strong> integra arquivos que não sejam <code>.xml</code>. Ele move o arquivo para <code>Erro\pacote_&lt;data_hora&gt;\ExtensaoInvalida</code> e registra no relatório como <strong>"Arquivo ignorado (não é XML)"</strong> (status cinza, aviso — não é falha de nota). Esse arquivo é removido automaticamente depois de <strong>60 dias</strong>, junto com o restante do pacote. Para evitar isso, deposite <strong>apenas arquivos <code>.xml</code></strong> de nota fiscal na pasta de entrada. Arquivos que ainda estão sendo copiados (com extensão temporária como <code>.tmp</code>, <code>.part</code>, <code>.crdownload</code> etc.) são <strong>deixados em paz</strong>: o sistema não os processa nem os move, espera a cópia terminar. Quando a cópia acaba e o arquivo vira <code>.xml</code>, ele entra no fluxo normal.</p>
+<p><strong>E se eu colocar um arquivo que não é XML?</strong> O sistema <strong>não</strong> integra arquivos que não sejam <code>.xml</code>. Ele move o arquivo para <code>Erro\pacote_&lt;data_hora&gt;\ExtensaoInvalida</code> e registra no relatório como <strong>"Arquivo ignorado (não é XML)"</strong> (status cinza, aviso — não é falha de nota). Esse arquivo é removido automaticamente depois de <strong>60 dias</strong>, junto com o restante do pacote. Para evitar isso, deposite <strong>apenas ZIPs</strong> (ou XMLs na <code>Puxada</code>) de nota fiscal. Na <code>PuxadaTSP</code>, qualquer arquivo que não seja ZIP (inclusive XML solto) é tratado assim. Arquivos que ainda estão sendo copiados (com extensão temporária como <code>.tmp</code>, <code>.part</code>, <code>.crdownload</code> etc.) são <strong>deixados em paz</strong>: o sistema não os processa nem os move, espera a cópia terminar. Quando a cópia acaba e o arquivo vira <code>.xml</code>, ele entra no fluxo normal.</p>
 <hr />
 
   </main>

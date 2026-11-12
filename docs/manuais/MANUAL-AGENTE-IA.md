@@ -20,8 +20,10 @@ nunca em suposições sobre comandos, caminhos, status ou campos.
 ## 1. Visão do fluxo
 
 ```text
-XML na entrada
-  → agrupa por transporte (campo "Transporte: N" nas infos complementares)
+ZIP/XML na entrada (subpastas Puxada e PuxadaTSP; raiz se Pastas:AceitarRaiz=true)
+  → ZIP: leitor seguro extrai os XMLs para Estado\tmp (limites Zip:MaxArquivos/MaxTamanhoMb)
+  → PUXADA: agrupa por transporte (campo "Transporte: N" nas infos complementares)
+  → TSP (só PuxadaTSP): uma onda por ZIP, nome TSP-AAAAMMDD-NN-NOME (Estado\tsp\ondas.json)
   → Orquestrador reativo por nota: I50 → pré-condições I10/I30 → reenvio, até 3 tentativas
   → move cada arquivo (Processados\pacote_<...> ou Erro\pacote_<...>\<Categoria>)
   → gera relatório HTML + PDF (sempre)
@@ -47,6 +49,10 @@ Pontos de comportamento confirmados no código/`docs/OPERACAO.md`:
   no relatório (`LinhaRelatorioErro.StatusDescricao`): **Integrada**, **Integrada — revisar
   produto**, **Pendente**, **Não integrada**. "XML inválido" **não** é status de linha: é categoria
   de erro de pasta (`Erro\XmlInvalido`) e contador no e-mail/resumo.
+- **Tipo e Origem**: o tipo da nota (`PUXADA` ou `TSP`) vem da pasta (`PuxadaTSP` = TSP; `Puxada` e
+  raiz = PUXADA); a origem (`Puxada`, `PuxadaTSP`, `raiz`) é gravada no diário e aparece no relatório
+  e no e-mail. Não há detecção automática de pasta errada. ZIP inválido vai para
+  `Erro\pacote_<...>\ZipInvalido`.
 - **Reinício do serviço**: o diário (`Estado\pacote-atual.jsonl`) é a fonte de verdade; há
   deduplicação e reconciliação de moves sem reenviar ao WMS.
 
@@ -61,7 +67,7 @@ Pontos de comportamento confirmados no código/`docs/OPERACAO.md`:
 | `C:\Friozem\importacao_notas\config\email.settings.json` | SMTP (segredo) — `smtp.friozem.com.br:587`, `UsarTls=false`. |
 | env de MÁQUINA `WMS__Usuario` / `WMS__Senha` | Credenciais do WMS (segredo). |
 | `C:\Friozem\importacao_notas\data` (previsto) | **Estado** (`pacote-atual.jsonl`) e **telemetria** (`telemetria.jsonl`, `servico.jsonl`, `ultimo-resumo.txt`, `resumos\`), fora do share. |
-| `C:\Friozem\kitbrf` (share `kitbrf`) | Entrada + `Processados\`, `Erro\`, `relatorios\` (visíveis na rede). |
+| `C:\Friozem\kitbrf` (share `kitbrf`) | Entrada (`Puxada\`, `PuxadaTSP\`, raiz) + `Processados\`, `Erro\`, `relatorios\` (visíveis na rede). `Estado\tsp\ondas.json` guarda o sequencial do dia e a onda de cada ZIP TSP; `Estado\tmp\` é a extração temporária de ZIPs. |
 | `C:\Friozem\importacao_notas\app\current` | Release ativa (apontada por `publicar-release.ps1`/`rollback.ps1`). |
 | `C:\Friozem\importacao_notas\app\releases\<versao>` | Releases instaladas. |
 | `C:\Friozem\Gestao_Enderecos\tools\nssm.exe` | NSSM que hospeda o serviço `Friozem-ImportacaoNotas`. |
@@ -76,6 +82,7 @@ Pontos de comportamento confirmados no código/`docs/OPERACAO.md`:
 | Caminho | Conteúdo |
 |---|---|
 | `src\KitWmsIntegrador.Core\` | Domínio: `Pacote`, `Orquestrador`, `Email`, `Monitoramento`, `Relatorio`, `ClienteWms`, `Configuracao`, `Agrupamento`, `Construtores`, `Leitura`, `Modelos`, `Estado`, `Tempo`, `Notificacao`. |
+| `src\KitWmsIntegrador.Core\Pacote\` (Puxada TSP) | `ClassificadorEntrada` (pastas e tipo), `LeitorZipSeguro` (ZIP), `NomeadorOndaTsp` e `RegistroOndasTsp` (nome e sequencial da onda), `ProcessadorLote` (onda única por ZIP). Config: `Core\Configuracao\OpcoesPasta.cs` e `OpcoesZip.cs`. |
 | `src\KitWmsIntegrador.Worker\` | Host do serviço: `Program.cs` (binding de config), `Worker.cs`, `Configuracao\OpcoesEntrada.cs`. |
 | `deploy\*.ps1` | `diagnostico`, `publicar`, `instalar`, `configurar-segredos`, `servico`, `publicar-release`, `rollback`, `remover`, `compartilhar-pasta`, `_comum`. |
 | `docs\` | `OPERACAO.md`, `INSTALACAO-SERVIDOR.md`, `AMBIENTE-SERVIDOR.md`, `RELATORIO-LOGS.md`, `manuais\`. |

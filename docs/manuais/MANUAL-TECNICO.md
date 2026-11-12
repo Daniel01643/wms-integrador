@@ -36,6 +36,7 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
 8. [Dia/hora do resumo, janela de coleta e limpeza](#8-diahora-do-resumo-janela-de-coleta-e-limpeza)
    - [8.1. Arquivos não-XML (ExtensaoInvalida) e a flag `Pastas:TratarNaoXmlComoErro`](#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro)
    - [8.2. Ligar/desligar o envio da placa do veículo (`I50:EnviarPlacaVeiculo`)](#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo)
+   - [8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda](#84-puxada-e-puxada-tsp-pastas-zip-e-nome-da-onda)
 9. [Publicar nova versão e rollback](#9-publicar-nova-versão-e-rollback)
 10. [Estado e telemetria (não mexer)](#10-estado-e-telemetria-não-mexer)
 11. [O serviço não sobe — diagnóstico e TLS 1.2](#11-o-serviço-não-sobe--diagnóstico-e-tls-12)
@@ -100,6 +101,7 @@ build.
 | Serviço (NSSM) | `Friozem-ImportacaoNotas` |
 | nssm.exe | `C:\Friozem\Gestao_Enderecos\tools\nssm.exe` (já embutido como default `-NssmPath`) |
 | Pasta de entrada (local) | `C:\Friozem\kitbrf` (share SMB `kitbrf`: `\\SRVAPPALC02\kitbrf`) |
+| Pastas de depósito | `C:\Friozem\kitbrf\Puxada` (puxada normal) e `C:\Friozem\kitbrf\PuxadaTSP` (puxada TSP, só ZIP); ver seção 8.4 |
 | Config não-secreta | `C:\Friozem\importacao_notas\config\appsettings.Production.json` |
 | Segredos SMTP | `C:\Friozem\importacao_notas\config\email.settings.json` |
 | Segredos WMS | variáveis de ambiente de **MÁQUINA** `WMS__Usuario` / `WMS__Senha` |
@@ -428,6 +430,59 @@ completo em `docs\wms-codigo-customizado\HISTORICO-PLANO-A.md`.
   em `envio-manual-i60\`.
 - **Em produção, mantenha `I60__Habilitada=false`.**
 
+### 8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda
+
+A entrada (`C:\Friozem\kitbrf`) tem duas subpastas de depósito, criadas pelo serviço se faltarem
+(e criadas na instalação, ver `INSTALACAO-SERVIDOR.md`):
+
+```text
+kitbrf\
+  Puxada\       <- ZIP (ou XML solto) de puxada normal  -> Tipo PUXADA, onda = transporte
+  PuxadaTSP\    <- somente ZIP de puxada TSP            -> Tipo TSP, uma onda por ZIP
+  (raiz)        <- XML/ZIP solto: aceito como PUXADA, Origem "raiz" (se AceitarRaiz=true)
+  Processados\, Erro\, Estado\  <- como antes (não são monitoradas como entrada)
+```
+
+Chaves (reinicie o serviço após alterar; override por variável de ambiente com `__`):
+
+| O que | Chave | Padrão |
+|---|---|---|
+| Nome da pasta da puxada normal | `Pastas:Puxada` | `Puxada` |
+| Nome da pasta da puxada TSP | `Pastas:PuxadaTsp` | `PuxadaTSP` |
+| Aceitar arquivos soltos na raiz (como PUXADA) | `Pastas:AceitarRaiz` | `true` |
+| Máximo de arquivos dentro de um ZIP | `Zip:MaxArquivos` | `1000` |
+| Tamanho máximo descompactado de um ZIP, em MB | `Zip:MaxTamanhoMb` | `500` |
+
+Com `Pastas:AceitarRaiz=false`, arquivos soltos na raiz ficam parados na entrada (sem erro e sem
+processamento). Os nomes das duas pastas não podem repetir nem ficar dentro de `Processados`, `Erro`
+ou `Estado`; o serviço não inicia com configuração inválida (erro no log).
+
+Como o ZIP é tratado:
+
+- O ZIP só é aberto quando está pronto (mesmo detector de arquivo pronto dos XMLs).
+- É extraído para `Estado\tmp\<id>` (apagado ao final). Só entram arquivos `.xml`; outro tipo vira
+  `ExtensaoInvalida`; ZIP dentro de ZIP não é aberto; nomes com `..` ou caminho absoluto são ignorados.
+- Passou de `Zip:MaxArquivos` ou `Zip:MaxTamanhoMb`, está corrompido, protegido por senha ou sem
+  nenhum XML: o ZIP vai para `Erro\pacote_*\ZipInvalido` com `.motivo.txt`.
+- O mesmo XML repetido em dois ZIPs do pacote é processado uma vez; o repetido aparece no relatório
+  como "Arquivo ignorado (XML repetido)".
+- Os XMLs e o ZIP original ficam juntos em `Processados\pacote_*\`.
+- Na `PuxadaTSP`, arquivo que não seja ZIP (inclusive XML solto) vai para `ExtensaoInvalida`.
+
+Nome da onda da TSP: `TSP-AAAAMMDD-NN-NOME` (ex.: `TSP-20261111-01-SOROCABA`).
+
+- `AAAAMMDD` é a data do servidor; `NN` é o sequencial do dia (reinicia a cada dia).
+- `NOME` vem do nome do ZIP, sem extensão, sem as palavras `XML`/`XMLS`, em maiúsculas, sem acento,
+  só letras, números e hífen, cortado em 14 caracteres (o campo da onda no WMS aceita até 30).
+  Sem nome aproveitável, a onda é `TSP-AAAAMMDD-NN`.
+- O sequencial e o reaproveitamento ficam em `Estado\tsp\ondas.json`. Reenviar o **mesmo** ZIP
+  (mesmo conteúdo) reaproveita a mesma onda. Não apague esse arquivo com o serviço rodando.
+- A nota da TSP sem transporte no `infCpl` sobe normalmente; o relatório mostra "(sem)".
+
+No relatório, a coluna **Tipo** (`PUXADA` ou `TSP`) e a coluna **Origem** (`Puxada`, `PuxadaTSP` ou
+`raiz`) permitem conferir se o ZIP foi para a pasta certa. A TSP é agrupada por onda; a puxada, por
+transporte. O resumo do e-mail e o resumo semanal contam as notas por tipo e as da raiz.
+
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -481,6 +536,8 @@ de propósito.
   para retomar um pacote após reinício sem reenviar notas ao WMS; a telemetria alimenta o resumo
   semanal.
 - A limpeza automática **nunca** toca essas pastas.
+- Dentro do `Estado` há também `tsp\ondas.json` (sequencial do dia e onda de cada ZIP da Puxada TSP;
+  ver seção 8.4) e `tmp\` (extração temporária dos ZIPs, apagada a cada ZIP processado).
 
 > Nota de configuração: o caminho físico de `Estado`/telemetria depende de
 > `Pastas:Estado`/`Monitoramento:CaminhoTelemetria`. Para ficarem em
@@ -533,6 +590,7 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
 | Janela de coleta / limpeza (60 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
 | Ligar/desligar envio da placa do veículo | editar `I50:EnviarPlacaVeiculo` em `config\appsettings.Production.json` | **Sim** |
+| Mudar pastas da Puxada/PuxadaTSP, aceitar ou recusar a raiz, limites do ZIP | `Pastas:Puxada`, `Pastas:PuxadaTsp`, `Pastas:AceitarRaiz`, `Zip:MaxArquivos`, `Zip:MaxTamanhoMb` em `config\appsettings.Production.json` (seção 8.4) | **Sim** |
 | Limpar já as pastas de não-XML (ExtensaoInvalida) | `tools\deploy\limpar-extensao-invalida.ps1` (`-WhatIf` simula) | Não (só apaga as pastas `ExtensaoInvalida`) |
 | Publicar nova versão | `tools\deploy\publicar-release.ps1` (o `.zip` vem da máquina de build) | Automático (o script reinicia) |
 | Rollback | `tools\deploy\rollback.ps1` | Automático (o script reinicia) |

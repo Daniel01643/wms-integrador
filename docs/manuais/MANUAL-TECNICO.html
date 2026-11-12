@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-11</span>
-    <span>Vers&atilde;o: 2026.11.11-86f03d0</span>
+    <span>Gerado em: 2026-11-12</span>
+    <span>Vers&atilde;o: 2026.11.12-6bdab9b</span>
   </div>
 </section>
   <header class="hd">
@@ -125,6 +125,7 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <ul>
 <li><a href="#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro">8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></a></li>
 <li><a href="#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo">8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</a></li>
+<li><a href="#84-puxada-e-puxada-tsp-pastas-zip-e-nome-da-onda">8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda</a></li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -202,6 +203,10 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <tr>
 <td>Pasta de entrada (local)</td>
 <td><code>C:\Friozem\kitbrf</code> (share SMB <code>kitbrf</code>: <code>\\SRVAPPALC02\kitbrf</code>)</td>
+</tr>
+<tr>
+<td>Pastas de depósito</td>
+<td><code>C:\Friozem\kitbrf\Puxada</code> (puxada normal) e <code>C:\Friozem\kitbrf\PuxadaTSP</code> (puxada TSP, só ZIP); ver seção 8.4</td>
 </tr>
 <tr>
 <td>Config não-secreta</td>
@@ -627,6 +632,65 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li><strong>Enviar só a I60 de um XML:</strong> <code>--enviar-i60 &lt;xml&gt;</code> no Worker; mostra o JSON e grava envio e resposta em <code>envio-manual-i60\</code>.</li>
 <li><strong>Em produção, mantenha <code>I60__Habilitada=false</code>.</strong></li>
 </ul>
+<h3>8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda</h3>
+<p>A entrada (<code>C:\Friozem\kitbrf</code>) tem duas subpastas de depósito, criadas pelo serviço se faltarem (e criadas na instalação, ver <code>INSTALACAO-SERVIDOR.md</code>):</p>
+<pre><code>kitbrf\
+  Puxada\       &lt;- ZIP (ou XML solto) de puxada normal  -&gt; Tipo PUXADA, onda = transporte
+  PuxadaTSP\    &lt;- somente ZIP de puxada TSP            -&gt; Tipo TSP, uma onda por ZIP
+  (raiz)        &lt;- XML/ZIP solto: aceito como PUXADA, Origem "raiz" (se AceitarRaiz=true)
+  Processados\, Erro\, Estado\  &lt;- como antes (não são monitoradas como entrada)</code></pre>
+<p>Chaves (reinicie o serviço após alterar; override por variável de ambiente com <code>__</code>):</p>
+<table>
+<thead><tr>
+<th>O que</th>
+<th>Chave</th>
+<th>Padrão</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Nome da pasta da puxada normal</td>
+<td><code>Pastas:Puxada</code></td>
+<td><code>Puxada</code></td>
+</tr>
+<tr>
+<td>Nome da pasta da puxada TSP</td>
+<td><code>Pastas:PuxadaTsp</code></td>
+<td><code>PuxadaTSP</code></td>
+</tr>
+<tr>
+<td>Aceitar arquivos soltos na raiz (como PUXADA)</td>
+<td><code>Pastas:AceitarRaiz</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td>Máximo de arquivos dentro de um ZIP</td>
+<td><code>Zip:MaxArquivos</code></td>
+<td><code>1000</code></td>
+</tr>
+<tr>
+<td>Tamanho máximo descompactado de um ZIP, em MB</td>
+<td><code>Zip:MaxTamanhoMb</code></td>
+<td><code>500</code></td>
+</tr>
+</tbody></table>
+<p>Com <code>Pastas:AceitarRaiz=false</code>, arquivos soltos na raiz ficam parados na entrada (sem erro e sem processamento). Os nomes das duas pastas não podem repetir nem ficar dentro de <code>Processados</code>, <code>Erro</code> ou <code>Estado</code>; o serviço não inicia com configuração inválida (erro no log).</p>
+<p>Como o ZIP é tratado:</p>
+<ul>
+<li>O ZIP só é aberto quando está pronto (mesmo detector de arquivo pronto dos XMLs).</li>
+<li>É extraído para <code>Estado\tmp\&lt;id&gt;</code> (apagado ao final). Só entram arquivos <code>.xml</code>; outro tipo vira <code>ExtensaoInvalida</code>; ZIP dentro de ZIP não é aberto; nomes com <code>..</code> ou caminho absoluto são ignorados.</li>
+<li>Passou de <code>Zip:MaxArquivos</code> ou <code>Zip:MaxTamanhoMb</code>, está corrompido, protegido por senha ou sem nenhum XML: o ZIP vai para <code>Erro\pacote_*\ZipInvalido</code> com <code>.motivo.txt</code>.</li>
+<li>O mesmo XML repetido em dois ZIPs do pacote é processado uma vez; o repetido aparece no relatório como "Arquivo ignorado (XML repetido)".</li>
+<li>Os XMLs e o ZIP original ficam juntos em <code>Processados\pacote_*\</code>.</li>
+<li>Na <code>PuxadaTSP</code>, arquivo que não seja ZIP (inclusive XML solto) vai para <code>ExtensaoInvalida</code>.</li>
+</ul>
+<p>Nome da onda da TSP: <code>TSP-AAAAMMDD-NN-NOME</code> (ex.: <code>TSP-20261111-01-SOROCABA</code>).</p>
+<ul>
+<li><code>AAAAMMDD</code> é a data do servidor; <code>NN</code> é o sequencial do dia (reinicia a cada dia).</li>
+<li><code>NOME</code> vem do nome do ZIP, sem extensão, sem as palavras <code>XML</code>/<code>XMLS</code>, em maiúsculas, sem acento, só letras, números e hífen, cortado em 14 caracteres (o campo da onda no WMS aceita até 30). Sem nome aproveitável, a onda é <code>TSP-AAAAMMDD-NN</code>.</li>
+<li>O sequencial e o reaproveitamento ficam em <code>Estado\tsp\ondas.json</code>. Reenviar o <strong>mesmo</strong> ZIP (mesmo conteúdo) reaproveita a mesma onda. Não apague esse arquivo com o serviço rodando.</li>
+<li>A nota da TSP sem transporte no <code>infCpl</code> sobe normalmente; o relatório mostra "(sem)".</li>
+</ul>
+<p>No relatório, a coluna <strong>Tipo</strong> (<code>PUXADA</code> ou <code>TSP</code>) e a coluna <strong>Origem</strong> (<code>Puxada</code>, <code>PuxadaTSP</code> ou <code>raiz</code>) permitem conferir se o ZIP foi para a pasta certa. A TSP é agrupada por onda; a puxada, por transporte. O resumo do e-mail e o resumo semanal contam as notas por tipo e as da raiz.</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -656,6 +720,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <ul>
 <li><strong>Não edite nem apague</strong> esses arquivos com o serviço rodando: o diário é a <strong>fonte de verdade</strong> para retomar um pacote após reinício sem reenviar notas ao WMS; a telemetria alimenta o resumo semanal.</li>
 <li>A limpeza automática <strong>nunca</strong> toca essas pastas.</li>
+<li>Dentro do <code>Estado</code> há também <code>tsp\ondas.json</code> (sequencial do dia e onda de cada ZIP da Puxada TSP; ver seção 8.4) e <code>tmp\</code> (extração temporária dos ZIPs, apagada a cada ZIP processado).</li>
 </ul>
 <blockquote><p>Nota de configuração: o caminho físico de <code>Estado</code>/telemetria depende de <code>Pastas:Estado</code>/<code>Monitoramento:CaminhoTelemetria</code>. Para ficarem em <code>C:\Friozem\importacao_notas\data</code> (fora do share), esses valores precisam ser **caminhos absolutos** no <code>appsettings.Production.json</code>. Confirme o valor efetivo em produção antes de supor onde estão (ver lacuna no resumo).</p></blockquote>
 <h2>11. O serviço não sobe — diagnóstico e TLS 1.2</h2>
@@ -735,6 +800,11 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <tr>
 <td>Ligar/desligar envio da placa do veículo</td>
 <td>editar <code>I50:EnviarPlacaVeiculo</code> em <code>config\appsettings.Production.json</code></td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Mudar pastas da Puxada/PuxadaTSP, aceitar ou recusar a raiz, limites do ZIP</td>
+<td><code>Pastas:Puxada</code>, <code>Pastas:PuxadaTsp</code>, <code>Pastas:AceitarRaiz</code>, <code>Zip:MaxArquivos</code>, <code>Zip:MaxTamanhoMb</code> em <code>config\appsettings.Production.json</code> (seção 8.4)</td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
