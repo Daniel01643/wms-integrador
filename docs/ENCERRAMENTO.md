@@ -1,6 +1,7 @@
 # Pausa do projeto — KitWms Integrador
 
-Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. **Pausa: 10/11/2026.**
+Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa: 10/11/2026.
+**Atualizado em 12/11/2026** (Puxada TSP implementada).
 
 ## 1. Estado na pausa
 
@@ -10,7 +11,11 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. **Pau
   **Conferir no servidor** qual está em `app\current`. As mudanças de 09-10/11 (retenção de 60 dias,
   I60 configurável, I40 e tela de devolução) estão **só no repositório**, ainda não publicadas.
 - Resumo semanal de telemetria funcionando (verificado e reenviado em 09/11).
-- Último build: 0 avisos e 0 erros (Debug e Release). Testes: **451 aprovados, 9 ignorados (stress), 0 falhas**.
+- **Puxada TSP implementada em 12/11/2026** (só no repositório, ainda não publicada no servidor):
+  pastas `Puxada` e `PuxadaTSP` (e a raiz, aceita como puxada), leitura segura de ZIP, uma onda por ZIP
+  na TSP (`TSP-AAAAMMDD-NN-NOME`) e relatório/e-mail com as colunas Tipo e Origem. Falta o teste com ZIP
+  real no homolog (`docs\ROTEIRO-TESTE-PUXADA-TSP.md`).
+- Último build: 0 avisos e 0 erros (Debug e Release). Testes (12/11): **584 aprovados, 9 ignorados (stress), 0 falhas**.
 
 ### Frentes pausadas
 
@@ -26,7 +31,7 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. **Pau
 | Código | `src\KitWmsIntegrador.Core`, `src\KitWmsIntegrador.Worker`, `tests\` | `C:\Friozem\importacao_notas\app\current` |
 | Config padrão | `src\KitWmsIntegrador.Worker\appsettings.json` | variáveis de ambiente (`WMS__*`, `I60__*`, `Devolucao__*`) |
 | Scripts de operação | `deploy\` | `C:\Friozem\importacao_notas\tools\deploy` |
-| Entrada de XML | — | `C:\Friozem\kitbrf` |
+| Entrada de ZIP/XML | — | `C:\Friozem\kitbrf` (`Puxada\`, `PuxadaTSP\` e raiz) |
 | Destinatários / telemetria | modelos em `deploy\config-exemplo` e `docs\exemplos` | `config\destinatarios-resumo.txt`, `data\telemetria\` |
 | Códigos customizados do WMS | `docs\wms-codigo-customizado` | WMS (homolog) |
 | Manuais | `docs\manuais` | `C:\Friozem\importacao_notas\manuais` |
@@ -48,6 +53,11 @@ rollback, segredos).
   sempre em branco). A tela pesquisa por **chave ou por número + série** (número e série lidos do nome do
   arquivo `NFE<chave>.XML`, CNPJ do depositante, sem pasta `Erro`; mais de uma chave = o colaborador escolhe).
   Modo manual `--enviar-i40 --chave ...` ou `--numero ... --serie ...`.
+- **Puxada x Puxada TSP (12/11/2026):** o colaborador salva só ZIPs; tudo em `PuxadaTSP` sobe como TSP
+  (uma onda por ZIP, `TSP-AAAAMMDD-NN-NOME`, NOME cortado em 14 caracteres) e tudo em `Puxada` como
+  puxada (onda = transporte). XML solto na raiz continua aceito como puxada (Origem `raiz`, opção
+  `Pastas:AceitarRaiz`). O relatório mostra Tipo e Origem para corrigir pasta errada. Limites de ZIP em
+  `Zip:MaxArquivos` (1000) e `Zip:MaxTamanhoMb` (500). Escopo em `ESCOPO-PUXADA-TSP.md`.
 - **Retenção de 60 dias** em `Processados` e `Erro` (para achar o XML da venda na devolução).
 - **Esforço registrado só em horas** (steering `.kiro\steering\esforco-em-horas.md`).
 - **Subpastas por pacote** em `Processados` e `Erro`.
@@ -60,7 +70,8 @@ rollback, segredos).
 
 | Item | Dono sugerido |
 |---|---|
-| **Puxada TSP** (pastas `Puxada` e `PuxadaTSP`, ZIP, onda única por ZIP): escopo fechado em `docs\ESCOPO-PUXADA-TSP.md`; execução prevista para 12/11 | Usuário / IA |
+| **Puxada TSP:** testar com ZIP real no homolog (duas rodadas) seguindo `docs\ROTEIRO-TESTE-PUXADA-TSP.md`; validar que o WMS aceita `numeroPlanejamento` igual ao nome da onda | Usuário |
+| **Puxada TSP:** criar `Puxada` e `PuxadaTSP` em `C:\Friozem\kitbrf` e publicar a release com a Puxada TSP (`INSTALACAO-SERVIDOR.md`, §3.4c) | Usuário / TI |
 | Enviar ao fornecedor as perguntas da I60 (`HISTORICO-PLANO-A.md`) | Usuário |
 | Testar a tela de devolução no homolog (`ROTEIRO-TESTE-I40.md`, seção 9) | Usuário |
 | Publicar a nova release (retenção de 60 dias + I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |
@@ -78,7 +89,7 @@ rollback, segredos).
 
 1. Obter o repositório (clonar ou copiar `c:\wms-integrador`) e abrir em .NET 8 SDK.
 2. `dotnet build KitWmsIntegrador.sln` e `dotnet test tests\KitWmsIntegrador.Tests\KitWmsIntegrador.Tests.csproj`.
-3. Ler o diário mais recente em `docs\diario` (hoje `2026-11-10.md`) e este documento.
+3. Ler o diário mais recente em `docs\diario` (hoje `2026-11-12.md`) e este documento.
 4. No servidor: conferir o serviço `Friozem-ImportacaoNotas` (rodando) e a release em `app\current`.
 5. Conferir a telemetria: `data\telemetria\ultimo-resumo.txt` e o e-mail de segunda 12:00.
 6. I60: ver a resposta do fornecedor e retomar por `HISTORICO-PLANO-A.md`. I40: seguir `ROTEIRO-TESTE-I40.md`.

@@ -34,6 +34,8 @@ pelo tempo de execução/sessão do agente.
 | 2026-11-10 | IA      | 7,50  | Aprox.: Plano A (testes, documentação, perguntas ao fornecedor, 2,5 h) + I40 fase 1 e fase 2 com a tela de devolução (5,0 h) — estimado |
 | 2026-11-11 | Humana  | 2,00  | Publicação no GitHub, tela da I40 (busca por chave ou número+série, sem placa), escopo da Puxada TSP |
 | 2026-11-11 | IA      | 3,50  | Aprox.: XMLs fora do repositório e travas, tela da I40 com busca por número+série, manuais sem devolução, análise dos ZIPs e escopo da Puxada TSP — estimado |
+| 2026-11-12 | Humana  | a informar | Horas humanas a informar pelo usuário (Puxada TSP: validações, teste com ZIP real no homolog) |
+| 2026-11-12 | IA      | 2,50  | Aprox.: Puxada TSP (pastas, ZIP seguro, onda por ZIP, relatório com Tipo e Origem, testes) e documentação — estimado pelo tempo de sessão, parcial |
 
 Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**
 (entrega inicial, até a produção). Com 09/11: **31,15 h**. Com 10/11: **35,65 h**. Com 11/11: **37,65 h**.
@@ -50,8 +52,12 @@ O comparativo abaixo e a apresentação usam a **entrega inicial** (do desenho �
 09/11 a 11/11 são acabamento, a retomada da I60 (Plano A pausado, aguarda o fornecedor), a
 devolução pela I40 (Plano B: formato validado no homolog e tela implementada, fora do manual
 oficial) e o escopo da Puxada TSP.
-Retomada (09-11/11): **11,40 h humanas** e **aprox. 15,00 h de IA**. Execução da Puxada TSP
-prevista para 12/11.
+Retomada (09-11/11): **11,40 h humanas** e **aprox. 15,00 h de IA**. A Puxada TSP foi implementada
+em 12/11 (ver abaixo); as horas humanas de 12/11 estão **a informar pelo usuário** e não entram nos totais.
+
+Em 12/11 (parcial): **aprox. 2,50 h de IA** (estimadas pelo tempo de sessão) e horas humanas a informar
+pelo usuário. Com 12/11, a IA da retomada vai a **aprox. 17,50 h** e a IA total a **aprox. 31,90 h**
+(os totais humanos acima não incluem 12/11).
 
 O grosso do esforço humano está em decisões, validação e operação; a IA atua como
 multiplicador de produtividade na escrita de código, testes e documentação.
