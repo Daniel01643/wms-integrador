@@ -55,8 +55,15 @@ Relatorio, Email, Monitoramento e Worker.
 3. Consulta periódica (BackgroundService) com TODOS; gravar resposta bruta antes de processar;
    casar documentos às notas aguardando; UNICO (CNPJ + número) para recuperação de notas atrasadas
    ou após falha no processamento de um TODOS.
-4. Ao separar: montar a I60 com a MESMA NF-e (XML) da I50 (confirmar com o usuário se for diferente),
+4. Ao separar: montar a I60 com a MESMA NF-e (XML) da I50 (confirmado pelo usuário),
    AJUSTANDO as quantidades para as separadas; registrar original × separada por item.
+4a. Doccarga em status ENC (encerrado): enviar a I60 como `IMP` (`tipoOperacaoNota` e `Tpsit` = `IMP`;
+   exemplos de payload IMB/IMP em `c:\wms-integrador\docs\chamado\I60-associacao-automatica-IMB.json` e
+   `I60-associacao-manual-IMP.json`) e registrar o erro "doccarga encerrado" no estado e no relatório.
+   Caso normal: associação automática `IMB`. Detecção do ENC a confirmar com o usuário (ver escopo);
+   hipótese padrão: recusa da I60 `IMB` com mensagem de encerrado (padrões configuráveis) → reenvio `IMP`.
+   Atenção ao "Nota [...] já existe, TpAcao precisa ser UPD!" (`docs\chamado\respostas-homolog.txt`):
+   o reenvio pode exigir `TpAcao = UPD`; deixar configurável e coberto por teste com WMS falso.
 5. I60 não é mais enviada junto da I50 quando `I51:Habilitada=true`. Com I51 desligada, o
    comportamento atual permanece idêntico.
 6. Ondas TSP também passam pelo fluxo.
