@@ -31,6 +31,9 @@ public sealed record SolicitacaoDevolucao
 
     /// <summary>Origem do pedido (IP), só para auditoria.</summary>
     public string? Origem { get; init; }
+
+    /// <summary>Usuário do WMS declarado na tela (sem verificação), só para auditoria e log. Nunca há senha aqui.</summary>
+    public string? Usuario { get; init; }
 }
 
 /// <summary>Resultado de uma chave.</summary>

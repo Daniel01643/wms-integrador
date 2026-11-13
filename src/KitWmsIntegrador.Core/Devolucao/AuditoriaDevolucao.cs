@@ -10,7 +10,8 @@ namespace KitWmsIntegrador.Core.Devolucao;
 /// <summary>
 /// Auditoria simples dos envios da tela: um arquivo por dia
 /// (<c>devolucao_yyyyMMdd.log</c>) com uma linha por chave:
-/// <c>data;ip;chave;nota;status;transacao;mensagem</c>. Sem credenciais nem JSON.
+/// <c>data;ip;usuario;chave;nota;status;transacao;mensagem</c> (o usuário é o login do WMS declarado
+/// na tela, sem verificação; linhas antigas, sem a coluna usuário, têm 7 campos). Sem senha, credenciais nem JSON.
 /// Pasta: <c>Devolucao:PastaAuditoria</c> ou <c>&lt;Estado&gt;\devolucao</c>. Falha de gravação só é logada.
 /// </summary>
 public sealed class AuditoriaDevolucao
@@ -35,8 +36,9 @@ public sealed class AuditoriaDevolucao
     }
 
     /// <summary>Grava uma linha por chave. Nunca lança.</summary>
-    public void Registrar(string? origem, string transacao, IEnumerable<ResultadoChaveDevolucao> resultados)
+    public void Registrar(string? origem, string? usuario, string transacao, IEnumerable<ResultadoChaveDevolucao> resultados)
     {
+        var usuarioLimpo = ValidadorUsuarioDevolucao.Sanitizar(usuario);
         try
         {
             var pasta = ResolverPasta();
@@ -51,6 +53,7 @@ public sealed class AuditoriaDevolucao
                 sb.Append(string.Join(';',
                     data,
                     Limpar(origem, "-"),
+                    usuarioLimpo,
                     r.Chave,
                     Limpar(r.Nota, "-"),
                     r.Status,

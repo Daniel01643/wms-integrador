@@ -159,7 +159,11 @@ dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release
 ```
 
 4. Abra `http://localhost:8085/` (ou a porta escolhida). O log mostra "Tela de devolução ligada na porta ...".
-5. Cenários a testar (sem placa; a tela não tem mais esse campo):
+5. **Login:** no cartão "Quem está enviando", digite o usuário do WMS (ex.: `teste.homolog`) e uma senha
+   qualquer, e clique em "Confirmar usuário". Esperado: "Enviando como: teste.homolog" e o link "Trocar
+   usuário". Antes disso o botão "Enviar devolução" fica desabilitado, mas a busca funciona. Teste também
+   usuário com `;` (esperado: erro) e "Trocar usuário".
+6. Cenários a testar (sem placa; a tela não tem mais esse campo):
    - **Busca por chave:** cole a chave `35251201838723009850550060156712891146443917`, Adicionar. Esperado:
      a lista mostra "Nota 15671289, série 6". Clique em Enviar. Esperado: "Enviada com sucesso" (IMP).
    - **Busca por número e série:** em "Ou procure pelo número e pela série" digite número `15671289` e
@@ -185,8 +189,10 @@ dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release
      busca; Tab alcança todos os campos e botões, com foco visível.
    - **Sem placa:** confirme que não há checkbox nem campo de placa e que o JSON enviado (modo manual,
      seção 10) traz `placaVeiculoPrevistoNota` e `nomeMotorista` em branco.
-6. Confira a auditoria: `<Estado>\devolucao\devolucao_<data>.log` (uma linha por chave, sem senha).
-7. Encerre com Ctrl+C e faça a limpeza da seção 8, incluindo:
+7. Confira a auditoria: `<Estado>\devolucao\devolucao_<data>.log` (uma linha por chave, formato
+   `data;ip;usuario;chave;nota;status;transacao;mensagem`). Esperado: a 3ª coluna é o usuário digitado e a
+   senha digitada não aparece no arquivo nem em `logs\worker.out.log` (que traz `usuario=`).
+8. Encerre com Ctrl+C e faça a limpeza da seção 8, incluindo:
 
 ```powershell
 Remove-Item Env:Devolucao__Habilitada, Env:Devolucao__Porta -ErrorAction SilentlyContinue

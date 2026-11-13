@@ -158,14 +158,15 @@ public sealed class ServicoDevolucao : IServicoDevolucao
         }
 
         var finais = resultados.Select(r => r!).ToList();
+        var usuarioLog = ValidadorUsuarioDevolucao.Sanitizar(solicitacao.Usuario);
         foreach (var r in finais)
         {
             _logger.LogInformation(
-                "Devolução: chave={Chave} nota={Nota} status={Status} transacao={Transacao}",
-                r.Chave, r.Nota, r.Status, string.IsNullOrEmpty(transacao) ? "-" : transacao);
+                "Devolução: usuario={Usuario} chave={Chave} nota={Nota} status={Status} transacao={Transacao}",
+                usuarioLog, r.Chave, r.Nota, r.Status, string.IsNullOrEmpty(transacao) ? "-" : transacao);
         }
 
-        _auditoria.Registrar(solicitacao.Origem, transacao, finais);
+        _auditoria.Registrar(solicitacao.Origem, solicitacao.Usuario, transacao, finais);
 
         return new ResultadoLoteDevolucao
         {

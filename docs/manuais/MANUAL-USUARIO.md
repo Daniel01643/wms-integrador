@@ -299,3 +299,9 @@ A devolução segue uma ordem: primeiro a **associação (I60)**, depois a nota 
 encerrado) e, **só em último caso**, a **tela de devolução (I40)**, em que se informa a chave da nota
 (ou número e série) para enviar a devolução ao WMS. A tela está **pronta, mas desligada**; ela só será
 usada com autorização do responsável pela operação. Se você achar que precisa dela, fale com a TI.
+
+Ao usar a tela, primeiro informe o **usuário do WMS** (e a senha, se quiser) no cartão "Quem está enviando"
+e confirme. O botão "Enviar devolução" só libera depois disso, e a tela mostra "Enviando como: seu usuário"
+(use "Trocar usuário" se outra pessoa for enviar). O login é usado só para registrar quem enviou; a senha
+não é verificada nem guardada. O link fica aberto na rede interna: quem tem o link consegue enviar, por
+isso informe sempre o seu próprio usuário.

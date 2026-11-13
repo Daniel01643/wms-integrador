@@ -12,7 +12,7 @@ public sealed class ServicoDevolucaoTests : IDisposable
     public void Dispose() => _amb.Dispose();
 
     private static SolicitacaoDevolucao Pedido(IEnumerable<string> chaves) =>
-        new() { Chaves = chaves.ToList(), Origem = "10.0.0.5" };
+        new() { Chaves = chaves.ToList(), Origem = "10.0.0.5", Usuario = "maria.silva" };
 
     private NotaFiscalI40 NotaEnviada(int envio = 0, int indice = 0) =>
         ((PayloadI40)_amb.Cliente.Envios[envio].Payload).NotaFiscal[indice];
@@ -206,13 +206,14 @@ public sealed class ServicoDevolucaoTests : IDisposable
         var arquivo = Assert.Single(Directory.GetFiles(_amb.Auditoria, "devolucao_*.log"));
         var linha = Assert.Single(File.ReadAllLines(arquivo));
         var campos = linha.Split(';');
-        Assert.Equal(7, campos.Length);
+        Assert.Equal(8, campos.Length);
         Assert.Equal("10.0.0.5", campos[1]);
-        Assert.Equal(AmbienteDevolucao.Chave1, campos[2]);
-        Assert.Equal(AmbienteDevolucao.Nota1, campos[3]);
-        Assert.Equal("Enviada", campos[4]);
-        Assert.Equal("4042207", campos[5]);
-        Assert.Equal("Registrado, com sucesso", campos[6]);
+        Assert.Equal("maria.silva", campos[2]);
+        Assert.Equal(AmbienteDevolucao.Chave1, campos[3]);
+        Assert.Equal(AmbienteDevolucao.Nota1, campos[4]);
+        Assert.Equal("Enviada", campos[5]);
+        Assert.Equal("4042207", campos[6]);
+        Assert.Equal("Registrado, com sucesso", campos[7]);
         Assert.DoesNotContain("NOTA_FISCAL", linha);
         Assert.DoesNotContain("MOTORISTA", linha);
     }

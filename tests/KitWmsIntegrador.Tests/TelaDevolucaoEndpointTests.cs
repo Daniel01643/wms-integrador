@@ -89,7 +89,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
             AmbienteDevolucao.Resposta("4042207", (AmbienteDevolucao.Nota1, true, "Registrado com sucesso")));
 
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 } }));
+            Json(new { usuario = "teste.web", chaves = new[] { AmbienteDevolucao.Chave1 } }));
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -112,7 +112,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         var semXml = AmbienteDevolucao.ChaveComDv(AmbienteDevolucao.Chave1[..30] + "0000000000001");
 
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { "123", semXml } }));
+            Json(new { usuario = "teste.web", chaves = new[] { "123", semXml } }));
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -129,7 +129,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
             AmbienteDevolucao.Resposta("1", (AmbienteDevolucao.Nota1, true, "ok")));
 
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 }, enviarPlaca = true, placa = "EPR7871" }));
+            Json(new { usuario = "teste.web", chaves = new[] { AmbienteDevolucao.Chave1 }, enviarPlaca = true, placa = "EPR7871" }));
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         var nf = ((KitWmsIntegrador.Core.Construtores.Dtos.PayloadI40)_amb.Cliente.Envios[0].Payload).NotaFiscal[0];
@@ -253,7 +253,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         var chaves = Enumerable.Range(0, 31)
             .Select(i => AmbienteDevolucao.ChaveComDv(AmbienteDevolucao.Chave1[..30] + i.ToString("D13"))).ToArray();
 
-        var resp = await _http.PostAsync("/api/devolucao/enviar", Json(new { chaves }));
+        var resp = await _http.PostAsync("/api/devolucao/enviar", Json(new { usuario = "teste.web", chaves }));
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
         Assert.Empty(_amb.Cliente.Envios);
@@ -262,7 +262,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
     [Fact]
     public async Task PostEnviar_ListaVazia_Devolve400()
     {
-        var resp = await _http.PostAsync("/api/devolucao/enviar", Json(new { chaves = Array.Empty<string>() }));
+        var resp = await _http.PostAsync("/api/devolucao/enviar", Json(new { usuario = "teste.web", chaves = Array.Empty<string>() }));
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
@@ -285,7 +285,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         _amb.CopiarXml(AmbienteDevolucao.Chave1);
         // Sem resposta programada, o FakeClienteWms lança InvalidOperationException.
         var resp = await _http.PostAsync("/api/devolucao/enviar",
-            Json(new { chaves = new[] { AmbienteDevolucao.Chave1 } }));
+            Json(new { usuario = "teste.web", chaves = new[] { AmbienteDevolucao.Chave1 } }));
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -301,7 +301,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         await app.StartAsync();
         using var http = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
 
-        var resp = await http.PostAsync("/api/devolucao/enviar", Json(new { chaves = new[] { AmbienteDevolucao.Chave1 } }));
+        var resp = await http.PostAsync("/api/devolucao/enviar", Json(new { usuario = "teste.web", chaves = new[] { AmbienteDevolucao.Chave1 } }));
         var texto = await resp.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.InternalServerError, resp.StatusCode);

@@ -15,12 +15,18 @@ namespace KitWmsIntegrador.Worker.TelaDevolucao;
 public sealed class EnvioDevolucaoRequest
 {
     public List<string?>? Chaves { get; set; }
+
+    /// <summary>Login do WMS declarado na tela (só para registrar quem enviou; não é verificado).</summary>
+    public string? Usuario { get; set; }
+
+    // A "senha" que a tela envia NÃO é mapeada de propósito: o desserializador ignora a propriedade,
+    // então ela nunca é guardada, logada, auditada, devolvida nem enviada ao WMS.
 }
 
 /// <summary>
 /// Monta o <see cref="WebApplication"/> (Kestrel) da tela de devolução: <c>GET /</c> (página única),
 /// <c>GET /api/config</c>, <c>GET /api/saude</c>, <c>GET /api/devolucao/buscar?numero=&amp;serie=</c>
-/// (resolve número + série em chave(s)) e <c>POST /api/devolucao/enviar</c>. Sem login.
+/// (resolve número + série em chave(s)) e <c>POST /api/devolucao/enviar</c> (exige o usuário do WMS declarado, sem verificação de senha).
 /// É usado pelo <see cref="ServidorTelaDevolucao"/> e pelos testes de integração do endpoint.
 /// </summary>
 public static class TelaDevolucaoApp
@@ -120,8 +126,15 @@ public static class TelaDevolucaoApp
                     return Results.Json(new { erro = "Pedido inválido: corpo vazio." }, statusCode: 400);
                 }
 
+                var erroUsuario = ValidadorUsuarioDevolucao.Validar(req.Usuario, out var usuario);
+                if (erroUsuario is not null)
+                {
+                    return Results.Json(new { erro = erroUsuario }, statusCode: 400);
+                }
+
                 var resultado = await servico.EnviarAsync(new SolicitacaoDevolucao
                 {
+                    Usuario = usuario,
                     Chaves = (IReadOnlyList<string>)(req.Chaves ?? new List<string?>()).Select(c => c ?? string.Empty).ToList(),
                     Origem = ctx.Connection.RemoteIpAddress?.ToString(),
                 }, ctx.RequestAborted);

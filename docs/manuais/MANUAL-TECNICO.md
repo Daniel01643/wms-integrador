@@ -581,7 +581,13 @@ A devolução tem uma ordem de preferência: (1) **I60 associada** pelo fluxo I5
 A tela da I40 está **pronta e funcionando**, mas **desligada por padrão** (`Devolucao:Habilitada=false`).
 Pesquisa a nota por chave de 44 dígitos **ou** por número + série, envia a devolução ao WMS com
 `tipoOperacaoNota` `IMP`, sem placa e sem motorista. Porta HTTP em `Devolucao:Porta` (padrão 8085). O
-trabalho da I51/I60 não altera a I40 (há testes de regressão). Arquitetura e roteiro:
+trabalho da I51/I60 não altera a I40 (há testes de regressão).
+Desde 13/11/2026 a tela tem um **login simples**: `POST /api/devolucao/enviar` exige `usuario` (1 a 60 caracteres;
+letras, números, `. _ - @` e espaço; senão 400) e a senha digitada nem é enviada pela página nem lida pelo
+servidor. A auditoria `devolucao_yyyyMMdd.log` passou a `data;ip;usuario;chave;nota;status;transacao;mensagem`
+(linhas antigas têm 7 campos) e o log traz `usuario=`. O WMS segue chamado com a conta de serviço. Decisão do usuário
+(13/11/2026): link aberto na rede interna, sem restrição de firewall; risco aceito: quem tem o link pode enviar e a
+identificação é autodeclarada. Arquitetura e roteiro:
 `docs\ARQUITETURA-PLANO-B-I40.md` e `docs\ROTEIRO-TESTE-I40.md`. O teste da tela no homolog ainda
 está pendente. Só ligue com OK do responsável.
 

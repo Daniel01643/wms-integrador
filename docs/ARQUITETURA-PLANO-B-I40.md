@@ -21,7 +21,7 @@ ou bipa (leitor de código de barras) as chaves de NF-e. A rotina:
 2. converte o XML para a I40 (`WEBAPI-I40`, função `EDI_JS_IMP_I40`) com `tipoNota = "DE"` (devolução);
 3. envia ao WMS e mostra o resultado por chave.
 
-Decisões do usuário: sem login (a tela só lê XML e envia, não guarda nada e não altera dados
+Decisões do usuário: sem autenticação real (a tela só lê XML e envia, não guarda nada e não altera dados
 locais); retenção de 60 dias (já aplicada em `Limpeza:DiasRetencao`); XML convertido é o da
 venda original.
 
@@ -172,7 +172,7 @@ ambiente (`Devolucao__Habilitada=true`), no mesmo padrão da I60.
 | Chave inexistente ou digitada errada | Validar 44 dígitos e dígito verificador (módulo 11) na tela, antes de procurar. |
 | Nota já devolvida / envio duplicado | Sem guardar estado (decisão do usuário), a proteção fica no WMS (rejeita duplicidade, a validar no homolog). Mitigação local leve: avisar se a mesma chave aparece duas vezes no mesmo envio. Se for preciso histórico, exige guardar estado (decisão a tomar, P7). |
 | Nota original nunca integrada (está em `Erro\`) | Não localizar em `Erro`; informar "nota não consta como integrada". |
-| Porta/firewall | Regra de entrada restrita à rede interna na porta escolhida; sem exposição externa. Sem login, qualquer máquina da LAN com acesso à porta pode enviar: aceito pelo usuário, mas restringir por origem no firewall. |
+| Porta/firewall | Regra de entrada restrita à rede interna na porta escolhida; sem exposição externa. Sem autenticação, qualquer máquina da LAN com acesso à porta pode enviar. Decisão do usuário (13/11/2026): link aberto na rede interna, sem restrição de firewall por origem; risco aceito (ver seção 20). |
 | Remetente/destinatário na devolução | Pergunta P1: na devolução o cliente devolve para nós. Pode ser preciso inverter emitente/destinatário (remetente = cliente, destinatário = nós). Não decidir sem o manual da I40. |
 | Conta WMS compartilhada | Mesmo usuário do serviço; token único com lock, sem concorrência extra. |
 | Falha do endpoint afetar a integração | Isolamento por flag e tratamento de exceção (seção 4). |
@@ -251,7 +251,7 @@ Não faz parte da fase 1: tela web, porta HTTP, publicação como serviço e rel
 
 **Estimativa, não registro de esforço.** Escopo: tela de chaves (digitar/bipar), placa
 obrigatória, validações, porta HTTP embutida no Worker, publicação como serviço no servidor,
-testes e manuais. Sem login (decisão do usuário).
+testes e manuais. Sem autenticação real (decisão do usuário; login simples só para registrar o usuário, seção 20).
 
 | Etapa | Horas humanas | Horas de IA |
 |---|---:|---:|
@@ -294,7 +294,7 @@ Conclusões:
 | A | `InverterPartes` padrão **false**. A variante invertida não é necessária; a opção continua existindo e está documentada como validada. | `Devolucao:InverterPartes` |
 | B | `tipoOperacaoNota` padrão passa de ICD para **IMP**. | `Devolucao:TipoOperacaoNota` = `IMP` |
 | C | **Substituída pela decisão F (seção 19): a placa foi removida.** Texto original: a **tela tinha um flag** "Enviar placa do veículo", que começa **desligado**. Placa desligada: `tipoOperacaoNota` = `TipoOperacaoNota` (IMP), `placaVeiculoPrevistoNota` e `nomeMotorista` em branco, sem exigir placa nem motorista. Placa ligada: `tipoOperacaoNota` = `TipoOperacaoNotaComPlaca` (ICD), placa obrigatória e `nomeMotorista` = `Devolucao:NomeMotorista` (obrigatório configurar). | chaves `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista` (removidas do código) |
-| D | CFOP da venda, `tipoNota` DE, sem login na tela. Retenção de 60 dias (`Limpeza:DiasRetencao`) já existente. | `ConstrutorI40`; `Devolucao:TipoNota` = `DE` |
+| D | CFOP da venda, `tipoNota` DE, sem autenticação na tela (só login declarado, seção 20). Retenção de 60 dias (`Limpeza:DiasRetencao`) já existente. | `ConstrutorI40`; `Devolucao:TipoNota` = `DE` |
 
 ## 15. Estado da fase 2 (tela web no Worker)
 
@@ -351,8 +351,10 @@ ao próprio endereço).
 
 Um arquivo por dia, `devolucao_yyyyMMdd.log`, em `Devolucao:PastaAuditoria` ou, se vazio, em
 `<Estado>\devolucao` (no servidor, a pasta de estado do serviço). Uma linha por chave, separada
-por `;`: `data;ip;chave;nota;status;transacao;mensagem`. Não grava credenciais nem o JSON
-enviado. Falha ao gravar só gera aviso no log. Cada chave também é registrada no log do Worker.
+por `;`: `data;ip;usuario;chave;nota;status;transacao;mensagem`. O `usuario` é o login do WMS
+digitado na tela (sem verificação; `;` e quebras de linha são trocados). Linhas antigas, de antes
+do login (13/11/2026), têm 7 campos, sem a coluna `usuario`; nada no sistema lê esse arquivo, ele é
+só para consulta. Não grava senha, credenciais nem o JSON enviado. Falha ao gravar só gera aviso no log. Cada chave também é registrada no log do Worker.
 
 ### Isolamento
 
@@ -381,8 +383,8 @@ Verificação documental e de projeto (o servidor **não foi acessado**).
   - R3. O `ServicoDevolucao` e o orquestrador têm, cada um, a sua instância do cliente WMS, ou seja,
     dois tokens JWT da mesma conta. Aceito (o pedido do token já tem nova tentativa). Se
     aparecer 401 intermitente, compartilhar a instância numa mudança separada.
-  - R4. Porta aberta **sem login** na rede interna. Mitigação: flag desligada por padrão, firewall
-    restrito à rede interna e auditoria com o IP de origem (ver `docs/INSTALACAO-SERVIDOR.md`).
+  - R4. Porta aberta **sem autenticação** na rede interna. Mitigação: flag desligada por padrão e
+    auditoria com o IP de origem e o usuário declarado (ver seção 20 e `docs/INSTALACAO-SERVIDOR.md`).
 
 ## 17. Testes
 
@@ -449,3 +451,18 @@ chegada de veículo for pedida de novo.
 Compatibilidade: chaves antigas `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista`
 que ainda existam em algum `appsettings.Production.json` do servidor são ignoradas, sem erro. O corpo
 do `POST /api/devolucao/enviar` com `enviarPlaca`/`placa` também é aceito e ignorado.
+## 20. Login simples na tela (decis�o do usu�rio em 13/11/2026)
+
+- **Decis�o:** o link da tela fica aberto na rede interna, sem restri��o de firewall por origem nem
+  integra��o com AD, porque o uso � baixo. **Risco aceito:** qualquer pessoa com o link pode enviar,
+  e a identifica��o � autodeclarada (n�o � autentica��o).
+- **Objetivo:** saber quem enviou cada devolu��o. A tela tem o cart�o "Quem est� enviando" com
+  "Usu�rio do WMS" e "Senha". A busca funciona sem usu�rio; o bot�o "Enviar devolu��o" s� libera com
+  o usu�rio confirmado. A tela mostra "Enviando como: <usu�rio>" e o link "Trocar usu�rio". S� o
+  usu�rio fica no navegador (`sessionStorage`, some ao fechar a aba).
+- **Senha:** a p�gina n�o envia a senha e o servidor ignora qualquer `senha` que chegue no corpo
+  (a propriedade nem � lida). Ela n�o � verificada, guardada, logada, auditada, devolvida nem
+  enviada ao WMS. O WMS continua sendo chamado com a conta de servi�o (`WMS__Usuario`/`WMS__Senha`).
+- **API:** `POST /api/devolucao/enviar` exige `usuario` (cortado nas pontas, 1 a 60 caracteres, s�
+  letras, n�meros, `.` `_` `-` `@` e espa�o); sen�o responde 400 em pt-BR.
+- **Registro:** coluna `usuario` na auditoria e `usuario=` na linha de log de cada chave.

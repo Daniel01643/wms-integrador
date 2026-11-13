@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-cd07828</span>
+    <span>Vers&atilde;o: 2026.11.13-ee48d60</span>
   </div>
 </section>
   <header class="hd">
@@ -795,7 +795,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <h3>8.6. Última alternativa: tela de devolução pela I40 (seção removível)</h3>
 <blockquote><p>Esta seção é independente do resto do manual e pode ser removida inteira (junto do item do índice e da linha da tabela da seção 12) sem afetar as demais.</p></blockquote>
 <p>A devolução tem uma ordem de preferência: (1) <strong>I60 associada</strong> pelo fluxo I51 → I60 <code>INE</code>; (2) <strong>I60 como <code>IMP</code></strong> (DocCarga encerrado), com o erro registrado; (3) <strong>tela de devolução pela I40</strong>, a <strong>última alternativa</strong>.</p>
-<p>A tela da I40 está <strong>pronta e funcionando</strong>, mas <strong>desligada por padrão</strong> (<code>Devolucao:Habilitada=false</code>). Pesquisa a nota por chave de 44 dígitos <strong>ou</strong> por número + série, envia a devolução ao WMS com <code>tipoOperacaoNota</code> <code>IMP</code>, sem placa e sem motorista. Porta HTTP em <code>Devolucao:Porta</code> (padrão 8085). O trabalho da I51/I60 não altera a I40 (há testes de regressão). Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue com OK do responsável.</p>
+<p>A tela da I40 está <strong>pronta e funcionando</strong>, mas <strong>desligada por padrão</strong> (<code>Devolucao:Habilitada=false</code>). Pesquisa a nota por chave de 44 dígitos <strong>ou</strong> por número + série, envia a devolução ao WMS com <code>tipoOperacaoNota</code> <code>IMP</code>, sem placa e sem motorista. Porta HTTP em <code>Devolucao:Porta</code> (padrão 8085). O trabalho da I51/I60 não altera a I40 (há testes de regressão). Desde 13/11/2026 a tela tem um <strong>login simples</strong>: <code>POST /api/devolucao/enviar</code> exige <code>usuario</code> (1 a 60 caracteres; letras, números, <code>. _ - @</code> e espaço; senão 400) e a senha digitada nem é enviada pela página nem lida pelo servidor. A auditoria <code>devolucao_yyyyMMdd.log</code> passou a <code>data;ip;usuario;chave;nota;status;transacao;mensagem</code> (linhas antigas têm 7 campos) e o log traz <code>usuario=</code>. O WMS segue chamado com a conta de serviço. Decisão do usuário (13/11/2026): link aberto na rede interna, sem restrição de firewall; risco aceito: quem tem o link pode enviar e a identificação é autodeclarada. Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue com OK do responsável.</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>

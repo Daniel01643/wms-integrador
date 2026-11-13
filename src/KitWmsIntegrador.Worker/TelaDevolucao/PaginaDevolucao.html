@@ -60,6 +60,15 @@
   .st.warn { background: #FFF4DB; border-color: #7A4B00; color: #6B4100; }
   #resumo { font-weight: 700; margin: 4px 0 0; }
   .rodape { color: #4B5563; font-size: 0.9rem; text-align: center; }
+  .login-campos { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .login-campos .campo { flex: 1 1 240px; }
+  input[type="password"] { width: 100%; font: inherit; font-size: 1.1rem; padding: 10px 12px; border: 2px solid #6B7280; border-radius: 6px; background: #FFFFFF; color: #222222; }
+  .nota-login { margin: 12px 0 0; color: #444444; font-size: 0.95rem; }
+  #login-ativo[hidden], #login-form[hidden] { display: none; }
+  #login-ativo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  #login-ativo .quem { font-size: 1.1rem; font-weight: 700; color: #17479E; margin: 0; }
+  button.link { background: none; border: none; min-height: 44px; padding: 4px 8px; color: #17479E; text-decoration: underline; font-weight: 700; }
+  button.link:hover:not(:disabled) { background: #E8EEF8; color: #0F3578; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @media (max-width: 640px) { .hd { padding: 12px 16px; } .hd h1 { font-size: 1.15rem; } .card { padding: 16px; } }
 </style>
@@ -70,13 +79,37 @@
   <img src="data:image/png;base64,{{LOGO_BASE64}}" alt="Friozem">
 </header>
 <main>
+  <section class="card" aria-labelledby="t-login">
+    <h2 id="t-login">1. Quem está enviando</h2>
+    <form id="login-form" autocomplete="off">
+      <div class="login-campos">
+        <div class="campo">
+          <label for="usuario">Usuário do WMS</label>
+          <input type="text" id="usuario" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="msg-login nota-login" autofocus>
+        </div>
+        <div class="campo">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" maxlength="100" autocomplete="off" aria-describedby="nota-login">
+        </div>
+        <button type="submit" id="entrar">Confirmar usuário</button>
+      </div>
+      <div id="msg-login" class="aviso" role="alert"></div>
+    </form>
+    <div id="login-ativo" hidden>
+      <p class="quem" id="enviando-como" aria-live="polite"></p>
+      <button type="button" id="trocar" class="link">Trocar usuário</button>
+    </div>
+    <p class="nota-login" id="nota-login">O login é usado só para registrar quem enviou. A senha não é verificada nem guardada.</p>
+  </section>
+
   <section class="card" aria-labelledby="t-chaves">
-    <h2 id="t-chaves">1. Notas de venda a devolver</h2>
+    <h2 id="t-chaves">2. Notas de venda a devolver</h2>
+    <p class="ajuda">Pode procurar as notas sem informar o usuário; ele só é exigido para enviar.</p>
     <p class="ajuda">Digite ou bipe a chave de 44 números e tecle Enter, ou procure pelo número e pela série da nota. Pode colar várias chaves de uma vez.</p>
     <div class="linha">
       <div class="campo">
         <label for="chave">Chave de acesso (44 dígitos)</label>
-        <input type="text" id="chave" inputmode="numeric" autocomplete="off" autofocus aria-describedby="msg-chave">
+        <input type="text" id="chave" inputmode="numeric" autocomplete="off" aria-describedby="msg-chave">
       </div>
       <button type="button" id="adicionar">Adicionar</button>
     </div>
@@ -110,17 +143,17 @@
   </section>
 
   <section class="card" aria-labelledby="t-envio">
-    <h2 id="t-envio">2. Envio</h2>
-    <p class="ajuda">Confira a lista acima e clique em Enviar. Cada nota é registrada no WMS como devolução.</p>
+    <h2 id="t-envio">3. Envio</h2>
+    <p class="ajuda">Confira a lista acima e clique em Enviar devolução. Cada nota é registrada no WMS como devolução. O botão só libera depois de confirmar o usuário.</p>
     <div class="acoes">
-      <button type="button" id="enviar" disabled>Enviar</button>
+      <button type="button" id="enviar" disabled>Enviar devolução</button>
       <button type="button" id="limpar" class="sec">Limpar lista</button>
     </div>
     <div id="msg-envio" class="aviso" role="alert"></div>
   </section>
 
   <section class="card" aria-labelledby="t-res">
-    <h2 id="t-res">3. Resultado</h2>
+    <h2 id="t-res">4. Resultado</h2>
     <div aria-live="polite" id="area-resultado">
       <p class="vazio" id="sem-resultado">Nenhum envio feito ainda.</p>
       <p id="resumo"></p>
@@ -131,7 +164,7 @@
       </table>
     </div>
   </section>
-  <p class="rodape">Friozem. Tela interna de devolução, sem login. Use apenas na rede da empresa.</p>
+  <p class="rodape">Friozem. Tela interna de devolução. Use apenas na rede da empresa.</p>
 </main>
 <script>
 (function () {
@@ -209,8 +242,57 @@
       lista.appendChild(li);
     });
     contador.textContent = chaves.length + ' de ' + maxChaves + ' chaves';
-    btnEnviar.disabled = enviando || chaves.length === 0;
+    btnEnviar.disabled = enviando || chaves.length === 0 || usuario === '';
   }
+
+  // Login simples: só o nome do usuário fica (sessionStorage). A senha nunca é guardada nem enviada.
+  var CHAVE_USUARIO = 'devolucaoUsuario';
+  var usuario = '';
+  try { usuario = (sessionStorage.getItem(CHAVE_USUARIO) || '').trim(); } catch (e) { usuario = ''; }
+  if (usuarioInvalido(usuario)) { usuario = ''; }
+
+  function usuarioInvalido(u) {
+    if (u === '') { return 'Informe o usuário do WMS.'; }
+    if (u.length > 60) { return 'O usuário pode ter no máximo 60 caracteres.'; }
+    if (!/^[\p{L}\p{N}._@ \-]+$/u.test(u)) {
+      return 'Use só letras, números, ponto, hífen, sublinhado, @ e espaço no usuário.';
+    }
+    return null;
+  }
+
+  function mostrarLogin() {
+    var logado = usuario !== '';
+    $('login-form').hidden = logado;
+    $('login-ativo').hidden = !logado;
+    $('enviando-como').textContent = logado ? 'Enviando como: ' + usuario : '';
+    atualizar();
+  }
+
+  $('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var u = $('usuario').value.trim();
+    var erro = usuarioInvalido(u);
+    if (erro) {
+      aviso('msg-login', erro, 'erro');
+      $('usuario').focus();
+      return;
+    }
+    usuario = u;
+    try { sessionStorage.setItem(CHAVE_USUARIO, usuario); } catch (err) { /* sem armazenamento: vale só nesta página */ }
+    $('senha').value = '';
+    aviso('msg-login', '');
+    mostrarLogin();
+    campo.focus();
+  });
+
+  $('trocar').addEventListener('click', function () {
+    usuario = '';
+    try { sessionStorage.removeItem(CHAVE_USUARIO); } catch (err) { /* ignora */ }
+    $('usuario').value = '';
+    $('senha').value = '';
+    mostrarLogin();
+    $('usuario').focus();
+  });
 
   function adicionar(texto) {
     var partes = texto.split(/[\s,;]+/).filter(function (p) { return p.length > 0; });
@@ -376,7 +458,7 @@
 
   btnEnviar.addEventListener('click', function () {
     aviso('msg-envio', '');
-    if (chaves.length === 0) { return; }
+    if (chaves.length === 0 || usuario === '') { return; }
     enviando = true;
     btnEnviar.disabled = true;
     btnEnviar.textContent = 'Enviando...';
@@ -385,7 +467,7 @@
     fetch('/api/devolucao/enviar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chaves: chaves })
+      body: JSON.stringify({ usuario: usuario, chaves: chaves })
     }).then(function (resp) {
       return resp.json().catch(function () { return {}; }).then(function (dados) {
         return { ok: resp.ok, dados: dados };
@@ -405,13 +487,14 @@
       aviso('msg-envio', 'Sem conexão com o serviço. Verifique a rede e tente novamente.', 'erro');
     }).then(function () {
       enviando = false;
-      btnEnviar.textContent = 'Enviar';
+      btnEnviar.textContent = 'Enviar devolução';
       atualizar();
       campo.focus();
     });
   });
 
-  atualizar();
+  mostrarLogin();
+  if (usuario !== '') { campo.focus(); }
 
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     if (cfg && cfg.maxChaves > 0) { maxChaves = cfg.maxChaves; }
