@@ -72,5 +72,12 @@ Atenção: a CLI `--reenfileirar-i60` usa a mesma configuração do Worker. Roda
 `Pastas__Entrada`, gravou o pedido em `C:\Envia xml\Estado\i51\comandos` (pasta padrão) e o Worker não o viu.
 Defina as mesmas variáveis no segundo terminal.
 
-Pendentes: onda SOROCABA (5 notas, 4 transportes), quantidade diferente, ENC → IMP, atrasada, reinício,
-relatório diário (`--relatorio-i60`), regressão da I40 com login.
+| Separação da onda SOROCABA (5 notas, 4 transportes) | 3 notas retornaram às 16:44–16:46 e associaram na 1ª I60 (tx 4050286, 4050289, 4050290) |
+| Quantidade diferente | Nota 16813042, produto 5005842: nota 11, separado 9 → I60 com 9, **Associada** |
+| Evento da I51 no WMS | 2 notas (16812954, 16812955) só retornaram depois de o usuário criar o evento interno do WMS que gera o retorno da separação; depois associaram (tx 4050304, 4050306) |
+
+**Resultado: 7 de 7 notas associadas** (ondas TSP SJC e SOROCABA), com `QtdeVolumeZero` e `QtdeTotalNotaZero` ligados.
+Pré-requisito no WMS confirmado: além do EDI WEBSERVI da I51, o **evento interno** de retorno da separação precisa
+existir para o doccarga; sem ele a I51 não devolve nada (a nota fica em `AguardandoSeparacao`/`Atrasada`).
+
+Pendentes: ENC → IMP, atrasada, reinício, relatório diário (`--relatorio-i60`), regressão da I40 com login.
