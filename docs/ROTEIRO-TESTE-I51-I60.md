@@ -1,6 +1,6 @@
 # Roteiro de teste no homolog: I51 como gatilho da I60
 
-Status: **não executado**. O homolog depende do fornecedor resolver a proprietária BRF (01.838.723/0098-50, "não encontrada").
+Status: **em execução no homolog desde 13/11/2026** (proprietária BRF liberada pelo fornecedor). Resultados na seção 7.
 Tudo aqui foi coberto por testes automatizados com WMS fake; o que muda no WMS real está marcado como "registrar".
 Não colar tokens, senhas nem corpos de nota nos registros do teste.
 
@@ -51,3 +51,26 @@ Repetir `ROTEIRO-TESTE-I40.md` seção 9 com `Devolucao__Habilitada=true` e o fl
 ## 6. Perguntas a fechar
 
 Q1 texto do ENC; Q2 TpAcao do IMP; Q11 sinal de associada; Q12 volume; Q13 campo do UNICO; Q14 mensagem do `sucesso=N`.
+
+## 7. Resultados no homolog (13/11/2026)
+
+Pacote `pacote_20261113_152914` (Puxada TSP, 2 ZIPs, 7 notas): ondas `TSP-20261112-01-SOROCABA` (5 notas) e
+`TSP-20261112-02-SJC` (2 notas). I51 e I60 ligadas por variável de ambiente; `I51__IntervaloMinutos=1`.
+
+| Passo | Resultado |
+|---|---|
+| I50 com I51 ligada | 7 notas registradas em `AguardandoSeparacao`; I60 não saiu junto |
+| 1ª consulta TODOS | Falhou (EDI da I51 ainda não configurado no WMS). Após configurar, OK sem reiniciar |
+| `sucesso=N` sem separação (Q14) | "Nenhum Documento encontrado com as especificacoes passadas ou ja consultados" |
+| Backlog do 1º TODOS | Vazio: nenhum órfão |
+| Separação da onda SJC | TODOS trouxe as 2 notas; `Numero` da I51 = nNF (casamento OK, Q13: `Numero`) |
+| 1ª I60 (INE, `qtdeVolume`=1) | Recusada: "Total de volume(s) do(s) pedido(s)(doccarga):0 , não confere com a qtdvolume da nota venda :1" → `Rejeitada/VolumeDiferente` |
+| Ajuste (Q12) | `I60__QtdeVolumeZero=true` e `I60__QtdeTotalNotaZero=true` (nova opção, `qtdeTotalNota = 0`) |
+| Reenfileirar + reenvio (INE, `TpAcao=I`) | **"Registrado com sucesso" → `Associada`** (16812958 tx 4050226, 16812959 tx 4050227). Associação conferida no WMS pelo usuário. Não precisou de UPD |
+
+Atenção: a CLI `--reenfileirar-i60` usa a mesma configuração do Worker. Rodada num terminal sem
+`Pastas__Entrada`, gravou o pedido em `C:\Envia xml\Estado\i51\comandos` (pasta padrão) e o Worker não o viu.
+Defina as mesmas variáveis no segundo terminal.
+
+Pendentes: onda SOROCABA (5 notas, 4 transportes), quantidade diferente, ENC → IMP, atrasada, reinício,
+relatório diário (`--relatorio-i60`), regressão da I40 com login.
