@@ -17,6 +17,8 @@ nada técnico: só o Windows Explorer e a rede da Friozem.
 7. [Boas práticas](#7-boas-práticas)
 8. [Como reenviar uma nota corrigida](#8-como-reenviar-uma-nota-corrigida)
 9. [Perguntas frequentes](#9-perguntas-frequentes)
+10. [Depois da separação: retorno (I51), associação (I60) e relatório diário](#10-depois-da-separação-retorno-i51-associação-i60-e-relatório-diário)
+11. [Última alternativa: devolução pela tela (I40)](#11-última-alternativa-devolução-pela-tela-i40)
 
 ---
 
@@ -245,3 +247,49 @@ Arquivos que ainda estão sendo copiados (com extensão temporária como `.tmp`,
 terminar. Quando a cópia acaba e o arquivo vira `.xml`, ele entra no fluxo normal.
 
 ---
+
+## 10. Depois da separação: retorno (I51), associação (I60) e relatório diário
+
+> **Situação:** o recurso está **pronto e testado em ambiente simulado**, mas ainda **desligado**. Ele só
+> será ligado depois do teste no WMS de homologação, que depende do fornecedor. Até lá, nada muda no
+> seu dia a dia.
+
+**Por que existe.** Para a nota ficar associada ao DocCarga no WMS, o DocCarga precisa estar
+**separado**. O ciclo é: **envio da nota (I50) → separação no WMS → retorno da separação (I51) → emissão da nota → associação (I60)**. O sistema passa a acompanhar cada nota enviada e só faz a associação
+quando o WMS avisa que a separação terminou.
+
+**O que o sistema faz sozinho (você não precisa fazer nada):**
+
+- Pergunta ao WMS, a cada 5 minutos (o intervalo é configurável), quais notas já foram separadas.
+- Quando uma nota volta separada, envia a associação com a **mesma nota fiscal** já enviada. Se a
+  quantidade separada for diferente da pedida, a associação vai **com a quantidade separada** e a
+  diferença (pedida × separada, item a item) fica registrada.
+- As **ondas TSP** seguem o mesmo caminho.
+- Se o DocCarga já estiver **encerrado** no WMS, a nota é enviada como **IMP** (importada, sem
+  associação automática) e o erro **"doccarga encerrado"** fica registrado. Ela não aparece como
+  associada.
+- Se a separação não voltar em 24 horas (configurável), a nota fica como **atrasada** e é consultada
+  de novo individualmente.
+
+**Relatório diário, todo dia às 12:00.** O sistema envia por e-mail (com HTML e PDF) um relatório no
+mesmo visual do "Relatório de Integração", com:
+
+- notas **aguardando separação**, com há quanto tempo esperam;
+- notas **separadas** e associações **concluídas**;
+- associações **rejeitadas**, com o motivo (por exemplo, doccarga encerrado ou quantidade diferente);
+- **ajustes de quantidade**, item a item;
+- notas **atrasadas**;
+- uma visão **por pacote**, dentro do próprio relatório (não há um relatório separado por pacote);
+- as notas que ficaram como IMP ou rejeitadas, como **candidatas à devolução** pela tela da seção 11.
+
+Quem recebe o e-mail é definido pela TI. Se uma nota aparecer como rejeitada ou atrasada, avise o
+responsável pela operação do WMS e informe a nota e o motivo mostrado.
+
+## 11. Última alternativa: devolução pela tela (I40)
+
+> Esta seção é separada das demais e pode ser removida sem afetar o restante do manual.
+
+A devolução segue uma ordem: primeiro a **associação (I60)**, depois a nota **IMP** (DocCarga
+encerrado) e, **só em último caso**, a **tela de devolução (I40)**, em que se informa a chave da nota
+(ou número e série) para enviar a devolução ao WMS. A tela está **pronta, mas desligada**; ela só será
+usada com autorização do responsável pela operação. Se você achar que precisa dela, fale com a TI.

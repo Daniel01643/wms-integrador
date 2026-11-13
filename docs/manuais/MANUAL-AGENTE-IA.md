@@ -55,6 +55,13 @@ Pontos de comportamento confirmados no código/`docs/OPERACAO.md`:
   `Erro\pacote_<...>\ZipInvalido`.
 - **Reinício do serviço**: o diário (`Estado\pacote-atual.jsonl`) é a fonte de verdade; há
   deduplicação e reconciliação de moves sem reenviar ao WMS.
+- **I51 → I60 (desligado por padrão: `I51:Habilitada`, `I60:Habilitada`)**: com a I51 ligada, a I60 não
+  sai junto da I50; um serviço consulta a I51 (TODOS a cada `I51:IntervaloMinutos`, UNICO para atrasadas),
+  grava o bruto antes de processar e só então envia a I60 `INE` (mesma NF-e, quantidades ajustadas às
+  separadas). DocCarga encerrado: reenvio como `IMP` com o erro registrado. Estado em `Estado\i51\`
+  (`notas`, `brutos`, `orfaos`, `comandos`); relatório diário às 12:00 em `<Relatorio:PastaSaida>\i60`.
+  Teste no homolog pendente; não ligue em produção. Detalhes: Manual Técnico seção 8.5. A tela de
+  devolução I40 (`Devolucao:Habilitada`, desligada) é a última alternativa (seção 8.6).
 
 ## 2. Mapa de arquivos
 

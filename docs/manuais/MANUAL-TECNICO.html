@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-12</span>
-    <span>Vers&atilde;o: 2026.11.12-dcda19a</span>
+    <span>Gerado em: 2026-11-13</span>
+    <span>Vers&atilde;o: 2026.11.13-6996b24</span>
   </div>
 </section>
   <header class="hd">
@@ -126,6 +126,8 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <li><a href="#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro">8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></a></li>
 <li><a href="#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo">8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</a></li>
 <li><a href="#84-puxada-e-puxada-tsp-pastas-zip-e-nome-da-onda">8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda</a></li>
+<li><a href="#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário">8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</a></li>
+<li><a href="#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível">8.6. Última alternativa: tela de devolução pela I40 (seção removível)</a></li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -625,7 +627,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <blockquote><p><strong>Só envia se existir no XML.</strong> A placa só vai preenchida quando a nota traz <code>transp/veicTransp/placa</code>. Se o XML não tiver esse campo, a placa vai <strong>em branco</strong> mesmo com a chave em <code>true</code> (não é erro).</p></blockquote>
 <blockquote><p><strong>Depois de editar, REINICIE o serviço</strong> para a mudança valer:  ```powershell cd C:\Friozem\importacao_notas\tools\deploy powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart ```</p></blockquote>
 <h3>8.3. I60 (associação automática da nota de venda): desligada em produção</h3>
-<p>Situação: a I60 está <strong>desligada em produção</strong> (<code>I60:Habilitada=false</code>, padrão). O Plano A (a I60 associar sozinha a nota de venda ao DocCarga criado pela I50) foi **testado no WMS de homologação em 09/11 e 10/11 e está pausado, aguardando o fornecedor do WMS**. Nada foi para produção. Histórico completo em <code>docs\wms-codigo-customizado\HISTORICO-PLANO-A.md</code>.</p>
+<p>Situação: a I60 está <strong>desligada em produção</strong> (<code>I60:Habilitada=false</code>, padrão). O Plano A (a I60 associar sozinha a nota de venda ao DocCarga criado pela I50, logo depois da I50) foi <strong>testado no WMS de homologação em 09/11 e 10/11 e não associou, porque o DocCarga ainda não estava separado</strong>. A solução implementada é enviar a I60 <strong>só depois do retorno da separação (I51)</strong>, descrita na seção 8.5. Com <code>I51:Habilitada=false</code> (padrão) a I60 continua saindo junto da I50 quando <code>I60:Habilitada=true</code>. Nada foi para produção. Histórico completo em <code>docs\wms-codigo-customizado\HISTORICO-PLANO-A.md</code>.</p>
 <ul>
 <li><strong>Como ligar (somente em teste/homologação, com OK do responsável):</strong> defina <code>I60__Habilitada=true</code> (variável de ambiente, ou <code>I60:Habilitada</code> no <code>appsettings</code>) e reinicie o serviço.</li>
 <li><strong>Opções de diagnóstico (teste):</strong> <code>I60__TipoOperacaoNota</code> (padrão <code>INE</code>) e <code>I60__QtdeVolumeZero</code> (<code>true</code> envia <code>qtdeVolume = 0</code>, usado só para isolar a conferência de volumes).</li>
@@ -691,6 +693,89 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li>A nota da TSP sem transporte no <code>infCpl</code> sobe normalmente; o relatório mostra "(sem)".</li>
 </ul>
 <p>No relatório, a coluna <strong>Tipo</strong> (<code>PUXADA</code> ou <code>TSP</code>) e a coluna <strong>Origem</strong> (<code>Puxada</code>, <code>PuxadaTSP</code> ou <code>raiz</code>) permitem conferir se o ZIP foi para a pasta certa. A TSP é agrupada por onda; a puxada, por transporte. O resumo do e-mail e o resumo semanal contam as notas por tipo e as da raiz.</p>
+<h3>8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</h3>
+<p><strong>Status:</strong> implementado e testado com WMS simulado (839 testes aprovados, build sem avisos). <strong>Teste no homolog pendente</strong>: a proprietária BRF (01.838.723/0098-50) ainda não é encontrada no homolog e depende do fornecedor. Roteiro: <code>docs\ROTEIRO-TESTE-I51-I60.md</code>. Escopo: <code>docs\ESCOPO-I51-I60.md</code>. <strong>Em produção, mantenha as duas chaves desligadas</strong> até o teste no homolog.</p>
+<p><strong>Ciclo:</strong> <code>I50 → separação (WMS) → I51 → emissão da nota → I60</code>. A I60 só associa DocCarga já separado; por isso o integrador acompanha cada nota depois da I50 e só envia a I60 quando a I51 retorna. O retorno da I51 é um evento configurado no WMS (EDI com meio de retorno WEBSERVI) e só existe com a separação concluída (não há separação parcial).</p>
+<p><strong>Chaves de configuração</strong> (<code>appsettings</code>, ou variável de ambiente com <code>__</code>; reinicie o serviço):</p>
+<table>
+<thead><tr>
+<th>Chave</th>
+<th>Padrão</th>
+<th>Para que serve</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>I51:Habilitada</code></td>
+<td><code>false</code></td>
+<td>Liga o fluxo. Desligada: nada novo roda, nada é gravado em disco e a I60 sai junto da I50.</td>
+</tr>
+<tr>
+<td><code>I60:Habilitada</code></td>
+<td><code>false</code></td>
+<td>Liga o envio da I60. Para o fluxo completo, ligue as duas.</td>
+</tr>
+<tr>
+<td><code>I51:Identificador</code></td>
+<td><code>WEBAPI-I51</code></td>
+<td>Identificador do EDI no WMS (o número pode mudar).</td>
+</tr>
+<tr>
+<td><code>I51:IntervaloMinutos</code></td>
+<td><code>5</code></td>
+<td>De quantos em quantos minutos consulta o WMS.</td>
+</tr>
+<tr>
+<td><code>I51:HorasParaAtraso</code></td>
+<td><code>24</code></td>
+<td>Sem retorno nesse prazo, a nota vira <strong>Atrasada</strong> e entra no relatório.</td>
+</tr>
+<tr>
+<td><code>I51:CampoUnico</code></td>
+<td><code>Numero</code></td>
+<td>Campo usado na consulta UNICO: <code>Numero</code> (nota, 9 dígitos) ou <code>NroDocumento</code>.</td>
+</tr>
+<tr>
+<td><code>I51:DiasRetencaoEstado</code></td>
+<td><code>60</code></td>
+<td>Retenção do estado e dos brutos.</td>
+</tr>
+<tr>
+<td><code>I60:TipoOperacaoNota</code></td>
+<td><code>INE</code></td>
+<td>Operação normal (nunca <code>IMB</code>).</td>
+</tr>
+<tr>
+<td><code>I60:TipoOperacaoEncerrado</code></td>
+<td><code>IMP</code></td>
+<td>Operação do reenvio quando o DocCarga está encerrado (ENC).</td>
+</tr>
+<tr>
+<td><code>I60:TpAcaoReenvioImp</code></td>
+<td><code>UPD</code></td>
+<td><code>TpAcao</code> do reenvio como IMP (<code>UPD</code> ou <code>I</code>); confirmar no homolog.</td>
+</tr>
+<tr>
+<td><code>RelatorioI60:Hora</code></td>
+<td><code>12:00</code></td>
+<td>Hora do relatório diário (horário local).</td>
+</tr>
+</tbody></table>
+<p>As listas <code>I60:Padroes*</code> (textos de recusa do WMS, separados por <code>;</code>, sem diferenciar acento nem maiúsculas) são configuráveis, porque o texto real do WMS ainda será confirmado no homolog.</p>
+<p><strong>Consulta (TODOS e UNICO).</strong> Só estes dois tipos, só com CNPJ e número:</p>
+<ul>
+<li><strong>TODOS</strong> traz o que estiver disponível e <strong>não devolve de novo o que já foi puxado</strong>. Por isso a resposta bruta é gravada em <code>Estado\i51\brutos</code> <strong>antes</strong> de qualquer processamento. A primeira ativação consome o backlog da proprietária; documentos que não são nossos viram <strong>órfãos</strong> (<code>Estado\i51\orfaos</code>). O filtro de proprietário usa o <code>CnpjProprietario</code> do retorno.</li>
+<li><strong>UNICO</strong> traz só o pesquisado e pode ser repetido: serve para recuperar notas atrasadas ou conferir uma nota. Manual: <code>Worker.exe --consultar-i51 --tipo UNICO --cnpj &lt;cnpj&gt; --numero &lt;nNF&gt;</code> (<code>TODOS</code> é recusado de propósito no comando manual, para não consumir o retorno).</li>
+</ul>
+<p><strong>Estado por nota</strong> (<code>Estado\i51\notas\&lt;chave&gt;.json</code>, escrita atômica, sobrevive a reinício): <code>AguardandoSeparacao</code> → <code>Separada</code> → <code>I60Enviada</code> → <code>Associada</code> ou <code>Rejeitada</code>; <code>Atrasada</code> quando passa do prazo. Guarda nota, série, chave, CNPJ, transporte, tipo (PUXADA ou TSP), onda e as datas de cada transição. <strong>Ondas TSP passam pelo mesmo fluxo.</strong></p>
+<p><strong>I60 depois da separação.</strong> Usa a <strong>mesma NF-e (XML) da I50</strong>, com as <strong>quantidades ajustadas para as separadas</strong> (original × separada fica registrado item a item), operação <code>INE</code>. O objetivo é garantir a associação; a I60 serve à devolução depois, se necessário.</p>
+<p><strong>DocCarga encerrado (ENC → IMP).</strong> Quando o WMS recusa a I60 <code>INE</code> por DocCarga encerrado (texto configurável em <code>I60:PadroesDocCargaEncerrado</code>), o integrador reenvia a I60 como <strong><code>IMP</code></strong> (só importa a nota, sem associação automática) e <strong>registra o erro "doccarga encerrado"</strong> no estado e no relatório. Essa nota nunca é marcada como Associada. A resposta "Nota já existe, TpAcao precisa ser UPD" gera um reenvio com <code>UPD</code>. Falha de comunicação nunca rejeita a nota: há nova tentativa com espera crescente. A detecção do ENC por texto de recusa é uma hipótese e <strong>precisa ser confirmada no homolog</strong>.</p>
+<p><strong>Relatório diário (12:00).</strong> HTML, PDF e e-mail, na identidade do "Relatório de Integração", gravado em <code>&lt;Relatorio:PastaSaida&gt;\i60</code>. Mostra aguardando separação (com idade), separadas, I60 associadas, I60 rejeitadas com motivo (por exemplo doccarga encerrado, quantidade diferente), ajustes de quantidade item a item e atrasadas. <strong>Decisão sobre a visão por pacote:</strong> ficou como <strong>seção dentro do relatório diário</strong>, sem relatório separado por pacote. O mesmo relatório lista as notas que ficaram em IMP ou rejeitadas como <strong>candidatas à devolução pela I40</strong> (<code>RelatorioI60:ListarCandidatasI40</code>). Destinatários: TXT <code>RelatorioI60:CaminhoDestinatarios</code> (um e-mail por linha); se não existir, usa a lista do resumo semanal. Gerar na hora: <code>Worker.exe --relatorio-i60 [--enviar]</code>.</p>
+<p><strong>Comandos úteis</strong> (no servidor, em <code>app\</code>): <code>--consultar-i51</code> (só UNICO), `--reenfileirar-i60 [--motivo &lt;motivo&gt;] [--chave &lt;chave&gt;]<code> e </code>--relatorio-i60 [--enviar]`. O reenfileiramento grava um pedido em <code>Estado\i51\comandos</code>, que o serviço em execução aplica no ciclo seguinte (sem reiniciar).</p>
+<p><strong>Ainda a confirmar no homolog:</strong> texto real do ENC, <code>TpAcao</code> do IMP, sinal de "associada", campo do UNICO e mensagem do retorno sem documentos (<code>sucesso=N</code>).</p>
+<h3>8.6. Última alternativa: tela de devolução pela I40 (seção removível)</h3>
+<blockquote><p>Esta seção é independente do resto do manual e pode ser removida inteira (junto do item do índice e da linha da tabela da seção 12) sem afetar as demais.</p></blockquote>
+<p>A devolução tem uma ordem de preferência: (1) <strong>I60 associada</strong> pelo fluxo I51 → I60 <code>INE</code>; (2) <strong>I60 como <code>IMP</code></strong> (DocCarga encerrado), com o erro registrado; (3) <strong>tela de devolução pela I40</strong>, a <strong>última alternativa</strong>.</p>
+<p>A tela da I40 está <strong>pronta e funcionando</strong>, mas <strong>desligada por padrão</strong> (<code>Devolucao:Habilitada=false</code>). Pesquisa a nota por chave de 44 dígitos <strong>ou</strong> por número + série, envia a devolução ao WMS com <code>tipoOperacaoNota</code> <code>IMP</code>, sem placa e sem motorista. Porta HTTP em <code>Devolucao:Porta</code> (padrão 8085). O trabalho da I51/I60 não altera a I40 (há testes de regressão). Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue com OK do responsável.</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -853,6 +938,21 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <tr>
 <td>Mudar pastas da Puxada/PuxadaTSP, aceitar ou recusar a raiz, limites do ZIP</td>
 <td><code>Pastas:Puxada</code>, <code>Pastas:PuxadaTsp</code>, <code>Pastas:AceitarRaiz</code>, <code>Zip:MaxArquivos</code>, <code>Zip:MaxTamanhoMb</code> em <code>config\appsettings.Production.json</code> (seção 8.4)</td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Ligar o fluxo I51 → I60 (só no homolog, com OK)</td>
+<td><code>I51:Habilitada</code> e <code>I60:Habilitada</code> em <code>config\appsettings.Production.json</code> (seção 8.5)</td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Gerar o relatório diário da I51/I60 agora</td>
+<td><code>Worker.exe --relatorio-i60 [--enviar]</code> (seção 8.5)</td>
+<td>Não</td>
+</tr>
+<tr>
+<td>Ligar a tela de devolução I40 (última alternativa)</td>
+<td><code>Devolucao:Habilitada</code> (seção 8.6, removível)</td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
