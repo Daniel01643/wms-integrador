@@ -45,6 +45,7 @@ public static class CorpoEmailRelatorioI60
 
         Cabecalho(sb, srcLogo);
         Periodo(sb, m);
+        Atencao(sb, m, ci);
         Saude(sb, m, ci);
 
         if (m.SemAtividade)
@@ -113,6 +114,35 @@ public static class CorpoEmailRelatorioI60
           .Append(Enc(IdentidadeVisual.Horario(m.GeradoEm))).Append(" &nbsp;|&nbsp; <b>Janela:</b> ")
           .Append(Enc(IdentidadeVisual.Horario(m.JanelaInicio))).Append(" a ").Append(Enc(IdentidadeVisual.Horario(m.JanelaFim)))
           .Append("</p></td></tr>");
+    }
+
+    private static void Atencao(StringBuilder sb, ModeloRelatorioI60 m, CultureInfo ci)
+    {
+        Titulo(sb, "Atenção");
+        if (m.AtencaoTotal == 0)
+        {
+            Aviso(sb, "Nenhuma nota exige atenção (sem ENC/IMP, rejeitadas, respostas não reconhecidas ou atrasadas).", "#eaf7f4", IdentidadeVisual.Verde, "#006b5b");
+            return;
+        }
+
+        var itens = new (string Rotulo, int Valor, string Cor)[]
+        {
+            ("ENC / IMP", m.AtencaoImp, IdentidadeVisual.Ambar),
+            ("Rejeitadas", m.AtencaoRejeitadas, IdentidadeVisual.Vermelho),
+            ("Resposta não reconhecida", m.AtencaoNaoReconhecidas, IdentidadeVisual.Ambar),
+            ("Atrasadas", m.AtencaoAtrasadas, IdentidadeVisual.Vermelho),
+            ("Total", m.AtencaoTotal, IdentidadeVisual.Azul),
+        };
+        sb.Append("<tr><td style=\"padding:8px 24px 0;\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
+        foreach (var (rotulo, valor, cor) in itens)
+        {
+            sb.Append("<td style=\"width:20%;padding:2px;\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border:1px solid ")
+              .Append(IdentidadeVisual.Cinza).Append(";border-top:4px solid ").Append(cor).Append(";border-radius:4px;\"><tr><td style=\"padding:8px 10px;\">")
+              .Append("<div style=\"font-size:22px;font-weight:bold;color:").Append(IdentidadeVisual.Azul).Append(";\">").Append(valor.ToString(ci))
+              .Append("</div><div style=\"font-size:11px;\">").Append(Enc(rotulo)).Append("</div></td></tr></table></td>");
+        }
+
+        sb.Append("</tr></table></td></tr>");
     }
 
     private static void Saude(StringBuilder sb, ModeloRelatorioI60 m, CultureInfo ci)

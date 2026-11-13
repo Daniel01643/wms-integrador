@@ -47,6 +47,7 @@ public sealed class ServicoSeparacaoI51
     private readonly RepositorioOrfaosI51 _orfaos;
     private readonly ProcessadorI60Separacao _i60;
     private readonly ComandosI51 _comandos;
+    private readonly AlertaI60 _alerta;
     private readonly OpcoesI51 _opcoes;
     private readonly IClock _clock;
     private readonly ILogger<ServicoSeparacaoI51> _logger;
@@ -56,7 +57,7 @@ public sealed class ServicoSeparacaoI51
     /// <summary>Cria o serviço.</summary>
     public ServicoSeparacaoI51(
         IRepositorioSeparacao repositorio, ArmazenamentoBrutoI51 brutos, ClienteI51 cliente, CasadorDocumentoNota casador,
-        RepositorioOrfaosI51 orfaos, ProcessadorI60Separacao i60, ComandosI51 comandos, IOptions<OpcoesI51> opcoes,
+        RepositorioOrfaosI51 orfaos, ProcessadorI60Separacao i60, ComandosI51 comandos, AlertaI60 alerta, IOptions<OpcoesI51> opcoes,
         IClock clock, ILogger<ServicoSeparacaoI51> logger)
     {
         _repositorio = repositorio ?? throw new ArgumentNullException(nameof(repositorio));
@@ -66,6 +67,7 @@ public sealed class ServicoSeparacaoI51
         _orfaos = orfaos ?? throw new ArgumentNullException(nameof(orfaos));
         _i60 = i60 ?? throw new ArgumentNullException(nameof(i60));
         _comandos = comandos ?? throw new ArgumentNullException(nameof(comandos));
+        _alerta = alerta ?? throw new ArgumentNullException(nameof(alerta));
         _opcoes = opcoes?.Value ?? throw new ArgumentNullException(nameof(opcoes));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -153,6 +155,16 @@ public sealed class ServicoSeparacaoI51
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Falha no passo da I60 após a separação (tentará no próximo ciclo).");
+        }
+
+        // 5b) Alerta imediato da I60 (varredura por estado; só cancelamento propaga).
+        try
+        {
+            await _alerta.ProcessarAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Falha no alerta imediato da I60 (tentará no próximo ciclo).");
         }
 
         // 6) Limpeza a cada 24 h.
@@ -351,6 +363,7 @@ public sealed class ServicoSeparacaoI51
         var notas = _repositorio.Limpar(agora);
         var orfaos = _orfaos.Limpar(agora, _opcoes.DiasRetencaoEstado);
         var brutos = _brutos.Limpar(_opcoes.DiasRetencaoEstado);
+        _alerta.Limpar(_opcoes.DiasRetencaoEstado);
         if (notas + orfaos + brutos > 0)
         {
             _logger.LogInformation("Limpeza do estado I51: {Notas} nota(s), {Orfaos} órfão(s), {Brutos} pasta(s) de brutos.", notas, orfaos, brutos);

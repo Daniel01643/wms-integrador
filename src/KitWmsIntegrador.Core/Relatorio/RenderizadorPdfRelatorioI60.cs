@@ -185,6 +185,15 @@ internal static class RenderizadorPdfRelatorioI60
         var ci = CultureInfo.InvariantCulture;
         var blocos = new List<Bloco>();
 
+        blocos.Add(Titulo("Atenção"));
+        blocos.Add(LinhaTexto(
+            m.AtencaoTotal == 0
+                ? "Nenhuma nota exige atenção (sem ENC/IMP, rejeitadas, respostas não reconhecidas ou atrasadas)."
+                : $"ENC / IMP: {m.AtencaoImp.ToString(ci)}   ·   Rejeitadas: {m.AtencaoRejeitadas.ToString(ci)}   ·   " +
+                  $"Resposta não reconhecida: {m.AtencaoNaoReconhecidas.ToString(ci)}   ·   Atrasadas: {m.AtencaoAtrasadas.ToString(ci)}   ·   " +
+                  $"Total: {m.AtencaoTotal.ToString(ci)}",
+            medidor, larguraUtil, negrito: m.AtencaoTotal > 0));
+
         blocos.Add(Titulo("Saúde da consulta"));
         blocos.Add(LinhaTexto(
             $"Última consulta OK: {(m.UltimaConsultaOkEm is { } ok ? IdentidadeVisual.Horario(ok) : "nunca")}   ·   " +

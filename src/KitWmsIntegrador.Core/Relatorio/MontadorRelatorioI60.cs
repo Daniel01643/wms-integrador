@@ -36,8 +36,11 @@ public static class MontadorRelatorioI60
         var rejeitadas = notas.Where(n => n.Situacao == SituacaoNota.Rejeitada).ToList();
         var imp = notas.Where(n => n.Situacao == SituacaoNota.I60Enviada && EhImp(n) && NaJanela(n.FinalizadaEm ?? n.I60EnviadaEm)).ToList();
         var confirmacao = notas.Where(n => n.Situacao == SituacaoNota.I60Enviada && !Problema(n)).ToList();
+        var naoReconhecidas = notas.Where(n => n.Situacao == SituacaoNota.Separada && n.TentativasOutro >= 1).ToList();
+        var impAtencao = notas.Count(n => n.Situacao == SituacaoNota.I60Enviada && EhImp(n));
         var problemas = rejeitadas
             .Concat(notas.Where(Problema))
+            .Concat(naoReconhecidas)
             .OrderBy(n => n.RegistradaEm).ToList();
         var candidatas = rejeitadas.Concat(notas.Where(Problema)).OrderBy(n => n.RegistradaEm).ToList();
 
@@ -81,6 +84,10 @@ public static class MontadorRelatorioI60
             BrutosFalhos = e.BrutosFalhos,
             OrfaosNaJanela = e.OrfaosNaJanela,
             NotasComAlertaComunicacao = alerta,
+            AtencaoImp = impAtencao,
+            AtencaoRejeitadas = rejeitadas.Count,
+            AtencaoNaoReconhecidas = naoReconhecidas.Count,
+            AtencaoAtrasadas = atrasadas.Count,
             Aguardando = aguardando.Count,
             Atrasadas = atrasadas.Count,
             SeparadasPendentesI60 = separadasPend.Count,
@@ -132,7 +139,9 @@ public static class MontadorRelatorioI60
         Idade(agora - (n.I60EnviadaEm is not null && n.Situacao == SituacaoNota.I60Enviada ? n.I60EnviadaEm.Value : n.RegistradaEm)),
         quando is { } q ? IdentidadeVisual.Horario(q) : string.Empty,
         n.OperacaoI60,
-        n.Motivo == MotivoI60.Nenhum ? string.Empty : n.Motivo.ToString(),
+        n.Motivo != MotivoI60.Nenhum ? n.Motivo.ToString()
+        : n.Situacao == SituacaoNota.Separada && n.TentativasOutro >= 1 ? "RespostaNaoReconhecida"
+        : string.Empty,
         n.Mensagem,
         string.Join(" | ", n.Ressalvas),
         n.TentativasUnico);

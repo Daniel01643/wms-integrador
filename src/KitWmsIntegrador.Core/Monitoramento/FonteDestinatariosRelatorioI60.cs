@@ -8,7 +8,7 @@ namespace KitWmsIntegrador.Core.Monitoramento;
 /// (padrão <c>&lt;telemetria&gt;/destinatarios-i60.txt</c>), relido a cada envio; vazio cai na lista do
 /// resumo semanal.
 /// </summary>
-public sealed class FonteDestinatariosRelatorioI60
+public sealed class FonteDestinatariosRelatorioI60 : IDestinatariosAlertaI60
 {
     /// <summary>Nome padrão do arquivo.</summary>
     public const string NomeArquivoPadrao = "destinatarios-i60.txt";

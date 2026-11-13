@@ -1,6 +1,7 @@
 using System.Text;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
+using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Modelos;
 using KitWmsIntegrador.Core.Orquestrador;
@@ -42,6 +43,14 @@ public sealed class ColetorLogs : ILoggerProvider
     }
 }
 
+/// <summary>Destinatários falsos do alerta da I60 (lista editável).</summary>
+public sealed class FakeDestinatariosAlerta : IDestinatariosAlertaI60
+{
+    public List<string> Emails { get; } = new() { "ti@teste.local" };
+
+    public IReadOnlyList<string> Ler() => Emails.ToList();
+}
+
 /// <summary>
 /// Pilha completa do fluxo I51 → I60 em pasta temporária, com relógio e WMS falsos. <see cref="Reiniciar"/> recria todas
 /// as instâncias sobre a MESMA pasta (simula reinício do processo).
@@ -62,6 +71,7 @@ public sealed class AmbienteI51 : IDisposable
         Pastas = pastas ?? new OpcoesPasta { Entrada = Entrada };
         I51 = new OpcoesI51 { Habilitada = true };
         I60 = new OpcoesI60 { Habilitada = true };
+        EmailOpcoes = new OpcoesEmail { Habilitado = true, Host = "smtp.teste.local", Remetente = "kitwms@teste.local" };
         Operacional = new OpcoesOperacionais
         {
             Deposito = "JD",
@@ -82,6 +92,16 @@ public sealed class AmbienteI51 : IDisposable
     public OpcoesI60 I60 { get; }
 
     public OpcoesOperacionais Operacional { get; }
+
+    public OpcoesEmail EmailOpcoes { get; }
+
+    public OpcoesRelatorioI60 RelatorioOpcoes { get; } = new();
+
+    public GravadorEmail Email { get; } = new();
+
+    public FakeDestinatariosAlerta Destinatarios { get; } = new();
+
+    public AlertaI60 Alerta { get; private set; } = null!;
 
     public FakeClock Clock { get; } = new(new DateTimeOffset(2026, 11, 12, 15, 0, 0, TimeSpan.Zero));
 
@@ -129,8 +149,11 @@ public sealed class AmbienteI51 : IDisposable
             new ClassificadorRetorno(), Options.Create(I60), i51, Options.Create(Pastas), Caminhos, Clock,
             _logs.CreateLogger<ProcessadorI60Separacao>());
         Comandos = new ComandosI51(Caminhos, Clock, _logs.CreateLogger<ComandosI51>());
+        Alerta = new AlertaI60(
+            Repositorio, Caminhos, Email, Destinatarios, Options.Create(I60), Options.Create(EmailOpcoes), Options.Create(RelatorioOpcoes),
+            Options.Create(new OpcoesRelatorio()), Clock, _logs.CreateLogger<AlertaI60>());
         Servico = new ServicoSeparacaoI51(
-            Repositorio, Brutos, Consulta, Casador, Orfaos, ProcessadorI60, Comandos, i51, Clock, _logs.CreateLogger<ServicoSeparacaoI51>());
+            Repositorio, Brutos, Consulta, Casador, Orfaos, ProcessadorI60, Comandos, Alerta, i51, Clock, _logs.CreateLogger<ServicoSeparacaoI51>());
     }
 
     /// <summary>XML sintético de NF-e (emitente = proprietária, série 6) com os itens dados. Nenhum dado real.</summary>

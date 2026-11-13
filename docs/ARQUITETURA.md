@@ -343,7 +343,10 @@ I50 aceita -> Registrador (estado + cópia do XML) -> AguardandoSeparacao
 ConsultaI51Worker (a cada N min) -> ClienteI51 TODOS/UNICO -> bruto em disco -> CasadorDocumentoNota -> Separada
 ProcessadorI60Separacao -> I60 INE (quantidades separadas) -> I60Enviada -> Associada
                          -> ENC: reenvio IMP + erro registrado -> I60Enviada (motivo DocCargaEncerrado)
-ServicoRelatorioDiarioI60 (12:00) -> HTML + PDF + e-mail
+AlertaI60 (após o passo da I60, por varredura de estado) -> e-mail em lote + Estado\i51\alertas + log Warning
+ServicoRelatorioDiarioI60 (12:00) -> HTML + PDF + e-mail (bloco Atenção no topo)
 ```
+
+`AlertaI60` avisa uma vez por nota e evento (Rejeitada, ENC/IMP ou pendente, resposta não reconhecida, Atrasada); o carimbo `AlertaI60Em`/`AlertaAtrasoEm` fica no JSON da nota (à prova de reinício) e `reenfileirar-i60` o zera. Destinatários vêm de `IDestinatariosAlertaI60`, implementada por `FonteDestinatariosRelatorioI60` (mesma lista do relatório diário). Chave `I60:AlertaImediato`.
 
 Peças em `Core\Separacao`; uma única instância de `ClienteWmsHttp` (`IClienteWms` e `IClienteWmsBruto`) atende Orquestrador, I51 e devolução. Com `I51:Habilitada=false` o fluxo anterior permanece. A tela I40 segue como última alternativa, atrás de `Devolucao:Habilitada`.

@@ -118,6 +118,12 @@ public class ExemplosRelatorioI60
                 Motivo = MotivoI60.JaExiste,
                 Mensagem = "Nota já existe no WMS e o reenvio UPD não resolveu.",
             }),
+            Nota(5012, SituacaoNota.Separada, "PUXADA", "pacote_20261111_150000", string.Empty, h(16), n => n with
+            {
+                SeparadaEm = Agora - h(2),
+                TentativasOutro = 2,
+                Mensagem = "Mensagem nova do WMS que o integrador ainda não conhece (exemplo fictício).",
+            }),
         };
     }
 

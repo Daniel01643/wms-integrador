@@ -189,6 +189,15 @@ public sealed record NotaSeparacao
     /// <summary>Mensagem do resultado (até 500 caracteres; nunca o corpo).</summary>
     public string Mensagem { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Quando o alerta imediato da I60 (rejeitada, ENC/IMP, pendente ou resposta não reconhecida) foi emitido;
+    /// garante no máximo um alerta por nota. Zerado pelo reenfileiramento.
+    /// </summary>
+    public DateTimeOffset? AlertaI60Em { get; init; }
+
+    /// <summary>Quando o alerta de nota atrasada foi emitido (no máximo um por nota).</summary>
+    public DateTimeOffset? AlertaAtrasoEm { get; init; }
+
     /// <summary>Itens com original × separada.</summary>
     public IReadOnlyList<ItemSeparacao> Itens { get; init; } = Array.Empty<ItemSeparacao>();
 

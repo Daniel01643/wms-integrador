@@ -52,6 +52,9 @@ public sealed class CaminhosI51
     /// <summary>Comandos ilegíveis.</summary>
     public string ComandosFalhos => Path.Combine(Base, "comandos", "falhos");
 
+    /// <summary>Logs diários dos alertas imediatos da I60 (arquivo de calibração).</summary>
+    public string Alertas => Path.Combine(Base, "alertas");
+
     /// <summary>Arquivo de saúde da consulta.</summary>
     public string ArquivoConsulta => Path.Combine(Base, "consulta.json");
 

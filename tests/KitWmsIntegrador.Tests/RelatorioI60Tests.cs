@@ -17,7 +17,7 @@ public class MontadorRelatorioI60Tests
         var m = ExemplosRelatorioI60.ModeloFicticio();
         Assert.Equal(3, m.Aguardando);
         Assert.Equal(1, m.Atrasadas);
-        Assert.Equal(1, m.SeparadasPendentesI60);
+        Assert.Equal(2, m.SeparadasPendentesI60); // inclui a nota com resposta não reconhecida (5012)
         Assert.Equal(2, m.AssociadasNaJanela);
         Assert.Equal(1, m.ImpNaJanela);
         Assert.Equal(1, m.EnviadasAguardandoConfirmacao);
@@ -32,7 +32,7 @@ public class MontadorRelatorioI60Tests
     public void ProblemasIncluemRejeitadasEImp_ECandidatasI40()
     {
         var m = ExemplosRelatorioI60.ModeloFicticio();
-        Assert.Equal(3, m.Problemas.Total);
+        Assert.Equal(4, m.Problemas.Total); // 2 rejeitadas + IMP + resposta não reconhecida
         Assert.Contains(m.Problemas.Linhas, l => l.Motivo == "DocCargaEncerrado" && l.Operacao == "IMP");
         Assert.Contains(m.Problemas.Linhas, l => l.Motivo == "QuantidadeDiferente" && l.Ressalvas.Contains("PROD-A"));
         Assert.Equal(3, m.CandidatasI40.Total);

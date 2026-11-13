@@ -190,6 +190,7 @@ public sealed class RepositorioSeparacaoArquivo : IRepositorioSeparacao
                     Ressalvas = Array.Empty<string>(),
                     OperacaoI60 = string.Empty,
                     TpAcaoI60 = string.Empty,
+                    AlertaI60Em = null,
                     AtualizadoEm = agora,
                     Observacao = Juntar(n.Observacao, "reenfileirada em " + agora.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)),
                 };

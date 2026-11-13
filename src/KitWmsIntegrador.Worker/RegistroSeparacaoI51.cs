@@ -25,10 +25,12 @@ public static class RegistroSeparacaoI51
         services.AddSingleton<IRegistradorSeparacao, RegistradorSeparacao>();
         services.AddSingleton<ProcessadorI60Separacao>();
         services.AddSingleton<ComandosI51>();
+        services.AddSingleton<AlertaI60>();
         services.AddSingleton<ServicoSeparacaoI51>();
 
         services.AddSingleton<MarcaUltimoRelatorioI60>();
         services.AddSingleton<FonteDestinatariosRelatorioI60>();
+        services.AddSingleton<IDestinatariosAlertaI60>(sp => sp.GetRequiredService<FonteDestinatariosRelatorioI60>());
         services.AddSingleton<IGeradorRelatorioI60, GeradorRelatorioI60>();
         services.AddSingleton<EnviadorRelatorioDiarioI60>();
         services.AddSingleton<ServicoRelatorioDiarioI60>();

@@ -41,6 +41,22 @@ public sealed class ModeloRelatorioI60
     /// <summary>Não há nota em acompanhamento nem movimento na janela.</summary>
     public bool SemAtividade { get; init; }
 
+    // Atenção (estado atual das notas; exibido no topo)
+    /// <summary>Notas ENC/IMP (doccarga encerrado reenviado como IMP, sem associação).</summary>
+    public int AtencaoImp { get; init; }
+
+    /// <summary>Notas rejeitadas.</summary>
+    public int AtencaoRejeitadas { get; init; }
+
+    /// <summary>Notas com resposta não reconhecida do WMS (ainda em tentativas).</summary>
+    public int AtencaoNaoReconhecidas { get; init; }
+
+    /// <summary>Notas atrasadas.</summary>
+    public int AtencaoAtrasadas { get; init; }
+
+    /// <summary>Total do bloco "Atenção".</summary>
+    public int AtencaoTotal => AtencaoImp + AtencaoRejeitadas + AtencaoNaoReconhecidas + AtencaoAtrasadas;
+
     // Saúde da consulta
     /// <summary>Última consulta que respondeu sem erro.</summary>
     public DateTimeOffset? UltimaConsultaOkEm { get; init; }

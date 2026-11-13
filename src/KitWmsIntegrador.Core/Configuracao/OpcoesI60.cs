@@ -100,6 +100,14 @@ public sealed class OpcoesI60
     /// <summary>Respostas desconhecidas (Outro) reenviadas até este número antes de rejeitar.</summary>
     public int MaxTentativasOutro { get; set; } = 3;
 
+    /// <summary>
+    /// Alerta imediato (fluxo I51): e-mail, arquivo de calibração (<c>Estado\i51\alertas</c>) e log Warning quando uma
+    /// nota é rejeitada, vira ENC/IMP ou pendente, recebe resposta não reconhecida ou fica atrasada. Default
+    /// <c>true</c>; <c>false</c> desliga os três (o bloco "Atenção" do relatório diário continua).
+    /// Troca sem release: variável de ambiente <c>I60__AlertaImediato</c>.
+    /// </summary>
+    public bool AlertaImediato { get; set; } = true;
+
     /// <summary>Verdadeiro se o volume vem da contagem de volumes da I51.</summary>
     public bool VolumeVemDaI51 =>
         string.Equals(QtdeVolumeOrigem?.Trim(), "VolumesI51", StringComparison.OrdinalIgnoreCase);
