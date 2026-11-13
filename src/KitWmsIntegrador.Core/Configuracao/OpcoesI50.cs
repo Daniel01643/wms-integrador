@@ -53,4 +53,12 @@ public sealed class OpcoesI50
     /// <c>I50__EnviarPlacaVeiculo</c>.
     /// </summary>
     public bool EnviarPlacaVeiculo { get; set; } = true;
+
+    /// <summary>
+    /// Igual a <see cref="EnviarPlacaVeiculo"/>, mas só para notas da Puxada TSP (ZIP ou XML solto
+    /// na pasta PuxadaTSP). Padrão <c>false</c>: a TSP sempre vai ao WMS sem placa
+    /// (<c>placaVeiculo</c> em branco), independente de <see cref="EnviarPlacaVeiculo"/>.
+    /// Override por env <c>I50__EnviarPlacaVeiculoTsp</c>.
+    /// </summary>
+    public bool EnviarPlacaVeiculoTsp { get; set; }
 }

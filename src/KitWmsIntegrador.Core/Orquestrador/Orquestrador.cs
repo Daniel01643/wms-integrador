@@ -78,7 +78,7 @@ public sealed class Orquestrador : IOrquestrador
     /// <inheritdoc />
     public async Task<IReadOnlyList<ResultadoIntegracaoNota>> IntegrarAsync(
         IEnumerable<NotaFiscal> notas, string numeroTransporte,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool ehTsp = false)
     {
         ArgumentNullException.ThrowIfNull(notas);
 
@@ -86,7 +86,7 @@ public sealed class Orquestrador : IOrquestrador
         foreach (var nota in notas)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            resultados.Add(await IntegrarNotaAsync(nota, numeroTransporte, cancellationToken)
+            resultados.Add(await IntegrarNotaAsync(nota, numeroTransporte, ehTsp, cancellationToken)
                 .ConfigureAwait(false));
         }
 
@@ -94,7 +94,7 @@ public sealed class Orquestrador : IOrquestrador
     }
 
     private async Task<ResultadoIntegracaoNota> IntegrarNotaAsync(
-        NotaFiscal nota, string? numeroTransporte, CancellationToken cancellationToken)
+        NotaFiscal nota, string? numeroTransporte, bool ehTsp, CancellationToken cancellationToken)
     {
         var historico = new List<string>();
 
@@ -144,7 +144,7 @@ public sealed class Orquestrador : IOrquestrador
             tentativas++;
 
             var respI50 = await Chamar(() => _cliente
-                .EnviarAsync(InterfaceWms.I50, _i50.Construir(nota, transporte), cancellationToken))
+                .EnviarAsync(InterfaceWms.I50, _i50.Construir(nota, transporte, ehTsp), cancellationToken))
                 .ConfigureAwait(false);
             ultimaMensagem = _classificador.PrimeiraMensagem(respI50);
             (idTransacao, idDocumento) = Capturar(respI50);

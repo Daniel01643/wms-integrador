@@ -25,7 +25,7 @@ public sealed class ConstrutorI50 : IConstrutorI50
     }
 
     /// <inheritdoc />
-    public PayloadI50 Construir(NotaFiscal nota, string? numeroTransporte = null)
+    public PayloadI50 Construir(NotaFiscal nota, string? numeroTransporte = null, bool ehTsp = false)
     {
         ArgumentNullException.ThrowIfNull(nota);
 
@@ -89,8 +89,11 @@ public sealed class ConstrutorI50 : IConstrutorI50
             TipoSeparacao2 = _i50.TipoSeparacao2,
 
             // Placa do veículo lida do XML (transp/veicTransp/placa), enviada como está.
-            // Flag I50:EnviarPlacaVeiculo liga/desliga o envio (false => branco).
-            PlacaVeiculo = _i50.EnviarPlacaVeiculo ? nota.PlacaVeiculo : string.Empty,
+            // PUXADA: flag I50:EnviarPlacaVeiculo (false => branco). TSP: flag própria
+            // I50:EnviarPlacaVeiculoTsp (padrão false => sempre branco).
+            PlacaVeiculo = (ehTsp ? _i50.EnviarPlacaVeiculoTsp : _i50.EnviarPlacaVeiculo)
+                ? nota.PlacaVeiculo
+                : string.Empty,
 
             // Agrupador da onda = número do transporte (string, zeros à esquerda).
             Nroagrupseparacao = transporte,
@@ -128,8 +131,8 @@ public sealed class ConstrutorI50 : IConstrutorI50
     }
 
     /// <inheritdoc />
-    public string ConstruirJson(NotaFiscal nota, string? numeroTransporte = null) =>
-        JsonSerializer.Serialize(Construir(nota, numeroTransporte), JsonWms.Opcoes);
+    public string ConstruirJson(NotaFiscal nota, string? numeroTransporte = null, bool ehTsp = false) =>
+        JsonSerializer.Serialize(Construir(nota, numeroTransporte, ehTsp), JsonWms.Opcoes);
 
     private static (string Nome, string Bairro, string Cidade, string Cep, string Uf) MontarLocalEntrega(
         EnderecoDestinatario? endereco)

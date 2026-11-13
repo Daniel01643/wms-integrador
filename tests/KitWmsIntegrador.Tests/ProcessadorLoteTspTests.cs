@@ -67,6 +67,30 @@ public sealed class ProcessadorLoteTspTests : IDisposable
     }
 
     [Fact]
+    public async Task Tsp_ZipEXmlSolto_PropagamEhTspAoOrquestrador()
+    {
+        var zip = SjcZip("PuxadaTSP");
+        var solto = Path.Combine(_amb.Pasta("PuxadaTSP"), "solto.xml");
+        File.WriteAllText(solto, AmbientePacote.XmlBrf(3001, "1000000009"));
+
+        await Processar(Tsp(zip), Tsp(solto));
+
+        Assert.Equal(3, _orq.EhTspPorNota.Count);
+        Assert.All(_orq.EhTspPorNota, kv => Assert.True(kv.Value));
+    }
+
+    [Fact]
+    public async Task Puxada_NaoMarcaEhTspNoOrquestrador()
+    {
+        var zip = _amb.EscreverZipBrf("Puxada", "normal.zip", 4001, "1000000001");
+
+        await Processar(Puxada(zip));
+
+        Assert.Single(_orq.EhTspPorNota);
+        Assert.All(_orq.EhTspPorNota, kv => Assert.False(kv.Value));
+    }
+
+    [Fact]
     public async Task Sorocaba_CincoNotasQuatroTransportes_UmaOnda()
     {
         var zip = SorocabaZip("PuxadaTSP");

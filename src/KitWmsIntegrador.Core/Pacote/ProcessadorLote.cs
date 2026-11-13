@@ -443,7 +443,7 @@ public sealed class ProcessadorLote
                 var inicioNota = _clock.UtcNow;
                 try
                 {
-                    var resultados = await _orquestrador.IntegrarAsync(new[] { nota }, transporte, ct)
+                    var resultados = await _orquestrador.IntegrarAsync(new[] { nota }, transporte, ct, ctx.EhTsp)
                         .ConfigureAwait(false);
                     var resultado = resultados.Count > 0
                         ? resultados[0]

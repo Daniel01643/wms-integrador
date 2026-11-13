@@ -27,9 +27,10 @@ public interface IOrquestrador
     /// <summary>
     /// Integra uma sequência de notas associadas a um mesmo
     /// <paramref name="numeroTransporte"/>. Devolve um
-    /// <see cref="ResultadoIntegracaoNota"/> por nota.
+    /// <see cref="ResultadoIntegracaoNota"/> por nota. <paramref name="ehTsp"/> indica nota da
+    /// Puxada TSP (muda só a regra da placa na I50).
     /// </summary>
     Task<IReadOnlyList<ResultadoIntegracaoNota>> IntegrarAsync(
         IEnumerable<NotaFiscal> notas, string numeroTransporte,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default, bool ehTsp = false);
 }

@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-b79d386</span>
+    <span>Vers&atilde;o: 2026.11.13-f44dd6f</span>
   </div>
 </section>
   <header class="hd">
@@ -618,6 +618,26 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </tr>
 </tbody></table>
 <p>A placa é enviada <strong>como está</strong> no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras transformações além do básico.</p>
+<p><strong>Puxada TSP (decisão de 13/11/2026):</strong> a TSP <strong>sempre</strong> vai ao WMS <strong>sem placa</strong>. Notas da pasta <code>PuxadaTSP</code> (ZIP ou XML solto) usam a chave própria <strong><code>I50:EnviarPlacaVeiculoTsp</code></strong> (padrão <strong><code>false</code></strong> = <code>placaVeiculo</code> em branco), e <strong>não</strong> a <code>I50:EnviarPlacaVeiculo</code>. Ou seja, mesmo com <code>EnviarPlacaVeiculo = true</code> a TSP segue sem placa. A Puxada normal (pasta <code>Puxada</code> e raiz) continua governada só por <code>I50:EnviarPlacaVeiculo</code>.</p>
+<table>
+<thead><tr>
+<th>Nota</th>
+<th>Chave que decide</th>
+<th>Padrão</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>PUXADA (pasta <code>Puxada</code> e raiz)</td>
+<td><code>I50:EnviarPlacaVeiculo</code></td>
+<td><code>true</code> (envia a placa do XML)</td>
+</tr>
+<tr>
+<td>TSP (pasta <code>PuxadaTSP</code>)</td>
+<td><code>I50:EnviarPlacaVeiculoTsp</code></td>
+<td><code>false</code> (sempre sem placa)</td>
+</tr>
+</tbody></table>
+<p>Override por variável de ambiente: <code>I50__EnviarPlacaVeiculo</code> e <code>I50__EnviarPlacaVeiculoTsp</code>.</p>
 <p>Para <strong>desligar</strong> o envio, edite o arquivo e deixe a chave em <code>false</code>:</p>
 <pre><code>"I50": {
   "EnviarPlacaVeiculo": false
@@ -932,7 +952,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 </tr>
 <tr>
 <td>Ligar/desligar envio da placa do veículo</td>
-<td>editar <code>I50:EnviarPlacaVeiculo</code> em <code>config\appsettings.Production.json</code></td>
+<td>editar <code>I50:EnviarPlacaVeiculo</code> (Puxada) ou <code>I50:EnviarPlacaVeiculoTsp</code> (TSP, padrão sem placa) em <code>config\appsettings.Production.json</code></td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>

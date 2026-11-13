@@ -392,6 +392,19 @@ XML da nota em **`transp/veicTransp/placa`**. Esse envio é controlado pela chav
 A placa é enviada **como está** no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras
 transformações além do básico.
 
+**Puxada TSP (decisão de 13/11/2026):** a TSP **sempre** vai ao WMS **sem placa**. Notas da pasta
+`PuxadaTSP` (ZIP ou XML solto) usam a chave própria **`I50:EnviarPlacaVeiculoTsp`** (padrão
+**`false`** = `placaVeiculo` em branco), e **não** a `I50:EnviarPlacaVeiculo`. Ou seja, mesmo com
+`EnviarPlacaVeiculo = true` a TSP segue sem placa. A Puxada normal (pasta `Puxada` e raiz) continua
+governada só por `I50:EnviarPlacaVeiculo`.
+
+| Nota | Chave que decide | Padrão |
+|---|---|---|
+| PUXADA (pasta `Puxada` e raiz) | `I50:EnviarPlacaVeiculo` | `true` (envia a placa do XML) |
+| TSP (pasta `PuxadaTSP`) | `I50:EnviarPlacaVeiculoTsp` | `false` (sempre sem placa) |
+
+Override por variável de ambiente: `I50__EnviarPlacaVeiculo` e `I50__EnviarPlacaVeiculoTsp`.
+
 Para **desligar** o envio, edite o arquivo e deixe a chave em `false`:
 
 ```json
@@ -707,7 +720,7 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
 | Janela de coleta / limpeza (60 dias) | `config\appsettings.Production.json`: `Pacote:JanelaColetaSegundos` / `Limpeza:DiasRetencao` | **Sim** |
-| Ligar/desligar envio da placa do veículo | editar `I50:EnviarPlacaVeiculo` em `config\appsettings.Production.json` | **Sim** |
+| Ligar/desligar envio da placa do veículo | editar `I50:EnviarPlacaVeiculo` (Puxada) ou `I50:EnviarPlacaVeiculoTsp` (TSP, padrão sem placa) em `config\appsettings.Production.json` | **Sim** |
 | Mudar pastas da Puxada/PuxadaTSP, aceitar ou recusar a raiz, limites do ZIP | `Pastas:Puxada`, `Pastas:PuxadaTsp`, `Pastas:AceitarRaiz`, `Zip:MaxArquivos`, `Zip:MaxTamanhoMb` em `config\appsettings.Production.json` (seção 8.4) | **Sim** |
 | Ligar o fluxo I51 → I60 (só no homolog, com OK) | `I51:Habilitada` e `I60:Habilitada` em `config\appsettings.Production.json` (seção 8.5) | **Sim** |
 | Gerar o relatório diário da I51/I60 agora | `Worker.exe --relatorio-i60 [--enviar]` (seção 8.5) | Não |

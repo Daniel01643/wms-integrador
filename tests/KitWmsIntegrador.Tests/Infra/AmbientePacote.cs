@@ -36,6 +36,8 @@ public sealed class OrquestradorFalso : IOrquestrador
         (nota, transporte) => Task.FromResult(Sucesso(nota.Numero, transporte));
 
     public List<(string Nota, string Transporte)> Chamadas { get; } = new();
+    /// <summary>Flag ehTsp recebida em cada chamada, por número da nota.</summary>
+    public Dictionary<string, bool> EhTspPorNota { get; } = new();
 
     public int MaximoSimultaneo => _maximo;
 
@@ -51,7 +53,7 @@ public sealed class OrquestradorFalso : IOrquestrador
         IntegrarAsync(onda.Notas, onda.NumeroTransporte, cancellationToken);
 
     public async Task<IReadOnlyList<ResultadoIntegracaoNota>> IntegrarAsync(
-        IEnumerable<NotaFiscal> notas, string numeroTransporte, CancellationToken cancellationToken = default)
+        IEnumerable<NotaFiscal> notas, string numeroTransporte, CancellationToken cancellationToken = default, bool ehTsp = false)
     {
         var lista = new List<ResultadoIntegracaoNota>();
         foreach (var nota in notas)
@@ -59,6 +61,7 @@ public sealed class OrquestradorFalso : IOrquestrador
             lock (Chamadas)
             {
                 Chamadas.Add((nota.Numero, numeroTransporte));
+                EhTspPorNota[nota.Numero] = ehTsp;
             }
 
             var atual = Interlocked.Increment(ref _emAndamento);

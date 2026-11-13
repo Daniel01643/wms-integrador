@@ -17,9 +17,11 @@ public interface IConstrutorI50
     /// vira o <c>nroagrupseparacao</c> (default: <see cref="NotaFiscal.NumeroTransporte"/>).
     /// Lança <see cref="ArgumentException"/> se o transporte for vazio — o caso B
     /// (nota sem transporte) é tratado pelo Orquestrador (Etapa 5), não aqui.
+    /// Com <paramref name="ehTsp"/> (Puxada TSP) a placa do veículo é governada por
+    /// <c>I50:EnviarPlacaVeiculoTsp</c> (padrão false); sem ele, por <c>I50:EnviarPlacaVeiculo</c>.
     /// </summary>
-    PayloadI50 Construir(NotaFiscal nota, string? numeroTransporte = null);
+    PayloadI50 Construir(NotaFiscal nota, string? numeroTransporte = null, bool ehTsp = false);
 
     /// <summary>Constrói o DTO e serializa para o JSON exato esperado pela API.</summary>
-    string ConstruirJson(NotaFiscal nota, string? numeroTransporte = null);
+    string ConstruirJson(NotaFiscal nota, string? numeroTransporte = null, bool ehTsp = false);
 }

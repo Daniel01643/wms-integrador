@@ -379,6 +379,13 @@ Formato `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA` (`XML'S S
   cria uma segunda onda. Um ZIP diferente com o mesmo nome ganha novo `NN`.
 - O DocCarga continua sendo um por nota. Nota de TSP sem transporte sobe normalmente.
 
+### 8.3.1. Placa do veículo na TSP
+
+A **Puxada TSP sempre vai ao WMS sem placa** (`placaVeiculo` em branco na I50), seja ZIP ou XML solto em
+`PuxadaTSP` (decisão de 13/11/2026). A chave é `I50:EnviarPlacaVeiculoTsp` (padrão `false`; override por env
+`I50__EnviarPlacaVeiculoTsp`). A Puxada normal (pasta `Puxada` e raiz) continua com `I50:EnviarPlacaVeiculo`
+(padrão `true`; `false` = sem placa).
+
 ### 8.4. O que o relatório e o e-mail mostram
 
 - Colunas **Tipo** (`PUXADA` ou `TSP`) e **Origem** (`Puxada`, `PuxadaTSP` ou `raiz`) em cada nota.
