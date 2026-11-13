@@ -115,7 +115,7 @@ public sealed class ConstrutorI60 : IConstrutorI60
             Protocolo = nota.Protocolo ?? string.Empty,
             CnpjNota = FormatoWms.Documento(nota.EmitenteCnpj),
             DataEmissao = FormatoWms.Data(nota.DataEmissao),
-            QtdeTotalNota = qtdeTotal,
+            QtdeTotalNota = _i60.QtdeTotalNotaZero ? 0m : qtdeTotal,
             PesoBrutoKg = volumes?.PesoBruto ?? 0m,
             PesoLiquidoKg = volumes?.PesoLiquido ?? 0m,
             QtdeVolume = qtdeVolume,

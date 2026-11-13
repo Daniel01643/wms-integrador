@@ -223,6 +223,30 @@ public class ConstrutorI60Tests
     }
 
     [Fact]
+    public void QtdeTotalNotaZero_Ligado_EnviaZeroEMantemItensEVolume()
+    {
+        var construtor = Criar(i60: new OpcoesI60 { QtdeTotalNotaZero = true });
+
+        var nv = Assert.Single(construtor.Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal(0m, nv.QtdeTotalNota);
+        Assert.Equal(36m, nv.QtdeVolume); // volume segue a soma (o arredondamento não usa o total zerado)
+        Assert.Equal(36m, nv.ItemNotaVenda.Sum(i => i.QtdeProduto));
+    }
+
+    [Fact]
+    public void QtdeTotalNotaZero_EQtdeVolumeZero_EnviaAmbosZero()
+    {
+        var construtor = Criar(i60: new OpcoesI60 { QtdeTotalNotaZero = true, QtdeVolumeZero = true });
+
+        var nv = Assert.Single(construtor.Construir(LerXml1()).NotasVenda);
+
+        Assert.Equal(0m, nv.QtdeTotalNota);
+        Assert.Equal(0m, nv.QtdeVolume);
+        Assert.False(new OpcoesI60().QtdeTotalNotaZero);
+    }
+
+    [Fact]
     public void QtdeVolumeZero_PadraoDesligado_EnviaSomaDasCaixas()
     {
         Assert.False(new OpcoesI60().QtdeVolumeZero);

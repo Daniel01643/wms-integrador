@@ -45,6 +45,14 @@ public sealed class OpcoesI60
     /// </summary>
     public bool QtdeVolumeZero { get; set; } = false;
 
+    /// <summary>
+    /// Quando <c>true</c>, a I60 envia <c>qtdeTotalNota = 0</c> em vez da soma das quantidades dos
+    /// itens (pedido do usuário em 13/11/2026, teste no homolog junto com <see cref="QtdeVolumeZero"/>:
+    /// o DocCarga separado tem volume 0). Os itens continuam com as quantidades. Default <c>false</c>.
+    /// Troca sem release: variável de ambiente <c>I60__QtdeTotalNotaZero</c>.
+    /// </summary>
+    public bool QtdeTotalNotaZero { get; set; } = false;
+
     // ---- Fluxo I51 -> I60 (somente com I51:Habilitada=true). Os padrões abaixo não alteram o
     // ---- comportamento da I60 enviada junto da I50 (I51 desligada). Listas separadas por ';'.
 
