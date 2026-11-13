@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-6996b24</span>
+    <span>Vers&atilde;o: 2026.11.13-b79d386</span>
   </div>
 </section>
   <header class="hd">
@@ -279,7 +279,9 @@
 <p>Regras simples:</p>
 <ul>
 <li>Salve <strong>somente o arquivo ZIP</strong> (o mesmo que vem no e-mail). Não precisa abrir o e-mail nem o ZIP.</li>
-<li>A pasta <code>PuxadaTSP</code> aceita <strong>só ZIP</strong>. A pasta <code>Puxada</code> aceita ZIP e também XML solto.</li>
+<li>As pastas <code>PuxadaTSP</code> e <code>Puxada</code> aceitam <strong>ZIP</strong> e também <strong>XML solto</strong>. Só o formato <code>.zip</code> é aceito como arquivo compactado (não use <code>.rar</code> nem <code>.7z</code>).</li>
+<li>XML solto na <code>PuxadaTSP</code> sobe como TSP em <strong>uma única onda</strong> para todos os XMLs soltos daquele lote, com o nome só de data e número (<code>TSP-AAAAMMDD-NN</code>, sem título). Se errou, apague a onda no WMS e refaça o processo: o sistema gera um novo número.</li>
+<li>Se o ZIP tiver <strong>subpastas</strong>, os XMLs de dentro delas também são lidos (em qualquer nível). ZIP dentro de ZIP não é aberto.</li>
 <li>Na TSP, o nome do ZIP vira parte do nome da onda (por exemplo, <code>XML'S SOROCABA.zip</code> gera uma onda com o nome <code>SOROCABA</code>). Se o ZIP não tiver um nome aproveitável, a onda sobe só com data e número.</li>
 <li>O sistema <strong>não adivinha</strong> a pasta: tudo o que estiver em <code>PuxadaTSP</code> sobe como TSP e tudo o que estiver em <code>Puxada</code> sobe como puxada. Se depositar na pasta errada, o relatório mostra (seção 5) e dá para corrigir.</li>
 <li>XML solto na <strong>raiz</strong> do compartilhamento (fora das duas pastas) continua sendo aceito e é tratado como <strong>puxada normal</strong>. No relatório ele aparece com a origem <strong>raiz</strong>, para ser analisado.</li>

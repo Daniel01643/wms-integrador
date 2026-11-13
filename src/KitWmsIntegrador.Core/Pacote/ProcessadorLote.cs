@@ -174,8 +174,8 @@ public sealed class ProcessadorLote
 
             var extensao = Path.GetExtension(arquivo);
             var motivo = entrada.Tipo == TipoNota.Tsp
-                ? $"Arquivo ignorado: a pasta {entrada.Origem} aceita apenas ZIP (extensão {extensao}). " +
-                  "Salve aqui somente o ZIP da puxada TSP."
+                ? $"Arquivo ignorado: a pasta {entrada.Origem} aceita apenas ZIP ou XML (extensão {extensao}). " +
+                  "Salve aqui somente o ZIP ou os XMLs da puxada TSP."
                 : $"Arquivo ignorado: extensão {extensao} não é XML. " +
                   "Coloque apenas arquivos .xml na pasta de entrada.";
             _logger.LogInformation(
@@ -278,32 +278,42 @@ public sealed class ProcessadorLote
         CancellationToken ct)
     {
         // 2) Onda de cada ZIP da TSP (nome gerado na ordem de chegada, antes de qualquer envio).
-        var tspPorZip = lidos
-            .Where(l => l.Ctx.EhTsp && l.ZipCaminho is not null)
-            .GroupBy(l => l.ZipCaminho!, StringComparer.OrdinalIgnoreCase)
+        // Cada ZIP é uma onda (reaproveitada por hash). Todos os XMLs soltos da PuxadaTSP do pacote
+        // formam UMA onda sem título (TSP-AAAAMMDD-NN), nunca reaproveitada: reprocesso gera novo
+        // sequencial. A chave "" representa o grupo dos XMLs soltos.
+        var tspGrupos = lidos
+            .Select((l, i) => (L: l, I: i))
+            .Where(x => x.L.Ctx.EhTsp)
+            .GroupBy(x => x.L.ZipCaminho ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Min(x => x.I))
             .ToList();
-        var ondaDoZip = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var grupo in tspPorZip)
+        var ondaDoGrupo = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var grupo in tspGrupos)
         {
+            if (grupo.Key.Length == 0)
+            {
+                ondaDoGrupo[grupo.Key] = _ondasTsp.ObterOuCriar(string.Empty, string.Empty);
+                continue;
+            }
+
             var hash = zips.First(z => string.Equals(z.Entrada.Caminho, grupo.Key, StringComparison.OrdinalIgnoreCase)).Hash;
-            ondaDoZip[grupo.Key] = _ondasTsp.ObterOuCriar(Path.GetFileName(grupo.Key), hash);
+            ondaDoGrupo[grupo.Key] = _ondasTsp.ObterOuCriar(Path.GetFileName(grupo.Key), hash);
         }
 
         var arquivoDe = new Dictionary<NotaFiscal, (string Arquivo, int Ordem, Ctx Ctx)>(ReferenceEqualityComparer.Instance);
         for (var i = 0; i < lidos.Count; i++)
         {
             var l = lidos[i];
-            var ctx = l.Ctx.EhTsp && l.ZipCaminho is not null ? l.Ctx with { Onda = ondaDoZip[l.ZipCaminho] } : l.Ctx;
+            var ctx = l.Ctx.EhTsp ? l.Ctx with { Onda = ondaDoGrupo[l.ZipCaminho ?? string.Empty] } : l.Ctx;
             arquivoDe[l.Nota] = (l.Arquivo, i, ctx);
         }
 
-        // 3) PUXADA: agrupa por transporte. TSP: uma onda por ZIP. Ondas na ordem do primeiro arquivo.
-        var agrupamento = _agrupador.Agrupar(
-            lidos.Where(l => !(l.Ctx.EhTsp && l.ZipCaminho is not null)).Select(l => l.Nota));
+        // 3) PUXADA: agrupa por transporte. TSP: uma onda por ZIP (e uma para os XMLs soltos). Ondas na ordem do primeiro arquivo.
+        var agrupamento = _agrupador.Agrupar(lidos.Where(l => !l.Ctx.EhTsp).Select(l => l.Nota));
         var ondas = agrupamento.Ondas
             .Select(o => (o.NumeroTransporte, Notas: (IReadOnlyList<NotaFiscal>)o.Notas))
             .ToList();
-        ondas.AddRange(tspPorZip.Select(g => (ondaDoZip[g.Key], Notas: (IReadOnlyList<NotaFiscal>)g.Select(l => l.Nota).ToList())));
+        ondas.AddRange(tspGrupos.Select(g => (ondaDoGrupo[g.Key], Notas: (IReadOnlyList<NotaFiscal>)g.Select(x => x.L.Nota).ToList())));
         ondas = ondas.OrderBy(o => o.Notas.Min(n => arquivoDe[n].Ordem)).ToList();
         if (agrupamento.SemTransporte.Count > 0)
         {

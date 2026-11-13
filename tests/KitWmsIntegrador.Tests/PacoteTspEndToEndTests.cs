@@ -157,6 +157,109 @@ public sealed class PacoteTspEndToEndTests : IDisposable
         Assert.Equal(2, _amb.RelatoriosGerados(".html").Length);
     }
 
+    private void XmlSolto(string subpasta, int numero, string transporte)
+    {
+        var pasta = string.IsNullOrEmpty(subpasta) ? _amb.Entrada : _amb.Pasta(subpasta);
+        File.WriteAllText(Path.Combine(pasta, AmbientePacote.NomeXmlBrf(numero)), AmbientePacote.XmlBrf(numero, transporte));
+    }
+
+    [Fact]
+    public async Task XmlSoltoNaPuxadaTsp_SobeComoTsp_OndaSemTitulo()
+    {
+        XmlSolto("PuxadaTSP", 4001, "1000000001");
+        var g = _amb.CriarGerenciador(_orq);
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        var chamada = Assert.Single(_orq.Chamadas);
+        Assert.Equal($"TSP-{Data}-01", chamada.Transporte);
+        Assert.Empty(Sobras("PuxadaTSP"));
+        Assert.Empty(Todos("Erro"));
+        Assert.Single(Todos("Processados"), a => a.EndsWith(".XML", StringComparison.OrdinalIgnoreCase));
+        var html = File.ReadAllText(Assert.Single(_amb.RelatoriosGerados(".html")));
+        Assert.Contains($"Onda TSP-{Data}-01 (TSP)", html);
+        Assert.Contains(">PuxadaTSP<", html);
+    }
+
+    [Fact]
+    public async Task DoisXmlsSoltosNoMesmoPacote_FormamUmaOnda_MesmoComTransportesDiferentes()
+    {
+        XmlSolto("PuxadaTSP", 4001, "1000000001");
+        XmlSolto("PuxadaTSP", 4002, "1000000002");
+        var g = _amb.CriarGerenciador(_orq);
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        Assert.Equal(2, _orq.Chamadas.Count);
+        Assert.All(_orq.Chamadas, c => Assert.Equal($"TSP-{Data}-01", c.Transporte));
+    }
+
+    [Fact]
+    public async Task XmlSoltoMaisZipNoMesmoPacote_OndasDiferentes_ComSequencialCorreto()
+    {
+        XmlSolto("PuxadaTSP", 4001, "1000000001");
+        File.SetCreationTimeUtc(Path.Combine(_amb.Pasta("PuxadaTSP"), AmbientePacote.NomeXmlBrf(4001)), DateTime.UtcNow.AddMinutes(-10));
+        _amb.EscreverZipBrf("PuxadaTSP", "XML'S SJC.zip", 1001, "1000000001", "1000000002");
+        var g = _amb.CriarGerenciador(_orq);
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        var ondaSolta = $"TSP-{Data}-01";
+        var ondaZip = $"TSP-{Data}-02-SJC";
+        Assert.Equal(3, _orq.Chamadas.Count);
+        Assert.Equal(1, _orq.Chamadas.Count(c => c.Transporte == ondaSolta));
+        Assert.Equal(2, _orq.Chamadas.Count(c => c.Transporte == ondaZip));
+        Assert.Empty(Sobras("PuxadaTSP"));
+    }
+
+    [Fact]
+    public async Task ReprocessoDeXmlSolto_GeraNovoSequencial_SemReaproveitarPorHash()
+    {
+        XmlSolto("PuxadaTSP", 4001, "1000000001");
+        var copia = Path.Combine(_amb.Raiz, "copia.xml");
+        File.Copy(Path.Combine(_amb.Pasta("PuxadaTSP"), AmbientePacote.NomeXmlBrf(4001)), copia);
+        var g = _amb.CriarGerenciador(_orq);
+
+        await _amb.RodarAteOciosoAsync(g);
+        File.Copy(copia, Path.Combine(_amb.Pasta("PuxadaTSP"), AmbientePacote.NomeXmlBrf(4001)));
+        _amb.Clock.Avancar(TimeSpan.FromMinutes(5));
+        await _amb.RodarAteOciosoAsync(g);
+
+        Assert.Equal(2, _orq.Chamadas.Count);
+        Assert.Equal(new[] { $"TSP-{Data}-01", $"TSP-{Data}-02" }, _orq.Chamadas.Select(c => c.Transporte).ToArray());
+    }
+
+    [Fact]
+    public async Task ZipComSubpastas_PassaPeloPacote_ERelatorioMostraCaminhoDoIgnorado()
+    {
+        _amb.EscreverZip("PuxadaTSP", "XML'S SJC.zip",
+            ("a/b/" + AmbientePacote.NomeXmlBrf(1), AmbientePacote.XmlBrf(1, "1000000001")),
+            ("c/" + AmbientePacote.NomeXmlBrf(2), AmbientePacote.XmlBrf(2, "1000000002")),
+            ("c/d/interno.zip", "PK"));
+        var g = _amb.CriarGerenciador(_orq);
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        Assert.Equal(2, _orq.Chamadas.Count);
+        Assert.All(_orq.Chamadas, c => Assert.Equal($"TSP-{Data}-01-SJC", c.Transporte));
+        var html = File.ReadAllText(Assert.Single(_amb.RelatoriosGerados(".html")));
+        Assert.Contains("c/d/interno.zip", html);
+    }
+
+    [Fact]
+    public async Task RaizEPuxada_ContinuamPorTransporte_SemTsp()
+    {
+        XmlSolto("", 3201, "1000000600");
+        XmlSolto("Puxada", 3101, "1000000500");
+        var g = _amb.CriarGerenciador(_orq);
+
+        await _amb.RodarAteOciosoAsync(g);
+
+        Assert.Equal(2, _orq.Chamadas.Count);
+        Assert.All(_orq.Chamadas, c => Assert.DoesNotContain("TSP", c.Transporte));
+        Assert.Equal(new[] { "1000000500", "1000000600" }, _orq.Chamadas.Select(c => c.Transporte).OrderBy(t => t).ToArray());
+    }
+
     private static int Contar(string texto, string trecho)
     {
         var total = 0;

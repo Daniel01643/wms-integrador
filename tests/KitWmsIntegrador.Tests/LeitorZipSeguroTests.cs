@@ -112,6 +112,85 @@ public sealed class LeitorZipSeguroTests : IDisposable
         leitor.Limpar(r.PastaTemporaria);
     }
 
+    [Fact]
+    public void XmlsEmSubpastasAninhadas_SaoLidos()
+    {
+        var zip = _amb.EscreverZip("PuxadaTSP", "subpastas.zip",
+            (AmbientePacote.NomeXmlBrf(1), AmbientePacote.XmlBrf(1, "1")),
+            ("a/" + AmbientePacote.NomeXmlBrf(2), AmbientePacote.XmlBrf(2, "2")),
+            ("a/b/c/d/" + AmbientePacote.NomeXmlBrf(3), AmbientePacote.XmlBrf(3, "3")));
+        var leitor = Criar();
+
+        var r = leitor.Extrair(zip);
+
+        Assert.Equal(3, r.Xmls.Count);
+        Assert.Empty(r.Ignoradas);
+        Assert.All(r.Xmls, x => Assert.True(File.Exists(x.Caminho)));
+        Assert.Contains(r.Xmls, x => x.NomeNoZip == "a/b/c/d/" + AmbientePacote.NomeXmlBrf(3));
+        leitor.Limpar(r.PastaTemporaria);
+        AssertTmpVazio();
+    }
+
+    [Fact]
+    public void MesmoNomeEmSubpastasDiferentes_NaoColide_AmbosSaoLidos()
+    {
+        var nome = AmbientePacote.NomeXmlBrf(7);
+        var zip = _amb.EscreverZip("PuxadaTSP", "iguais.zip",
+            ("um/" + nome, AmbientePacote.XmlBrf(7, "7")),
+            ("dois/" + nome, AmbientePacote.XmlBrf(8, "8")),
+            (nome, AmbientePacote.XmlBrf(9, "9")));
+        var leitor = Criar();
+
+        var r = leitor.Extrair(zip);
+
+        Assert.Equal(3, r.Xmls.Count);
+        Assert.Equal(3, r.Xmls.Select(x => x.Caminho).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(3, r.Xmls.Select(x => File.ReadAllText(x.Caminho)).Distinct().Count());
+        leitor.Limpar(r.PastaTemporaria);
+    }
+
+    [Theory]
+    [InlineData("ok/sub/../../../fora.xml")]
+    [InlineData("ok\\sub\\..\\..\\..\\fora.xml")]
+    [InlineData("ok/sub/C:\\fora.xml")]
+    public void TraversalEmSubpasta_EhBloqueado_ONormalSegue(string nomePerigoso)
+    {
+        var zip = _amb.EscreverZip("PuxadaTSP", "sub-slip.zip",
+            ("ok/sub/" + AmbientePacote.NomeXmlBrf(7), AmbientePacote.XmlBrf(7, "7")),
+            (nomePerigoso, "<x/>"));
+        var leitor = Criar();
+
+        var r = leitor.Extrair(zip);
+
+        Assert.Single(r.Xmls);
+        var ignorada = Assert.Single(r.Ignoradas);
+        Assert.True(ignorada.Insegura);
+        Assert.Equal(nomePerigoso, ignorada.Nome);
+        Assert.False(File.Exists(Path.Combine(PastaTmp, "fora.xml")));
+        Assert.False(File.Exists(Path.Combine(_amb.Pastas.CaminhoEstado, "fora.xml")));
+        Assert.All(r.Xmls, x => Assert.StartsWith(r.PastaTemporaria, x.Caminho));
+        leitor.Limpar(r.PastaTemporaria);
+    }
+
+    [Fact]
+    public void ZipAninhadoEmSubpastaProfunda_EhIgnoradoComCaminho_XmlsDoZipSeguem()
+    {
+        var interno = _amb.EscreverZip("", "interno.zip", ("a.xml", "<x/>"));
+        var zip = _amb.EscreverZip("PuxadaTSP", "aninhado.zip",
+            ("x/" + AmbientePacote.NomeXmlBrf(7), AmbientePacote.XmlBrf(7, "7")),
+            ("x/y/z/outro.ZIP", File.ReadAllText(interno)));
+        var leitor = Criar();
+
+        var r = leitor.Extrair(zip);
+
+        Assert.Single(r.Xmls);
+        var ignorada = Assert.Single(r.Ignoradas);
+        Assert.Equal("x/y/z/outro.ZIP", ignorada.Nome);
+        Assert.Contains("ZIP dentro de ZIP", ignorada.Motivo);
+        Assert.False(ignorada.Insegura);
+        leitor.Limpar(r.PastaTemporaria);
+    }
+
     [Theory]
     [InlineData("..\\fora.xml")]
     [InlineData("../fora.xml")]

@@ -78,7 +78,14 @@ Abra o HTML mais recente em `C:\wms-teste\relatorios` (`pacote_<data_hora>.html`
   voltam como "já existe".
 - **ZIP diferente no mesmo dia:** a onda seguinte ganha `NN` = `02`.
 - **XML solto na raiz:** sobe como `PUXADA`, Origem `raiz`, e aparece no relatório.
-- **Arquivo não-ZIP na `PuxadaTSP`:** vai para `Erro\pacote_*\ExtensaoInvalida`.
+- **XML solto na `PuxadaTSP`:** sobe como `TSP`, Origem `PuxadaTSP`, em uma onda **sem título**
+  (`TSP-<data>-NN`). Dois ou mais XMLs soltos no mesmo pacote formam a mesma onda. Se houver também um
+  ZIP no mesmo pacote, são ondas diferentes (cada uma com o seu `NN`). Processar de novo o mesmo XML solto
+  (depois de apagar a onda no WMS) gera um **novo** `NN`, sem reaproveitar a onda anterior.
+- **ZIP com subpastas:** monte um ZIP com XMLs em subpastas (inclusive subpasta dentro de subpasta) e,
+  se quiser, dois XMLs de mesmo nome em subpastas diferentes. Todos os XMLs devem ser integrados na onda
+  do ZIP. Um `.zip` dentro de uma subpasta é ignorado e o relatório mostra o caminho dele dentro do ZIP.
+- **Arquivo que não é ZIP nem XML na `PuxadaTSP`** (ex.: `.pdf`): vai para `Erro\pacote_*\ExtensaoInvalida`.
 
 ## 7. Registrar o resultado
 

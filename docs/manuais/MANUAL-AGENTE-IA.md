@@ -23,7 +23,7 @@ nunca em suposições sobre comandos, caminhos, status ou campos.
 ZIP/XML na entrada (subpastas Puxada e PuxadaTSP; raiz se Pastas:AceitarRaiz=true)
   → ZIP: leitor seguro extrai os XMLs para Estado\tmp (limites Zip:MaxArquivos/MaxTamanhoMb)
   → PUXADA: agrupa por transporte (campo "Transporte: N" nas infos complementares)
-  → TSP (só PuxadaTSP): uma onda por ZIP, nome TSP-AAAAMMDD-NN-NOME (Estado\tsp\ondas.json)
+  → TSP (só PuxadaTSP): uma onda por ZIP, nome TSP-AAAAMMDD-NN-NOME (Estado\tsp\ondas.json); XMLs soltos da PuxadaTSP = uma onda TSP-AAAAMMDD-NN por pacote, sem hash; XMLs em subpastas do ZIP são lidos
   → Orquestrador reativo por nota: I50 → pré-condições I10/I30 → reenvio, até 3 tentativas
   → move cada arquivo (Processados\pacote_<...> ou Erro\pacote_<...>\<Categoria>)
   → gera relatório HTML + PDF (sempre)

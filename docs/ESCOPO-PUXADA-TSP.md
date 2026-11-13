@@ -2,9 +2,13 @@
 
 Status: **escopo fechado em 11/11/2026; implementado e documentado em 12/11/2026** (código revisado e
 aprovado; documentação e manuais atualizados). Falta o teste com ZIP real no homolog
-(`ROTEIRO-TESTE-PUXADA-TSP.md`). Premissas assumidas na implementação: XML solto na `PuxadaTSP` vira
-`ExtensaoInvalida`; XML repetido no pacote é ignorado (fica em `Processados`); `numeroPlanejamento` da
+(`ROTEIRO-TESTE-PUXADA-TSP.md`). Premissas assumidas na implementação: XML repetido no pacote é ignorado (fica em `Processados`); `numeroPlanejamento` da
 I50 repete o nome da onda na TSP (a validar no homolog).
+
+**Atualização (13/11/2026):** (1) XML solto na `PuxadaTSP` passou a ser **aceito** e sobe como TSP, em
+uma onda sem título (`TSP-AAAAMMDD-NN`); ver 3.2 e 3.3. (2) XMLs em **subpastas** dentro do ZIP, em
+qualquer profundidade, passam a ser lidos; ver 3.2. Só `.zip` é suportado como arquivo compactado
+(decisão: sem `.rar`/`.7z`). A varredura de pastas fora do ZIP continua só no primeiro nível.
 
 ## 1. O problema
 
@@ -43,7 +47,7 @@ Dentro da pasta de entrada (`C:\Friozem\kitbrf` em produção):
 ```
 kitbrf\
   Puxada\       <- ZIP (ou XML solto) de puxada normal
-  PuxadaTSP\    <- ZIP de puxada TSP
+  PuxadaTSP\    <- ZIP (ou XML solto) de puxada TSP
   Processados\  <- como hoje (pacote_<data>_<hora>\)
   Erro\         <- como hoje
   Estado\       <- como hoje
@@ -54,13 +58,16 @@ Compatibilidade assumida: XML solto na **raiz** da entrada continua sendo aceito
 recusar a raiz, é só uma opção de configuração (`Pastas:AceitarRaiz=false`).
 
 ### 3.2 ZIP
-- A pasta `PuxadaTSP` aceita só ZIP. A pasta `Puxada` aceita ZIP e XML solto.
+- As pastas `PuxadaTSP` e `Puxada` aceitam ZIP e XML solto (só o primeiro nível da pasta é varrido).
+  Só `.zip` é suportado como arquivo compactado (sem `.rar`/`.7z`).
 - O ZIP é extraído para uma pasta temporária em `Estado`, os XMLs são processados e o ZIP original
   é guardado junto das notas no pacote.
-- Só XML é aceito dentro do ZIP. Outro tipo de arquivo cai como `ExtensaoInvalida`, como hoje.
-  ZIP dentro de ZIP não é aberto.
+- Só XML é aceito dentro do ZIP, **inclusive em subpastas de qualquer profundidade**. Outro tipo de
+  arquivo cai como `ExtensaoInvalida`, como hoje. ZIP dentro de ZIP (em qualquer subpasta) não é aberto.
+  O relatório mostra o caminho completo dentro do ZIP (ex.: `a/b/leia-me.txt`) das entradas ignoradas.
+  Nomes iguais em subpastas diferentes não colidem (cada XML é extraído em uma pasta temporária própria).
 - ZIP corrompido ou protegido por senha vai para `Erro\<pacote>\ZipInvalido` com `.motivo.txt`.
-- Segurança: nomes com caminho perigoso (`..`, caminho absoluto) são ignorados; limite de
+- Segurança (vale também para subpastas): nomes com caminho perigoso (`..`, caminho absoluto) são ignorados; limite de
   quantidade de arquivos e de tamanho total (configuráveis, com valores padrão); o mesmo XML repetido
   em dois ZIPs é processado uma vez e registrado como repetido.
 - O ZIP só é aberto depois de pronto (detector de arquivo pronto que já existe).
@@ -78,10 +85,15 @@ não muda: a onda continua sendo o número do transporte.)
   em maiúsculas, sem acento, só letras, números e hífen. Ex.: `XML'S SOROCABA.zip` -> `SOROCABA`;
   `XML'S SJC.zip` -> `SJC`.
 - Se sobrar nome vazio: onda `TSP-AAAAMMDD-NN` (15 caracteres).
+- **XML solto na `PuxadaTSP` (13/11/2026):** todos os XMLs soltos coletados no mesmo pacote formam
+  **uma única onda** `TSP-AAAAMMDD-NN` (sem título), com o sequencial do dia compartilhado com as ondas
+  de ZIP (os ZIPs continuam com uma onda por ZIP). **Não há reaproveitamento por hash:** se o usuário
+  errou, apaga a onda no WMS e refaz o processo, e um novo sequencial é gerado. No relatório a Origem é
+  `PuxadaTSP` e a coluna de ZIP fica vazia (é assim que se distingue de uma onda de ZIP).
 - Limite do campo no WMS: `nroagrupseparacao` aceita **0 a 30** caracteres (manual da I50). A parte fixa
   `TSP-AAAAMMDD-NN-` ocupa 16 caracteres, então o NOME é cortado para **no máximo 14 caracteres**.
   `TSP-20261111-01-SOROCABA` tem 24 caracteres e cabe.
-- **Reprocesso:** o mesmo ZIP (mesmo conteúdo, por hash) reaproveita a mesma onda. Assim reenviar o
+- **Reprocesso de ZIP:** o mesmo ZIP (mesmo conteúdo, por hash) reaproveita a mesma onda. Assim reenviar o
   mesmo ZIP não cria uma segunda onda.
 - O DocCarga continua sendo **um por nota**; só o agrupador da onda muda.
 

@@ -134,7 +134,7 @@ flowchart LR
         T[PuxadaTSP<br/>somente ZIP]
         R[raiz<br/>XML solto, se AceitarRaiz]
     end
-    LZ[LeitorZipSeguro<br/>Estado\\tmp, limites, só XML]
+    LZ[LeitorZipSeguro<br/>Estado\\tmp, limites, só XML, subpastas]
     GP[Agrupador por transporte<br/>onda = transporte]
     NO[NomeadorOndaTsp + RegistroOndasTsp<br/>Estado\\tsp\\ondas.json]
     OR[Orquestrador<br/>1 DocCarga por nota]
@@ -145,18 +145,23 @@ flowchart LR
     LZ -->|ZIP da Puxada| GP
     T -->|TSP| LZ
     LZ -->|ZIP da PuxadaTSP| NO
+    T -->|XML solto TSP| NO
     GP --> OR
-    NO -->|uma onda por ZIP| OR
+    NO -->|uma onda por ZIP; uma onda para os XMLs soltos| OR
     OR --> REL
 ```
 
 Regras de implementação:
 
 - **Pastas:** `ClassificadorEntrada.ClassificarPastas` lista (só o topo) `Puxada`, `PuxadaTSP` e a
-  raiz (se `Pastas:AceitarRaiz`). `Processados`, `Erro` e `Estado` não são entrada. A `PuxadaTSP`
-  aceita só ZIP; qualquer outro arquivo definitivo cai como `ExtensaoInvalida`.
+  raiz (se `Pastas:AceitarRaiz`). `Processados`, `Erro` e `Estado` não são entrada. `Puxada`, `PuxadaTSP` e raiz
+  aceitam `.xml` e `.zip` (só `.zip` como arquivo compactado); qualquer outro arquivo definitivo cai como
+  `ExtensaoInvalida`. Fora do ZIP a varredura é só do primeiro nível.
 - **ZIP:** `LeitorZipSeguro` (`System.IO.Compression`, sem NuGet novo) extrai para `Estado\tmp\<id>`,
-  achata nomes, ignora caminho perigoso (`..`, absoluto), aceita só `.xml`, não abre ZIP aninhado e
+  lê `.xml` em subpastas de qualquer profundidade (usa só o nome do arquivo, cada XML em uma pasta
+  numerada, então nomes iguais em subpastas diferentes não colidem), ignora caminho perigoso (`..`,
+  absoluto) em qualquer nível, aceita só `.xml`, não abre ZIP aninhado (o relatório mostra o caminho
+  dentro do ZIP) e
   respeita `Zip:MaxArquivos` e `Zip:MaxTamanhoMb` (tamanho declarado e bytes realmente copiados). ZIP
   ilegível, com senha, vazio de XML ou acima dos limites vira `CategoriaErro.ZipInvalido`
   (`Erro\<pacote>\ZipInvalido` + `.motivo.txt`). Os XMLs e o ZIP original vão para
@@ -168,8 +173,12 @@ Regras de implementação:
   `nroagrupseparacao` na I50). Sem nome: `TSP-AAAAMMDD-NN`. `RegistroOndasTsp` grava em
   `Estado\tsp\ondas.json` (gravação atômica) o último sequencial do dia e o hash SHA-256 de cada ZIP, de
   modo que reenviar o mesmo ZIP reaproveita a mesma onda.
+- **XML solto na TSP (13/11/2026):** os XMLs soltos da `PuxadaTSP` coletados no mesmo pacote formam uma
+  única onda `TSP-AAAAMMDD-NN` (sem título, sequencial compartilhado com as ondas de ZIP).
+  `ProcessadorLote` chama `RegistroOndasTsp.ObterOuCriar("", "")`: sem hash, nada é reaproveitado; reprocessar
+  gera novo sequencial (se errou, apaga a onda no WMS e refaz). Origem `PuxadaTSP` com a coluna de ZIP vazia.
 - **Agrupamento:** PUXADA continua por `AgrupadorTransporte` (onda = transporte). TSP cria uma onda por
-  ZIP: todas as notas do ZIP seguem para o `IOrquestrador` com o mesmo `nroagrupseparacao`; o DocCarga
+  ZIP (e uma onda para os XMLs soltos do pacote): todas as notas do ZIP seguem para o `IOrquestrador` com o mesmo `nroagrupseparacao`; o DocCarga
   continua sendo um por nota. Nota de TSP sem transporte no `infCpl` sobe normalmente.
 - **Relatório:** cada linha do diário (`RegistroDiario`) e do relatório (`LinhaRelatorioErro`) carrega
   `Tipo`, `Origem`, `Onda` e `Zip`. O HTML/PDF ganha as colunas Tipo e Origem; a TSP é agrupada por onda

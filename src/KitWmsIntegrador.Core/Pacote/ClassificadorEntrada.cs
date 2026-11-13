@@ -17,7 +17,7 @@ public sealed record ResultadoClassificacaoEntrada(
 /// <summary>
 /// Arquivos candidatos das pastas de entrada (raiz, Puxada e PuxadaTSP), já com tipo e origem.
 /// </summary>
-/// <param name="Aceitos">XML e ZIP (na PuxadaTSP, só ZIP) que seguem o fluxo de integração.</param>
+/// <param name="Aceitos">XML e ZIP (em qualquer das pastas) que seguem o fluxo de integração.</param>
 /// <param name="NaoXml">Arquivos definitivos que não podem ser integrados (viram ExtensaoInvalida).</param>
 public sealed record ClassificacaoPastas(
     IReadOnlyList<EntradaArquivo> Aceitos,
@@ -68,9 +68,9 @@ public static class ClassificadorEntrada
     /// <summary>
     /// Lista (só o nível superior, nunca descendo em Processados/Erro/Estado) a raiz da entrada
     /// (quando <see cref="OpcoesPasta.AceitarRaiz"/>), a pasta Puxada e a pasta PuxadaTSP. O tipo
-    /// vem só da pasta: PuxadaTSP sobe como TSP; Puxada e raiz sobem como PUXADA. Puxada e raiz
-    /// aceitam .xml e .zip; PuxadaTSP aceita só .zip (qualquer outro arquivo definitivo vira
-    /// não-XML). Temporários/em-cópia ficam onde estão.
+    /// vem só da pasta: PuxadaTSP sobe como TSP; Puxada e raiz sobem como PUXADA. Puxada, raiz
+    /// e PuxadaTSP aceitam .xml e .zip (qualquer outro arquivo definitivo vira
+    /// não-XML). Só o primeiro nível das pastas é varrido. Temporários/em-cópia ficam onde estão.
     /// </summary>
     public static ClassificacaoPastas ClassificarPastas(OpcoesPasta opcoes)
     {
@@ -78,7 +78,7 @@ public static class ClassificadorEntrada
         var aceitos = new List<EntradaArquivo>();
         var naoXml = new List<EntradaArquivo>();
 
-        void Listar(string pasta, TipoNota tipo, string origem, bool soZip)
+        void Listar(string pasta, TipoNota tipo, string origem)
         {
             if (!Directory.Exists(pasta))
             {
@@ -88,7 +88,7 @@ public static class ClassificadorEntrada
             foreach (var caminho in Directory.EnumerateFiles(pasta, "*", SearchOption.TopDirectoryOnly))
             {
                 var entrada = new EntradaArquivo(caminho, tipo, origem);
-                if (soZip ? entrada.EhZip : entrada.EhXml || entrada.EhZip)
+                if (entrada.EhXml || entrada.EhZip)
                 {
                     aceitos.Add(entrada);
                 }
@@ -101,11 +101,11 @@ public static class ClassificadorEntrada
 
         if (opcoes.AceitarRaiz)
         {
-            Listar(opcoes.CaminhoEntrada, TipoNota.Puxada, TipoNotaExtensoes.OrigemRaiz, soZip: false);
+            Listar(opcoes.CaminhoEntrada, TipoNota.Puxada, TipoNotaExtensoes.OrigemRaiz);
         }
 
-        Listar(opcoes.CaminhoPuxada, TipoNota.Puxada, opcoes.Puxada, soZip: false);
-        Listar(opcoes.CaminhoPuxadaTsp, TipoNota.Tsp, opcoes.PuxadaTsp, soZip: true);
+        Listar(opcoes.CaminhoPuxada, TipoNota.Puxada, opcoes.Puxada);
+        Listar(opcoes.CaminhoPuxadaTsp, TipoNota.Tsp, opcoes.PuxadaTsp);
         return new ClassificacaoPastas(aceitos, naoXml);
     }
 }

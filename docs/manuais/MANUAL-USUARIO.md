@@ -59,7 +59,13 @@ O compartilhamento tem duas pastas de depósito. Escolha a pasta conforme o tipo
 Regras simples:
 
 - Salve **somente o arquivo ZIP** (o mesmo que vem no e-mail). Não precisa abrir o e-mail nem o ZIP.
-- A pasta `PuxadaTSP` aceita **só ZIP**. A pasta `Puxada` aceita ZIP e também XML solto.
+- As pastas `PuxadaTSP` e `Puxada` aceitam **ZIP** e também **XML solto**. Só o formato `.zip` é aceito como
+  arquivo compactado (não use `.rar` nem `.7z`).
+- XML solto na `PuxadaTSP` sobe como TSP em **uma única onda** para todos os XMLs soltos daquele lote, com
+  o nome só de data e número (`TSP-AAAAMMDD-NN`, sem título). Se errou, apague a onda no WMS e refaça o
+  processo: o sistema gera um novo número.
+- Se o ZIP tiver **subpastas**, os XMLs de dentro delas também são lidos (em qualquer nível). ZIP dentro de
+  ZIP não é aberto.
 - Na TSP, o nome do ZIP vira parte do nome da onda (por exemplo, `XML'S SOROCABA.zip` gera uma onda
   com o nome `SOROCABA`). Se o ZIP não tiver um nome aproveitável, a onda sobe só com data e número.
 - O sistema **não adivinha** a pasta: tudo o que estiver em `PuxadaTSP` sobe como TSP e tudo o que

@@ -103,7 +103,7 @@ build.
 | Serviço (NSSM) | `Friozem-ImportacaoNotas` |
 | nssm.exe | `C:\Friozem\Gestao_Enderecos\tools\nssm.exe` (já embutido como default `-NssmPath`) |
 | Pasta de entrada (local) | `C:\Friozem\kitbrf` (share SMB `kitbrf`: `\\SRVAPPALC02\kitbrf`) |
-| Pastas de depósito | `C:\Friozem\kitbrf\Puxada` (puxada normal) e `C:\Friozem\kitbrf\PuxadaTSP` (puxada TSP, só ZIP); ver seção 8.4 |
+| Pastas de depósito | `C:\Friozem\kitbrf\Puxada` (puxada normal) e `C:\Friozem\kitbrf\PuxadaTSP` (puxada TSP, ZIP ou XML solto); ver seção 8.4 |
 | Config não-secreta | `C:\Friozem\importacao_notas\config\appsettings.Production.json` |
 | Segredos SMTP | `C:\Friozem\importacao_notas\config\email.settings.json` |
 | Segredos WMS | variáveis de ambiente de **MÁQUINA** `WMS__Usuario` / `WMS__Senha` |
@@ -441,7 +441,7 @@ A entrada (`C:\Friozem\kitbrf`) tem duas subpastas de depósito, criadas pelo se
 ```text
 kitbrf\
   Puxada\       <- ZIP (ou XML solto) de puxada normal  -> Tipo PUXADA, onda = transporte
-  PuxadaTSP\    <- somente ZIP de puxada TSP            -> Tipo TSP, uma onda por ZIP
+  PuxadaTSP\    <- ZIP (ou XML solto) de puxada TSP     -> Tipo TSP, uma onda por ZIP (XMLs soltos: uma onda TSP-AAAAMMDD-NN)
   (raiz)        <- XML/ZIP solto: aceito como PUXADA, Origem "raiz" (se AceitarRaiz=true)
   Processados\, Erro\, Estado\  <- como antes (não são monitoradas como entrada)
 ```
@@ -470,7 +470,9 @@ Como o ZIP é tratado:
 - O mesmo XML repetido em dois ZIPs do pacote é processado uma vez; o repetido aparece no relatório
   como "Arquivo ignorado (XML repetido)".
 - Os XMLs e o ZIP original ficam juntos em `Processados\pacote_*\`.
-- Na `PuxadaTSP`, arquivo que não seja ZIP (inclusive XML solto) vai para `ExtensaoInvalida`.
+- Na `PuxadaTSP`, XML solto é aceito: os XMLs soltos do pacote formam **uma onda** `TSP-AAAAMMDD-NN` (sem título,
+  sequencial do dia compartilhado com as ondas de ZIP), sem reaproveitamento por hash (reprocessar gera novo
+  sequencial). Arquivo que não seja ZIP nem XML vai para `ExtensaoInvalida`. Só `.zip` é suportado (sem `.rar`/`.7z`).
 
 Nome da onda da TSP: `TSP-AAAAMMDD-NN-NOME` (ex.: `TSP-20261111-01-SOROCABA`).
 

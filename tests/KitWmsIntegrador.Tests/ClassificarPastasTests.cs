@@ -53,7 +53,7 @@ public sealed class ClassificarPastasTests : IDisposable
     }
 
     [Fact]
-    public void XmlOuOutroArquivoNaPuxadaTsp_NaoEhAceito_ViraNaoXml()
+    public void XmlSoltoNaPuxadaTsp_EhAceito_OutroArquivoViraNaoXml()
     {
         File.WriteAllText(Path.Combine(_amb.Pasta("PuxadaTSP"), "solto.xml"), "<x/>");
         File.WriteAllText(Path.Combine(_amb.Pasta("PuxadaTSP"), "nota.pdf"), "x");
@@ -61,8 +61,9 @@ public sealed class ClassificarPastasTests : IDisposable
 
         var r = ClassificadorEntrada.ClassificarPastas(_amb.Pastas);
 
-        Assert.Equal("ok.zip", Nomes(r.Aceitos));
-        Assert.Equal("nota.pdf|solto.xml", Nomes(r.NaoXml));
+        Assert.Equal("ok.zip|solto.xml", Nomes(r.Aceitos));
+        Assert.All(r.Aceitos, e => Assert.Equal((TipoNota.Tsp, "PuxadaTSP"), (e.Tipo, e.Origem)));
+        Assert.Equal("nota.pdf", Nomes(r.NaoXml));
         Assert.All(r.NaoXml, e => Assert.Equal(TipoNota.Tsp, e.Tipo));
     }
 

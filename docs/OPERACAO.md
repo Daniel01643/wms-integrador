@@ -26,7 +26,7 @@ Cada pacote tem a sua **própria subpasta** em `Processados` e em `Erro`, nomead
 | Pasta | Conteúdo |
 |---|---|
 | `<Entrada>\Puxada` | ZIP (ou XML solto) de puxada normal: sobe como `PUXADA`. Ver seção 8. |
-| `<Entrada>\PuxadaTSP` | Somente ZIP de puxada TSP: sobe como `TSP`, uma onda por ZIP. Ver seção 8. |
+| `<Entrada>\PuxadaTSP` | ZIP (ou XML solto) de puxada TSP: sobe como `TSP`, uma onda por ZIP; XMLs soltos formam uma onda sem título. Ver seção 8. |
 | `<Entrada>` (raiz) | XML/ZIP solto, aceito como `PUXADA` com Origem `raiz` (se `Pastas:AceitarRaiz=true`). |
 | `<Entrada>\Estado\tsp\ondas.json` | Sequencial do dia e onda de cada ZIP TSP (reprocesso). Não apagar com o serviço rodando. |
 | `<Entrada>\Estado\tmp` | Extração temporária dos ZIPs; apagada ao fim de cada ZIP. |
@@ -332,7 +332,7 @@ Desenho: [`ARQUITETURA.md`](ARQUITETURA.md), §2.2.
 | Pasta | Aceita | Tipo | Onda no WMS (`nroagrupseparacao`) |
 |---|---|---|---|
 | `Puxada` | ZIP e XML solto | `PUXADA` | Número do transporte de cada nota (como sempre). |
-| `PuxadaTSP` | Só ZIP | `TSP` | Uma por ZIP: `TSP-AAAAMMDD-NN-NOME`. |
+| `PuxadaTSP` | ZIP e XML solto | `TSP` | Uma por ZIP: `TSP-AAAAMMDD-NN-NOME`. Os XMLs soltos do pacote formam uma onda `TSP-AAAAMMDD-NN` (sem título). |
 | raiz da entrada | XML/ZIP solto | `PUXADA` (Origem `raiz`) | Número do transporte. |
 
 ### 8.1. Configuração
@@ -361,7 +361,10 @@ repetir nem coincidir com `Processados`, `Erro` ou `Estado`; configuração inv�
 - O mesmo XML repetido em dois ZIPs é processado uma vez; o repetido aparece como "Arquivo ignorado
   (XML repetido)".
 - Os XMLs e o ZIP original ficam em `Processados\pacote_*\`.
-- XML solto (ou qualquer não-ZIP) na `PuxadaTSP` vai para `ExtensaoInvalida`: sem ZIP não há nome de onda.
+- XML solto na `PuxadaTSP` é aceito e sobe como `TSP`, com Origem `PuxadaTSP` e sem ZIP. Todos os XMLs soltos
+  do mesmo pacote formam **uma onda** `TSP-AAAAMMDD-NN` (sem título, sequencial do dia compartilhado com
+  as ondas de ZIP). Não há reaproveitamento por hash: se o colaborador errou, apaga a onda no WMS e refaz
+  o processo, e um novo sequencial é gerado. Arquivo que não seja ZIP nem XML vai para `ExtensaoInvalida`.
 
 ### 8.3. Nome da onda da TSP
 
@@ -371,7 +374,7 @@ Formato `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA` (`XML'S S
 - Data do relógio do servidor; `NN` é o sequencial do dia (reinicia a cada dia).
 - `NOME`: nome do ZIP sem extensão, sem as palavras `XML`/`XMLS` e apóstrofos, maiúsculas, sem acento,
   só letras, números e hífen, **cortado em 14 caracteres** (a parte fixa tem 16; o WMS aceita até 30).
-- Sem nome aproveitável: `TSP-AAAAMMDD-NN`.
+- Sem nome aproveitável (e também nos XMLs soltos): `TSP-AAAAMMDD-NN`.
 - **Reprocesso:** o mesmo ZIP (mesmo conteúdo, por hash) reaproveita a mesma onda, então reenviar não
   cria uma segunda onda. Um ZIP diferente com o mesmo nome ganha novo `NN`.
 - O DocCarga continua sendo um por nota. Nota de TSP sem transporte sobe normalmente.

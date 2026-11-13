@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-6996b24</span>
+    <span>Vers&atilde;o: 2026.11.13-b79d386</span>
   </div>
 </section>
   <header class="hd">
@@ -208,7 +208,7 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 </tr>
 <tr>
 <td>Pastas de depósito</td>
-<td><code>C:\Friozem\kitbrf\Puxada</code> (puxada normal) e <code>C:\Friozem\kitbrf\PuxadaTSP</code> (puxada TSP, só ZIP); ver seção 8.4</td>
+<td><code>C:\Friozem\kitbrf\Puxada</code> (puxada normal) e <code>C:\Friozem\kitbrf\PuxadaTSP</code> (puxada TSP, ZIP ou XML solto); ver seção 8.4</td>
 </tr>
 <tr>
 <td>Config não-secreta</td>
@@ -638,7 +638,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <p>A entrada (<code>C:\Friozem\kitbrf</code>) tem duas subpastas de depósito, criadas pelo serviço se faltarem (e criadas na instalação, ver <code>INSTALACAO-SERVIDOR.md</code>):</p>
 <pre><code>kitbrf\
   Puxada\       &lt;- ZIP (ou XML solto) de puxada normal  -&gt; Tipo PUXADA, onda = transporte
-  PuxadaTSP\    &lt;- somente ZIP de puxada TSP            -&gt; Tipo TSP, uma onda por ZIP
+  PuxadaTSP\    &lt;- ZIP (ou XML solto) de puxada TSP     -&gt; Tipo TSP, uma onda por ZIP (XMLs soltos: uma onda TSP-AAAAMMDD-NN)
   (raiz)        &lt;- XML/ZIP solto: aceito como PUXADA, Origem "raiz" (se AceitarRaiz=true)
   Processados\, Erro\, Estado\  &lt;- como antes (não são monitoradas como entrada)</code></pre>
 <p>Chaves (reinicie o serviço após alterar; override por variável de ambiente com <code>__</code>):</p>
@@ -683,7 +683,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li>Passou de <code>Zip:MaxArquivos</code> ou <code>Zip:MaxTamanhoMb</code>, está corrompido, protegido por senha ou sem nenhum XML: o ZIP vai para <code>Erro\pacote_*\ZipInvalido</code> com <code>.motivo.txt</code>.</li>
 <li>O mesmo XML repetido em dois ZIPs do pacote é processado uma vez; o repetido aparece no relatório como "Arquivo ignorado (XML repetido)".</li>
 <li>Os XMLs e o ZIP original ficam juntos em <code>Processados\pacote_*\</code>.</li>
-<li>Na <code>PuxadaTSP</code>, arquivo que não seja ZIP (inclusive XML solto) vai para <code>ExtensaoInvalida</code>.</li>
+<li>Na <code>PuxadaTSP</code>, XML solto é aceito: os XMLs soltos do pacote formam <strong>uma onda</strong> <code>TSP-AAAAMMDD-NN</code> (sem título, sequencial do dia compartilhado com as ondas de ZIP), sem reaproveitamento por hash (reprocessar gera novo sequencial). Arquivo que não seja ZIP nem XML vai para <code>ExtensaoInvalida</code>. Só <code>.zip</code> é suportado (sem <code>.rar</code>/<code>.7z</code>).</li>
 </ul>
 <p>Nome da onda da TSP: <code>TSP-AAAAMMDD-NN-NOME</code> (ex.: <code>TSP-20261111-01-SOROCABA</code>).</p>
 <ul>
