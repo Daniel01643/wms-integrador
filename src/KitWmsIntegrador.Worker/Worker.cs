@@ -86,6 +86,24 @@ public class Worker : BackgroundService
             return;
         }
 
+        var problemasPacote = _pacote.Validar();
+        if (problemasPacote.Count > 0)
+        {
+            foreach (var problema in problemasPacote)
+            {
+                _logger.LogError("Configuração inválida: {Problema}", problema);
+            }
+
+            _logger.LogError("Serviço não iniciado: corrija a seção 'Pacote' do appsettings.");
+            _lifetime.StopApplication();
+            return;
+        }
+
+        foreach (var aviso in _pacote.Avisos())
+        {
+            _logger.LogWarning("Configuração ajustada: {Aviso}", aviso);
+        }
+
         var problemasZip = _zip.Validar();
         if (problemasZip.Count > 0)
         {

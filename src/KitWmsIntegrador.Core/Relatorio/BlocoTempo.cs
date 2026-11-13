@@ -53,7 +53,7 @@ internal sealed record BlocoTempo(
         var etapas = new List<EtapaTempo>();
         if (m.EsperaJanelaMs is { } espera)
         {
-            etapas.Add(new("Espera da janela de coleta", FormatadorDuracao.Formatar(espera), "-"));
+            etapas.Add(new("Coleta (janela de silêncio)", FormatadorDuracao.Formatar(espera), "-"));
         }
 
         if (m.LeituraMs is { } leitura)

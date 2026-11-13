@@ -112,7 +112,8 @@ public sealed class AmbientePacote : IDisposable
 
     public OpcoesPasta Pastas { get; }
 
-    public OpcoesPacote Pacote { get; } = new();
+    // Os testes antigos dependem da janela FIXA (10 s); os da janela de silêncio escolhem "Silencio".
+    public OpcoesPacote Pacote { get; } = new() { ModoJanela = "Fixa" };
 
     public GravadorEmail Email { get; } = new();
 

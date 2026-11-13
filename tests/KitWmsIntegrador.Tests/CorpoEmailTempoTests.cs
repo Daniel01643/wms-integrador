@@ -22,7 +22,7 @@ public class CorpoEmailTempoTests
         Assert.Contains("Tempo de integração", html);
         Assert.Contains("Duração total", html);
         Assert.Contains("1 min 35 s", html);
-        Assert.Contains("Espera da janela de coleta", html);
+        Assert.Contains("Coleta (janela de silêncio)", html);
         Assert.Contains("Leitura do ZIP/XML", html);
         Assert.Contains("Integração no WMS", html);
         Assert.Contains("Por onda (Puxada TSP)", html);

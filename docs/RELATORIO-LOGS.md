@@ -100,7 +100,7 @@ Com 0 notas ou duração 0, as duas últimas linhas são omitidas (nunca "NaN" n
 
 | Etapa | Onde é medida | Duração | Por nota |
 |-------|---------------|---------|----------|
-| Espera da janela de coleta | `GerenciadorPacote`: abertura até a foto da pasta | sim | - |
+| Coleta (janela de silêncio) | `GerenciadorPacote`: abertura até a foto da pasta | sim | - |
 | Leitura do ZIP/XML | `ProcessadorLote`: fase de parse (abrir ZIP, ler XML) | sim | - |
 | Integração no WMS | `ProcessadorLote`: início da 1ª nota até o registro da última (tempo de parede) | sim | soma das chamadas I50/I10/I30/I60 (`Orquestrador`) ÷ notas |
 

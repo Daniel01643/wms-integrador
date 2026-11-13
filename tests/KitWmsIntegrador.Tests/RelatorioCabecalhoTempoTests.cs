@@ -104,7 +104,7 @@ public class RelatorioCabecalhoTempoTests
         Assert.Contains("1 min 35 s", html);
         Assert.Contains("Tempo médio por nota", html);
         Assert.Contains("Notas por segundo", html);
-        Assert.Contains("Espera da janela de coleta", html);
+        Assert.Contains("Coleta (janela de silêncio)", html);
         Assert.Contains("Leitura do ZIP/XML", html);
         Assert.Contains("Integração no WMS", html);
         Assert.Contains("4,2 s", html);

@@ -9,10 +9,15 @@ namespace KitWmsIntegrador.Core.Pacote;
 /// <param name="Prontos">Arquivos completos (estáveis e liberados), prontos para processar.</param>
 /// <param name="Instaveis">Arquivos que não ficaram prontos dentro do timeout (não bloqueiam o fechamento).</param>
 /// <param name="Aguardando">Arquivos ainda estabilizando.</param>
+/// <param name="UltimaAtividadeUtc">
+/// Maior instante entre "arquivo visto pela primeira vez" e "tamanho/data mudou" dos arquivos presentes
+/// (null se não há arquivos). Base da janela de silêncio.
+/// </param>
 public sealed record ResultadoDeteccao(
     IReadOnlyList<string> Prontos,
     IReadOnlyList<string> Instaveis,
-    IReadOnlyList<string> Aguardando);
+    IReadOnlyList<string> Aguardando,
+    DateTimeOffset? UltimaAtividadeUtc = null);
 
 /// <summary>
 /// Decide se um arquivo foi completamente gravado: mesmo tamanho e data em ao menos 2 ciclos,
@@ -25,6 +30,7 @@ public sealed class DetectorArquivoPronto
     {
         public DateTimeOffset PrimeiroVisto;
         public DateTimeOffset EstavelDesde;
+        public DateTimeOffset UltimaAtividade;
         public long Tamanho;
         public DateTime Mtime;
         public int Observacoes;
@@ -54,6 +60,7 @@ public sealed class DetectorArquivoPronto
         var instaveis = new List<string>();
         var aguardando = new List<string>();
         var presentes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        DateTimeOffset? ultimaAtividade = null;
 
         foreach (var caminho in caminhos)
         {
@@ -83,6 +90,7 @@ public sealed class DetectorArquivoPronto
                 {
                     PrimeiroVisto = agora,
                     EstavelDesde = agora,
+                    UltimaAtividade = agora,
                     Tamanho = tamanho,
                     Mtime = mtime,
                     Observacoes = 1,
@@ -97,7 +105,13 @@ public sealed class DetectorArquivoPronto
                     estado.Tamanho = tamanho;
                     estado.Mtime = mtime;
                     estado.EstavelDesde = agora;
+                    estado.UltimaAtividade = agora;
                 }
+            }
+
+            if (ultimaAtividade is null || estado.UltimaAtividade > ultimaAtividade)
+            {
+                ultimaAtividade = estado.UltimaAtividade;
             }
 
             var estavel = estado.Observacoes >= 2
@@ -129,7 +143,7 @@ public sealed class DetectorArquivoPronto
             _estados.Remove(chave);
         }
 
-        return new ResultadoDeteccao(prontos, instaveis, aguardando);
+        return new ResultadoDeteccao(prontos, instaveis, aguardando, ultimaAtividade);
     }
 
     private static bool PodeAbrirExclusivo(string caminho)

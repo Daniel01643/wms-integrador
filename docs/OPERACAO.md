@@ -84,9 +84,19 @@ O pacote é uma **foto** da pasta de entrada:
    (`pacote_<yyyyMMdd_HHmmss>` no horário local), usado tanto para a subpasta em `Processados`/`Erro`
    (cada arquivo é movido para lá durante o processamento) quanto para o nome do relatório — garantindo
    que ambos tenham exatamente o mesmo carimbo.
-2. **Coletando**: espera a janela de coleta **fixa** `JanelaColetaSegundos` (padrão 10 s), contada da
-   primeira detecção. Chegada de novos arquivos NÃO reinicia nem adia a janela.
-3. **Foto e Processando**: ao fim da janela, tira-se a foto: os XMLs **prontos** naquele instante formam
+2. **Coletando** (janela de silêncio, padrão desde a release 2026.11.13-1): o pacote fecha a coleta quando
+   passam `Pacote:SilencioSegundos` (padrão 15 s) **sem chegar arquivo novo nem mudar o tamanho/data de um
+   existente**, ou quando a coleta atinge o teto `Pacote:JanelaMaximaSegundos` (padrão 180 s) contado da
+   abertura (o pacote nunca passa disso). Cada arquivo novo ou alterado reinicia a contagem do silêncio,
+   então lote pequeno fecha em ~15 s e lote grande, copiado aos poucos, não é dividido em vários pacotes e
+   relatórios. O silêncio efetivo nunca é menor que `EstabilizacaoSegundos` (aviso no log da partida se a
+   configuração pedir menos). Vale para a raiz, `Puxada` e `PuxadaTSP`. O log registra "Pacote aberto" com
+   a janela e "Fim da coleta por ..." com o motivo (silêncio, teto ou janela fixa) e a duração.
+   **Voltar ao comportamento antigo sem release**: `Pacote:ModoJanela` = `Fixa` em
+   `config\appsettings.Production.json` (reiniciar o serviço): a coleta fecha após `JanelaColetaSegundos`
+   (10 s) fixos da primeira detecção e a chegada de novos arquivos não adia a janela.
+   No relatório a etapa aparece como "Coleta (janela de silêncio)" (telemetria `EsperaJanelaMs`).
+3. **Foto e Processando**: ao fim da coleta, tira-se a foto: os XMLs **prontos** naquele instante formam
    o pacote (lista congelada). Um arquivo só é "pronto" quando tamanho e data ficam iguais por
    `EstabilizacaoSegundos` e o arquivo abre com acesso exclusivo. Registra-se a **primeira e a última
    gravação** (`LastWriteTime`) dos arquivos do pacote (log, corpo do e-mail e cabeçalho do relatório).
@@ -107,7 +117,7 @@ A ordem de chegada é criação do arquivo e depois nome.
 e não trava o pacote. Depois de `TimeoutArquivoSegundos` (padrão 300 s) vira "instável": um aviso único
 no log, e ele **sozinho nunca abre pacote**. Se a foto não tiver nenhum arquivo pronto (só arquivos ainda
 em gravação), nenhum relatório vazio é gerado; o serviço volta a Ocioso e aplica **backoff exponencial**
-entre fotos (`JanelaColetaSegundos` × 2, ×4, ... até `Pacote:BackoffMaximoSegundos`, padrão 120 s), sem
+entre fotos (silêncio efetivo × 2, ×4 no modo Silencio, ou `JanelaColetaSegundos` × 2, ×4 no modo Fixa, até `Pacote:BackoffMaximoSegundos`, padrão 120 s), sem
 consumir CPU nem entrar em loop de foto. Quando o arquivo estabiliza, entra na foto seguinte. O backoff
 vale só para arquivos ainda instáveis: um arquivo **pronto** novo abre pacote sem esperar o backoff.
 
@@ -215,7 +225,8 @@ SChannel do sistema (validar no servidor).
 {
   "Pastas": { "Entrada": "C:\\Envia xml", "Processados": "Processados", "Erro": "Erro", "Estado": "Estado", "OrganizacaoErro": "PorCategoria" },
   "Pacote": {
-    "IntervaloVarreduraSegundos": 5, "EstabilizacaoSegundos": 3, "JanelaColetaSegundos": 10,
+    "IntervaloVarreduraSegundos": 5, "EstabilizacaoSegundos": 3,
+    "ModoJanela": "Silencio", "SilencioSegundos": 15, "JanelaMaximaSegundos": 180, "JanelaColetaSegundos": 10,
     "TimeoutArquivoSegundos": 300, "BackoffMaximoSegundos": 120, "MaxTransportesConcorrentes": 1
   },
   "Limpeza": { "Habilitada": true, "DiasRetencao": 60 }

@@ -12,7 +12,7 @@ public enum EstadoPacote
     /// <summary>Sem pacote aberto (pode haver arquivos aguardando a próxima foto).</summary>
     Ocioso,
 
-    /// <summary>Pacote aberto, aguardando a janela de coleta fixa terminar.</summary>
+    /// <summary>Pacote aberto, aguardando a janela de coleta (silêncio ou fixa) terminar.</summary>
     Coletando,
 
     /// <summary>Processando a foto (conjunto fixo de arquivos) do pacote.</summary>
@@ -30,8 +30,9 @@ public sealed record InfoPacote(DateTimeOffset InicioUtc, int Notas, PeriodoCole
 
 /// <summary>
 /// Máquina de estados do pacote (Ocioso → Coletando → Processando → Fechando → Ocioso).
-/// Ao detectar arquivos, aguarda a janela de coleta FIXA e tira uma "foto" da pasta: os arquivos
-/// prontos naquele instante formam o pacote (processado por transporte, em sequência). Arquivos que
+/// Ao detectar arquivos, aguarda a janela de coleta (por padrão de SILÊNCIO: fecha quando não chega
+/// nem muda arquivo por <see cref="OpcoesPacote.SilencioSegundos"/>, com teto; modo Fixa = janela fixa)
+/// e tira uma "foto" da pasta: os arquivos prontos naquele instante formam o pacote (processado por transporte, em sequência). Arquivos que
 /// chegam depois formam o PRÓXIMO pacote. Ao terminar a foto, gera o relatório e envia um e-mail só
 /// daquele pacote; então volta a Ocioso. <see cref="CicloAsync"/> executa um ciclo determinístico
 /// (sem espera interna), para que o Worker controle o intervalo e os testes controlem o relógio.
@@ -49,6 +50,7 @@ public sealed class GerenciadorPacote
 
     private readonly List<RegistroDiario> _registros = new();
     private DateTimeOffset? _inicio;
+    private DateTimeOffset _ultimaAtividade;
     private string? _idPacote;
     private PeriodoColeta? _periodo;
     private DateTimeOffset _proximaFoto = DateTimeOffset.MinValue;
@@ -137,21 +139,61 @@ public sealed class GerenciadorPacote
             }
 
             _inicio = agora;
+            _ultimaAtividade = agora;
             _idPacote = IdDe(agora);
             _periodo = null;
             Estado = EstadoPacote.Coletando;
-            _logger.LogInformation(
-                "Pacote aberto ({Id}): {Arquivos} arquivo(s) na entrada; janela de coleta de {Janela}s.",
-                _idPacote, candidatos, _opcoes.JanelaColetaSegundos);
+            if (_opcoes.UsaSilencio)
+            {
+                _logger.LogInformation(
+                    "Pacote aberto ({Id}): {Arquivos} arquivo(s) na entrada; janela de silêncio de {Silencio}s (teto de {Teto}s).",
+                    _idPacote, candidatos, _opcoes.SilencioEfetivoSegundos, _opcoes.JanelaMaximaEfetivaSegundos);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Pacote aberto ({Id}): {Arquivos} arquivo(s) na entrada; janela de coleta fixa de {Janela}s.",
+                    _idPacote, candidatos, _opcoes.JanelaColetaSegundos);
+            }
         }
 
         if (Estado == EstadoPacote.Coletando)
         {
-            // Janela FIXA: não é adiada por novos arquivos (eles só entram se já estiverem prontos).
-            if ((agora - _inicio!.Value).TotalSeconds < _opcoes.JanelaColetaSegundos)
+            string motivo;
+            if (_opcoes.UsaSilencio)
             {
-                return;
+                // Janela de SILÊNCIO: qualquer arquivo novo ou alterado adia o fechamento, até o teto.
+                if (deteccao.UltimaAtividadeUtc is { } atividade && atividade > _ultimaAtividade)
+                {
+                    _ultimaAtividade = atividade;
+                }
+
+                if ((agora - _inicio!.Value).TotalSeconds >= _opcoes.JanelaMaximaEfetivaSegundos)
+                {
+                    motivo = "teto da janela (" + _opcoes.JanelaMaximaEfetivaSegundos + "s)";
+                }
+                else if ((agora - _ultimaAtividade).TotalSeconds >= _opcoes.SilencioEfetivoSegundos)
+                {
+                    motivo = "silêncio (" + _opcoes.SilencioEfetivoSegundos + "s sem novos arquivos)";
+                }
+                else
+                {
+                    return;
+                }
             }
+            else
+            {
+                // Janela FIXA: não é adiada por novos arquivos (eles só entram se já estiverem prontos).
+                if ((agora - _inicio!.Value).TotalSeconds < _opcoes.JanelaColetaSegundos)
+                {
+                    return;
+                }
+
+                motivo = "janela fixa (" + _opcoes.JanelaColetaSegundos + "s)";
+            }
+
+            _logger.LogInformation(
+                "Fim da coleta por {Motivo} após {Duracao:0}s.", motivo, (agora - _inicio!.Value).TotalSeconds);
 
             // FOTO: lista congelada dos arquivos prontos neste instante.
             var foto = deteccao.Prontos.Where(a => !pendentes.Contains(a)).ToList();
@@ -219,8 +261,9 @@ public sealed class GerenciadorPacote
         }
 
         _fotosVazias++;
+        var baseSegundos = _opcoes.UsaSilencio ? _opcoes.SilencioEfetivoSegundos : _opcoes.JanelaColetaSegundos;
         var espera = Math.Min(
-            Math.Max(1, _opcoes.JanelaColetaSegundos) * Math.Pow(2, Math.Min(_fotosVazias, 20)),
+            Math.Max(1, baseSegundos) * Math.Pow(2, Math.Min(_fotosVazias, 20)),
             Math.Max(1, _opcoes.BackoffMaximoSegundos));
         _proximaFoto = agora.AddSeconds(espera);
         _inicio = null;
@@ -319,6 +362,7 @@ public sealed class GerenciadorPacote
         if (restantes.Count > 0)
         {
             _inicio = agora;
+            _ultimaAtividade = agora;
             Estado = EstadoPacote.Coletando;
         }
         else

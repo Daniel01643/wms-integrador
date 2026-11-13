@@ -108,4 +108,35 @@ public sealed class DetectorArquivoProntoTests : IDisposable
         Arquivo();
         Assert.Empty(detector.Avaliar(new[] { caminho }).Prontos);
     }
+
+    [Fact]
+    public void UltimaAtividade_SemArquivos_EhNula()
+    {
+        Assert.Null(Criar().Avaliar(Array.Empty<string>()).UltimaAtividadeUtc);
+    }
+
+    [Fact]
+    public void UltimaAtividade_PrimeiraVistaDeArquivoNovoEMudancaDeTamanho()
+    {
+        var detector = Criar();
+        var a = Arquivo();
+        var t0 = _clock.UtcNow;
+        Assert.Equal(t0, detector.Avaliar(new[] { a }).UltimaAtividadeUtc);
+
+        // Sem mudança: a atividade não anda.
+        _clock.Avancar(TimeSpan.FromSeconds(10));
+        Assert.Equal(t0, detector.Avaliar(new[] { a }).UltimaAtividadeUtc);
+
+        // Arquivo novo: vira a última atividade.
+        var b = Path.Combine(_pasta, "b.xml");
+        File.WriteAllText(b, "<b/>");
+        var t1 = _clock.UtcNow;
+        Assert.Equal(t1, detector.Avaliar(new[] { a, b }).UltimaAtividadeUtc);
+
+        // Arquivo existente crescendo: também conta.
+        _clock.Avancar(TimeSpan.FromSeconds(7));
+        File.AppendAllText(a, "<c/>");
+        var t2 = _clock.UtcNow;
+        Assert.Equal(t2, detector.Avaliar(new[] { a, b }).UltimaAtividadeUtc);
+    }
 }

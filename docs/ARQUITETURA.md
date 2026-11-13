@@ -102,14 +102,16 @@ Máquina de estados do pacote:
 stateDiagram-v2
     [*] --> Ocioso
     Ocioso --> Coletando: >=1 XML pronto/aguardando (e agora >= proxima foto)
-    Coletando --> Processando: fim da JanelaColetaSegundos fixa (foto com >=1 pronto)
+    Coletando --> Processando: silencio (SilencioSegundos sem atividade) ou teto (JanelaMaximaSegundos); modo Fixa: JanelaColetaSegundos (foto com >=1 pronto)
     Coletando --> Ocioso: foto sem pronto (backoff exponencial ate BackoffMaximoSegundos)
     Processando --> Fechando: foto processada (arquivos novos ficam para o proximo pacote)
     Fechando --> Ocioso: relatorio gravado (diario apagado)
     Fechando --> Fechando: falha ao gravar relatorio (tenta no proximo ciclo)
 ```
 
-Foto do pacote: ao fim da janela fixa, o conjunto de XMLs prontos é congelado (com a primeira/última gravação, `PeriodoColeta`) e processado por transporte, em sequência; ao terminar, o mesmo ciclo fecha o pacote (relatório + 1 e-mail). Arquivos que chegam durante o processamento formam o próximo pacote. A quietude foi removida (o fechamento é determinístico). Arquivo que não estabiliza nunca abre pacote sozinho: foto vazia volta a Ocioso com backoff.
+Janela de coleta por silêncio (`Pacote:ModoJanela=Silencio`, padrão): o `DetectorArquivoPronto` expõe `UltimaAtividadeUtc` (maior instante entre "arquivo visto pela primeira vez" e "tamanho/data mudou"); o `GerenciadorPacote` guarda `_ultimaAtividade` (inicia na abertura e na retomada) e encerra a coleta quando `agora - _ultimaAtividade >= SilencioSegundos` (efetivo: nunca menor que `EstabilizacaoSegundos`) ou `agora - abertura >= JanelaMaximaSegundos`. Arquivo ainda instável no teto fica para o próximo pacote. Motivo: a janela fixa de 10 s dividia lotes grandes em 2 a 4 pacotes/relatórios. Para voltar ao comportamento antigo sem release: `ModoJanela=Fixa` (usa `JanelaColetaSegundos`). O backoff de foto vazia usa o silêncio efetivo como base no modo Silencio. O rótulo da etapa no relatório é "Coleta (janela de silêncio)".
+
+Foto do pacote: ao fim da coleta (silêncio, teto ou janela fixa), o conjunto de XMLs prontos é congelado (com a primeira/última gravação, `PeriodoColeta`) e processado por transporte, em sequência; ao terminar, o mesmo ciclo fecha o pacote (relatório + 1 e-mail). Arquivos que chegam durante o processamento formam o próximo pacote. A quietude foi removida (o fechamento é determinístico). Arquivo que não estabiliza nunca abre pacote sozinho: foto vazia volta a Ocioso com backoff.
 
 `ConsolidadorRegistros` mantém um registro por arquivo (primeiro integrado; senão o primeiro). Na retomada, arquivo com registro no diário ainda na entrada é só movido (`ProcessadorLote.ReconciliarMove`, sem WMS); se foi regravado depois do registro, o registro antigo é descartado e o arquivo é reprocessado como novo; `RepetirMovesPendentes` repete moves falhos a cada ciclo Ocioso.
  e idempotência: cada resultado é gravado no diário **antes** de mover o arquivo e

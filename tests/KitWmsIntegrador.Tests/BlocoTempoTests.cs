@@ -39,7 +39,7 @@ public class BlocoTempoTests
         Assert.Equal(14_000, m.ChamadasWmsMs);
 
         var bloco = BlocoTempo.Montar(resumo, m)!;
-        Assert.Contains(bloco.Etapas, e => e.Etapa == "Espera da janela de coleta" && e.Duracao == "30 s");
+        Assert.Contains(bloco.Etapas, e => e.Etapa == "Coleta (janela de silêncio)" && e.Duracao == "30 s");
         Assert.Contains(bloco.Etapas, e => e.Etapa == "Leitura do ZIP/XML" && e.Duracao == "4,2 s");
         Assert.Contains(bloco.Etapas, e => e.Etapa == "Integração no WMS" && e.Duracao == "22 s" && e.PorNota == "7,0 s");
         Assert.Contains(bloco.Resumo, l => l.Rotulo == "Duração total" && l.Valor == "1 min 40 s");

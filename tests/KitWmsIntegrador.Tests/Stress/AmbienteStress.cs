@@ -60,6 +60,7 @@ public sealed class AmbienteStress : IDisposable
         Pastas = new OpcoesPasta { Entrada = Entrada };
         Pacote = new OpcoesPacote
         {
+            ModoJanela = "Fixa",
             JanelaColetaSegundos = 1,
             EstabilizacaoSegundos = 0,
             MaxTransportesConcorrentes = paralelismo,
