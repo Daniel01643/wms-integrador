@@ -325,3 +325,14 @@ Pontos ainda **em aberto** após a Etapa 7:
   são estimativas a validar em operação.
 ```
 
+### 2.3 Retorno de separação (I51) como gatilho da I60 (13/11/2026)
+
+```
+I50 aceita -> Registrador (estado + cópia do XML) -> AguardandoSeparacao
+ConsultaI51Worker (a cada N min) -> ClienteI51 TODOS/UNICO -> bruto em disco -> CasadorDocumentoNota -> Separada
+ProcessadorI60Separacao -> I60 INE (quantidades separadas) -> I60Enviada -> Associada
+                         -> ENC: reenvio IMP + erro registrado -> I60Enviada (motivo DocCargaEncerrado)
+ServicoRelatorioDiarioI60 (12:00) -> HTML + PDF + e-mail
+```
+
+Peças em `Core\Separacao`; uma única instância de `ClienteWmsHttp` (`IClienteWms` e `IClienteWmsBruto`) atende Orquestrador, I51 e devolução. Com `I51:Habilitada=false` o fluxo anterior permanece. A tela I40 segue como última alternativa, atrás de `Devolucao:Habilitada`.

@@ -421,3 +421,11 @@ resultado por chave.
   (`docs/INSTALACAO-SERVIDOR.md`, seção 3.12).
 - **Ligar/desligar:** `Devolucao__Habilitada=true|false` e reiniciar o serviço (a devolução não consta nos manuais oficiais).
 - **Verificar:** `GET http://<servidor>:<porta>/api/saude` deve responder `{"status":"ok"}`.
+
+## 10. Retorno de separação (I51) e relatório diário da I60
+
+- Chaves (todas `false` por padrão): `I51__Habilitada`, `I60__Habilitada`. Demais chaves em `appsettings.json`, seções `I51`, `I60` (padrões e `TpAcaoReenvioImp`) e `RelatorioI60`.
+- Estado em `Estado\i51\` (`notas`, `xml`, `orfaos`, `brutos\pendentes|processados|falhos`, `comandos`, `consulta.json`). Retenção: `I51__DiasRetencaoEstado` (60).
+- Comandos: `--consultar-i51 --tipo UNICO --cnpj <cnpj> --numero <n>`; `--reenfileirar-i60 --chave <c>|--motivo <MotivoI60>` (o Worker em execução aplica no ciclo seguinte); `--relatorio-i60 [--enviar]`.
+- Relatório diário às 12:00 em `Relatorio:PastaSaida\i60`; destinatários em `destinatarios-i60.txt` (telemetria), com fallback na lista do resumo semanal.
+- Logs não trazem token, senha nem corpo de nota. Roteiro de teste: `ROTEIRO-TESTE-I51-I60.md`.

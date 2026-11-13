@@ -1,7 +1,7 @@
 # Escopo — Retorno de separação (I51) como gatilho da I60
 
-Status: **escopo fechado, implementação NÃO iniciada** (aguardando o fornecedor resolver a
-proprietária BRF no homolog para testar). Data: 12/11/2026.
+Status: **implementado e testado com WMS fake; teste no homolog pendente** (proprietária BRF no fornecedor).
+Data: 12/11/2026. Roteiro: docs\ROTEIRO-TESTE-I51-I60.md.
 
 ## Problema
 
@@ -89,3 +89,15 @@ I50 aceita → AguardandoSeparacao → (I51 retornou) Separada → I60 enviada �
 | 4 | Teste no homolog (após proprietária resolvida) | aprox. 0,5 | aprox. 1,5 |
 
 Horas humanas são estimativa; o registro usa somente as horas informadas pelo usuário.
+
+## Implementado (13/11/2026)
+
+- Chaves `I51:Habilitada` e `I60:Habilitada` **desligadas** por padrão; com a I51 desligada nada novo executa nem toca disco e a I60 segue saindo junto da I50.
+- Registro na I50 aceita (inclusive pendente e "já existe"), cópia do XML e estado por nota em `Estado\i51\notas` (AguardandoSeparacao, Atrasada, Separada, I60Enviada, Associada, Rejeitada).
+- `BackgroundService` consulta a I51 (TODOS, e UNICO para atrasadas), grava a resposta bruta antes de processar; documentos sem nota viram órfãos; filtro de proprietário pelo `CnpjProprietario` do retorno.
+- I60 pós-separação: mesma NF-e, quantidades ajustadas (original × separada no estado), `INE` (nunca `IMB`); ENC detectado por texto configurável na resposta, reenvio como `IMP` com `TpAcaoReenvioImp` (padrão `UPD`, configurável) e erro registrado; "TpAcao precisa ser UPD" gera 1 reenvio; comunicação nunca rejeita (backoff); no máximo 4 chamadas por nota por ciclo.
+- Ondas TSP no mesmo fluxo (`Tipo=TSP` e `Onda`).
+- Relatório diário às 12:00 (HTML, PDF, e-mail) com visão por pacote (decisão: seção no diário) e candidatas à I40.
+- CLIs: `--consultar-i51` (só UNICO), `--reenfileirar-i60` (grava pedido que o Worker aplica), `--relatorio-i60 [--enviar]`.
+- Cliente WMS em instância única; I40 intacta e coberta por testes de regressão.
+- Pendente no homolog: texto real do ENC, TpAcao do IMP, sinal de "associada", campo do UNICO, mensagem do `sucesso=N`.
