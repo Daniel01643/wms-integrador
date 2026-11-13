@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-ee48d60</span>
+    <span>Vers&atilde;o: 2026.11.13-e3a398f</span>
   </div>
 </section>
   <header class="hd">
@@ -123,11 +123,13 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <li><a href="#8-diahora-do-resumo-janela-de-coleta-e-limpeza">Dia/hora do resumo, janela de coleta e limpeza</a></li>
 </ol>
 <ul>
+<li>Janela de silêncio da coleta e retenção de 30 dias (logo após a tabela da seção 8)</li>
 <li><a href="#81-arquivos-não-xml-extensaoinvalida-e-a-flag-pastastratarnaoxmlcomoerro">8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></a></li>
-<li><a href="#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo">8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</a></li>
+<li><a href="#82-ligardesligar-o-envio-da-placa-do-veículo-i50enviarplacaveiculo">8.2. Ligar/desligar o envio da placa do veículo (<code>I50:EnviarPlacaVeiculo</code>)</a> (Puxada normal com placa, TSP sem placa)</li>
+<li>8.3. I60 (associação automática da nota de venda)</li>
 <li><a href="#84-puxada-e-puxada-tsp-pastas-zip-e-nome-da-onda">8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda</a></li>
-<li><a href="#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário">8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</a></li>
-<li><a href="#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível">8.6. Última alternativa: tela de devolução pela I40 (seção removível)</a></li>
+<li><a href="#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário">8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</a> (inclui pré-requisitos do WMS, alerta imediato e calibração do ENC)</li>
+<li><a href="#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível">8.6. Última alternativa: tela de devolução pela I40 (seção removível)</a> (inclui o login simples)</li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -459,6 +461,18 @@ C:\Friozem\importacao_notas\logs\worker.err.log   (erros)</code></pre>
 <td>O serviço subiu bem e está observando a pasta.</td>
 </tr>
 <tr>
+<td><code>Pacote aberto (&lt;id&gt;): N arquivo(s) na entrada; janela de silêncio de 15s (teto de 180s).</code></td>
+<td>Um pacote abriu. No modo <code>Fixa</code> a linha diz "janela de coleta fixa de 10s".</td>
+</tr>
+<tr>
+<td><code>Fim da coleta por &lt;motivo&gt; após Ns.</code></td>
+<td>A coleta fechou por silêncio, por teto ou por janela fixa, e quanto durou (seção 8).</td>
+</tr>
+<tr>
+<td><code>I60 precisa de atencao: N nota(s) neste ciclo (e-mail: ...).</code> e <code>I60 atencao: nota ... serie ... situacao ... motivo ...</code></td>
+<td>Alerta imediato da I60 (Warning). O texto do WMS está em <code>Estado\i51\alertas</code> (seção 8.5).</td>
+</tr>
+<tr>
 <td><code>Relatório do pacote salvo em &lt;Html&gt; e &lt;Pdf&gt;.</code></td>
 <td>Um pacote fechou e gerou relatório.</td>
 </tr>
@@ -565,7 +579,22 @@ gestor@friozem.com.br</code></pre>
 <td><code>"12:00"</code></td>
 </tr>
 <tr>
-<td>Janela de coleta do pacote</td>
+<td>Modo da janela de coleta</td>
+<td><code>Pacote:ModoJanela</code></td>
+<td><code>Silencio</code> (ou <code>Fixa</code>)</td>
+</tr>
+<tr>
+<td>Silêncio para fechar a coleta (modo <code>Silencio</code>)</td>
+<td><code>Pacote:SilencioSegundos</code></td>
+<td><code>15</code></td>
+</tr>
+<tr>
+<td>Teto da coleta desde a abertura (modo <code>Silencio</code>)</td>
+<td><code>Pacote:JanelaMaximaSegundos</code></td>
+<td><code>180</code></td>
+</tr>
+<tr>
+<td>Janela fixa de coleta (só no modo <code>Fixa</code>)</td>
 <td><code>Pacote:JanelaColetaSegundos</code></td>
 <td><code>10</code></td>
 </tr>
@@ -577,11 +606,30 @@ gestor@friozem.com.br</code></pre>
 <tr>
 <td>Dias de retenção (limpeza)</td>
 <td><code>Limpeza:DiasRetencao</code></td>
-<td><code>60</code></td>
+<td><code>30</code> (era 60 até 13/11/2026)</td>
 </tr>
 </tbody></table>
 <p>Outras chaves de <code>Pacote</code> úteis: <code>IntervaloVarreduraSegundos</code> (5), <code>EstabilizacaoSegundos</code> (3), <code>TimeoutArquivoSegundos</code> (300), <code>BackoffMaximoSegundos</code> (120), <code>MaxTransportesConcorrentes</code> (1).</p>
-<p>A limpeza roda na partida e a cada 24 h, atua <strong>apenas</strong> nas subpastas de <code>Processados</code> e <code>Erro</code>, e <strong>nunca</strong> toca a entrada, o <code>Estado</code>, a telemetria ou os <code>relatorios</code>. Como a subpasta <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> (arquivos não-XML; ver seção 8.1) fica dentro de <code>Erro</code>, ela <strong>já é coberta</strong> por essa limpeza de 60 dias — a pasta inteira do pacote é removida no vencimento, sem configuração extra.</p>
+<h3>Janela de coleta: silêncio (padrão) ou fixa</h3>
+<p>Desde a release <strong>2026.11.13-1</strong> a coleta do pacote usa a <strong>janela de silêncio</strong> (<code>Pacote:ModoJanela</code> = <code>Silencio</code>). Motivo: lotes grandes copiados aos poucos (de 06 a 13/11) eram divididos em 2 a 4 pacotes e relatórios pela janela fixa de 10 s.</p>
+<ul>
+<li><strong>Como fecha:</strong> a coleta termina quando passam <code>SilencioSegundos</code> (15 s) sem chegar arquivo novo nem mudar o tamanho/data de um arquivo existente, ou quando a coleta chega ao teto <code>JanelaMaximaSegundos</code> (180 s) contado da abertura do pacote. Cada arquivo novo ou alterado reinicia a contagem do silêncio. Lote pequeno fecha em cerca de 15 s; lote grande não é cortado; nada passa de 3 minutos.</li>
+<li><strong>Silêncio efetivo:</strong> nunca é menor que <code>EstabilizacaoSegundos</code> (3 s). Se a config pedir menos, o serviço registra um aviso na partida e usa o mínimo.</li>
+<li><strong>No teto:</strong> um arquivo ainda instável (em cópia) fica para o próximo pacote, como antes.</li>
+<li><strong>Vale para</strong> a raiz, <code>Puxada</code> e <code>PuxadaTSP</code> (XML solto da TSP também cai num pacote só).</li>
+<li><strong>Voltar ao comportamento antigo sem nova release:</strong> em <code>config\appsettings.Production.json</code> ponha <code>"Pacote": { "ModoJanela": "Fixa" }</code> e reinicie o serviço. No modo <code>Fixa</code> vale só <code>JanelaColetaSegundos</code> (10 s fixos desde a primeira detecção) e a chegada de arquivos não adia a janela.</li>
+<li><strong>No log:</strong> <code>Pacote aberto</code> informa a janela e <code>Fim da coleta por ...</code> informa o motivo (silêncio, teto ou janela fixa) e a duração. No relatório a etapa aparece como "Coleta (janela de silêncio)" (telemetria <code>EsperaJanelaMs</code>, ver 10.1).</li>
+</ul>
+<p>Override por variável de ambiente: <code>Pacote__ModoJanela</code>, <code>Pacote__SilencioSegundos</code>, <code>Pacote__JanelaMaximaSegundos</code>.</p>
+<h3>Limpeza e retenção de 30 dias</h3>
+<p>A limpeza roda na partida e a cada 24 h, atua <strong>apenas</strong> nas subpastas de <code>Processados</code> e <code>Erro</code>, e <strong>nunca</strong> toca a entrada, o <code>Estado</code>, a telemetria ou os <code>relatorios</code>. Como a subpasta <code>Erro\&lt;pacote&gt;\ExtensaoInvalida</code> (arquivos não-XML; ver seção 8.1) fica dentro de <code>Erro</code>, ela <strong>já é coberta</strong> por essa limpeza de 30 dias — a pasta inteira do pacote é removida no vencimento, sem configuração extra.</p>
+<p><strong>Retenção ajustada de 60 para 30 dias em 13/11/2026</strong> (<code>Limpeza:DiasRetencao=30</code> e <code>I51:DiasRetencaoEstado=30</code>; a faixa válida continua de 7 a 3650). Impactos a conhecer:</p>
+<ul>
+<li><strong>Tela de devolução (I40):</strong> só acha notas dos <strong>últimos 30 dias</strong>; mais antigas retornam "Nota não encontrada na retenção de 30 dias".</li>
+<li><strong>Estado da I51</strong> (<code>Estado\i51</code>): XML copiado, brutos e notas <strong>terminais</strong> (associada/rejeitada) também expiram em 30 dias; notas não terminais nunca são apagadas.</li>
+<li>Os logs de <code>Estado\i51\alertas</code> seguem a mesma retenção (<code>I51:DiasRetencaoEstado</code>).</li>
+<li><code>RegistroOndasTsp</code> (hash das ondas TSP, 90 dias) <strong>não mudou</strong>.</li>
+</ul>
 <h3>8.1. Arquivos não-XML (ExtensaoInvalida) e a flag <code>Pastas:TratarNaoXmlComoErro</code></h3>
 <p>Quando um arquivo depositado na entrada <strong>não</strong> é <code>.xml</code>, ele não é uma nota: o sistema <strong>não</strong> chama o WMS para ele. A separação acontece <strong>na detecção</strong> (ao listar os candidatos do pacote), em três grupos:</p>
 <ul>
@@ -595,7 +643,7 @@ gestor@friozem.com.br</code></pre>
 <li><strong><code>StatusLinhaRelatorio.ArquivoIgnorado</code></strong>: novo status, com <strong>cor neutra/cinza</strong> (<code>#6B7280</code>, fora da paleta da marca) e rótulo <strong>"Arquivo ignorado (não é XML)"</strong>. No resumo do relatório e do e-mail há um contador próprio <strong>"Arquivos ignorados"</strong>. Esse status é um <strong>aviso</strong>, não uma falha de WMS: não conta como nota real (não infla <code>Total</code> nem <code>Não integradas</code>).</li>
 </ul>
 <p><strong>Regra de e-mail do pacote 100% não-XML</strong>: um pacote que só tem arquivos ignorados (nenhuma nota real, XML válido ou inválido-de-conteúdo) <strong>gera o relatório</strong> HTML + PDF normalmente, mas **não envia e-mail** (o log registra que o pacote não tinha notas, apenas arquivos ignorados). Um pacote <strong>misto</strong> (ao menos uma nota real) segue a política de e-mail normal, e os arquivos ignorados aparecem no relatório e no corpo do e-mail.</p>
-<p><strong>Limpeza forçada sob demanda</strong> — <code>limpar-extensao-invalida.ps1</code>: para apagar as pastas <code>ExtensaoInvalida</code> <strong>sem esperar</strong> o ciclo de 60 dias, use esse script a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code> (ele é replicado para lá pelo <code>instalar.ps1</code>):</p>
+<p><strong>Limpeza forçada sob demanda</strong> — <code>limpar-extensao-invalida.ps1</code>: para apagar as pastas <code>ExtensaoInvalida</code> <strong>sem esperar</strong> o ciclo de 30 dias, use esse script a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code> (ele é replicado para lá pelo <code>instalar.ps1</code>):</p>
 <pre><code>cd C:\Friozem\importacao_notas\tools\deploy
 powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1 -WhatIf
 powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></pre>
@@ -609,27 +657,28 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </tr></thead>
 <tbody>
 <tr>
-<td><code>true</code></td>
+<td><code>true</code> (valor da release 2026.11.13-1)</td>
 <td>Envia a placa exatamente como está no XML (<code>transp/veicTransp/placa</code>).</td>
 </tr>
 <tr>
-<td><code>false</code> (<strong>configurado desde 13/11/2026</strong>)</td>
+<td><code>false</code></td>
 <td>Envia a placa <strong>em branco</strong> (<code>placaVeiculo = ""</code>).</td>
 </tr>
 </tbody></table>
 <p>A placa é enviada <strong>como está</strong> no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras transformações além do básico.</p>
-<p><strong>Puxada TSP (decisão de 13/11/2026):</strong> a TSP <strong>sempre</strong> vai ao WMS <strong>sem placa</strong>. Notas da pasta <code>PuxadaTSP</code> (ZIP ou XML solto) usam a chave própria <strong><code>I50:EnviarPlacaVeiculoTsp</code></strong> (padrão <strong><code>false</code></strong> = <code>placaVeiculo</code> em branco), e <strong>não</strong> a <code>I50:EnviarPlacaVeiculo</code>. Ou seja, mesmo com <code>EnviarPlacaVeiculo = true</code> a TSP segue sem placa. A Puxada normal (pasta <code>Puxada</code> e raiz) continua governada só por <code>I50:EnviarPlacaVeiculo</code>.</p>
+<p><strong>Resumo da decisão (corrigida em 13/11/2026): Puxada normal COM placa, Puxada TSP SEM placa.</strong> O <code>false</code> que apareceu em 13/11 foi só no teste local; o valor de produção é <code>EnviarPlacaVeiculo=true</code>.</p>
+<p><strong>Puxada TSP:</strong> a TSP <strong>sempre</strong> vai ao WMS <strong>sem placa</strong>. Notas da pasta <code>PuxadaTSP</code> (ZIP ou XML solto) usam a chave própria <strong><code>I50:EnviarPlacaVeiculoTsp</code></strong> (padrão <strong><code>false</code></strong> = <code>placaVeiculo</code> em branco), e <strong>não</strong> a <code>I50:EnviarPlacaVeiculo</code>. Ou seja, mesmo com <code>EnviarPlacaVeiculo = true</code> a TSP segue sem placa. A Puxada normal (pasta <code>Puxada</code> e raiz) é governada só por <code>I50:EnviarPlacaVeiculo</code>.</p>
 <table>
 <thead><tr>
 <th>Nota</th>
 <th>Chave que decide</th>
-<th>Padrão</th>
+<th>Valor na release 2026.11.13-1</th>
 </tr></thead>
 <tbody>
 <tr>
 <td>PUXADA (pasta <code>Puxada</code> e raiz)</td>
 <td><code>I50:EnviarPlacaVeiculo</code></td>
-<td><code>false</code> desde 13/11/2026 (sem placa)</td>
+<td><code>true</code> (com placa do XML)</td>
 </tr>
 <tr>
 <td>TSP (pasta <code>PuxadaTSP</code>)</td>
@@ -638,21 +687,22 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </tr>
 </tbody></table>
 <p>Override por variável de ambiente: <code>I50__EnviarPlacaVeiculo</code> e <code>I50__EnviarPlacaVeiculoTsp</code>.</p>
-<p>Para <strong>desligar</strong> o envio, edite o arquivo e deixe a chave em <code>false</code>:</p>
+<p>Valores esperados em produção (<code>config\appsettings.Production.json</code>):</p>
 <pre><code>"I50": {
-  "EnviarPlacaVeiculo": false
+  "EnviarPlacaVeiculo": true,
+  "EnviarPlacaVeiculoTsp": false
 }</code></pre>
-<p>Para <strong>religar</strong>, volte a chave para <code>true</code> (ou remova-a: o padrão é <code>true</code>).</p>
+<p>Para <strong>desligar</strong> o envio da placa da Puxada normal, deixe <code>EnviarPlacaVeiculo</code> em <code>false</code>. Para <strong>religar</strong>, volte a <code>true</code> (ou remova a chave: o padrão do <code>appsettings.json</code> versionado é <code>true</code>).</p>
 <blockquote><p>A chave também pode ser sobrescrita por <strong>variável de ambiente de máquina</strong> <code>I50__EnviarPlacaVeiculo</code> (dois underscores). Na dúvida, prefira editar o <code>appsettings.Production.json</code>.</p></blockquote>
 <blockquote><p><strong>Só envia se existir no XML.</strong> A placa só vai preenchida quando a nota traz <code>transp/veicTransp/placa</code>. Se o XML não tiver esse campo, a placa vai <strong>em branco</strong> mesmo com a chave em <code>true</code> (não é erro).</p></blockquote>
 <blockquote><p><strong>Depois de editar, REINICIE o serviço</strong> para a mudança valer:  ```powershell cd C:\Friozem\importacao_notas\tools\deploy powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart ```</p></blockquote>
 <h3>8.3. I60 (associação automática da nota de venda): desligada em produção</h3>
-<p>Situação: a I60 está <strong>desligada em produção</strong> (<code>I60:Habilitada=false</code>, padrão). O Plano A (a I60 associar sozinha a nota de venda ao DocCarga criado pela I50, logo depois da I50) foi <strong>testado no WMS de homologação em 09/11 e 10/11 e não associou, porque o DocCarga ainda não estava separado</strong>. A solução implementada é enviar a I60 <strong>só depois do retorno da separação (I51)</strong>, descrita na seção 8.5. Com <code>I51:Habilitada=false</code> (padrão) a I60 continua saindo junto da I50 quando <code>I60:Habilitada=true</code>. Nada foi para produção. Histórico completo em <code>docs\wms-codigo-customizado\HISTORICO-PLANO-A.md</code>.</p>
+<p>Situação: a I60 está <strong>desligada nos arquivos versionados</strong> (<code>I60:Habilitada=false</code>, padrão). O Plano A (a I60 associar sozinha a nota de venda ao DocCarga criado pela I50, logo depois da I50) foi <strong>testado no WMS de homologação em 09/11 e 10/11 e não associou, porque o DocCarga ainda não estava separado</strong>. A solução implementada é enviar a I60 <strong>só depois do retorno da separação (I51)</strong>, descrita na seção 8.5, e ela foi validada no homolog em 13/11/2026 (7 de 7 associadas). Com <code>I51:Habilitada=false</code> (padrão) a I60 continua saindo junto da I50 quando <code>I60:Habilitada=true</code>. Ligar em produção só com o OK do responsável (seção 8.5). Histórico completo do Plano A em <code>docs\wms-codigo-customizado\HISTORICO-PLANO-A.md</code>.</p>
 <ul>
 <li><strong>Como ligar (somente em teste/homologação, com OK do responsável):</strong> defina <code>I60__Habilitada=true</code> (variável de ambiente, ou <code>I60:Habilitada</code> no <code>appsettings</code>) e reinicie o serviço.</li>
-<li><strong>Opções de diagnóstico (teste):</strong> <code>I60__TipoOperacaoNota</code> (padrão <code>INE</code>) e <code>I60__QtdeVolumeZero</code> (<code>true</code> envia <code>qtdeVolume = 0</code>, usado só para isolar a conferência de volumes).</li>
+<li><strong>Opções da I60:</strong> <code>I60:TipoOperacaoNota</code> (padrão <code>INE</code>), <code>I60:QtdeVolumeZero</code> e <code>I60:QtdeTotalNotaZero</code>. Com <code>true</code>, a I60 envia <code>qtdeVolume = 0</code> e <code>qtdeTotalNota = 0</code>. Validado no homolog em 13/11/2026 (7 de 7 notas associadas): o DocCarga já separado tem volume 0, e a soma das caixas fazia o WMS recusar. Por isso o <code>appsettings.json</code> versionado e o exemplo de produção trazem as duas em <code>true</code> (o padrão da classe C# continua <code>false</code>; vale o que está no arquivo). Troca sem release: <code>I60__QtdeVolumeZero</code> / <code>I60__QtdeTotalNotaZero</code>.</li>
 <li><strong>Enviar só a I60 de um XML:</strong> <code>--enviar-i60 &lt;xml&gt;</code> no Worker; mostra o JSON e grava envio e resposta em <code>envio-manual-i60\</code>.</li>
-<li><strong>Em produção, mantenha <code>I60__Habilitada=false</code>.</strong></li>
+<li><strong>Em produção, <code>I60:Habilitada=true</code> só junto com <code>I51:Habilitada=true</code></strong> (com a I51 desligada, a I60 voltaria ao fluxo antigo, junto da I50, que não associa). Até o OK do responsável, mantenha as duas em <code>false</code>.</li>
 </ul>
 <h3>8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda</h3>
 <p>A entrada (<code>C:\Friozem\kitbrf</code>) tem duas subpastas de depósito, criadas pelo serviço se faltarem (e criadas na instalação, ver <code>INSTALACAO-SERVIDOR.md</code>):</p>
@@ -704,6 +754,9 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li>O mesmo XML repetido em dois ZIPs do pacote é processado uma vez; o repetido aparece no relatório como "Arquivo ignorado (XML repetido)".</li>
 <li>Os XMLs e o ZIP original ficam juntos em <code>Processados\pacote_*\</code>.</li>
 <li>Na <code>PuxadaTSP</code>, XML solto é aceito: os XMLs soltos do pacote formam <strong>uma onda</strong> <code>TSP-AAAAMMDD-NN</code> (sem título, sequencial do dia compartilhado com as ondas de ZIP), sem reaproveitamento por hash (reprocessar gera novo sequencial). Arquivo que não seja ZIP nem XML vai para <code>ExtensaoInvalida</code>. Só <code>.zip</code> é suportado (sem <code>.rar</code>/<code>.7z</code>).</li>
+<li>Subpastas dentro do ZIP são lidas em qualquer nível (ZIP dentro de ZIP não é aberto).</li>
+<li>Os arquivos de <code>Puxada</code>, <code>PuxadaTSP</code> e raiz entram na mesma janela de silêncio do pacote (seção 8): um lote grande de ZIPs copiados aos poucos continua sendo um pacote só.</li>
+<li>Placa: a <code>Puxada</code> (e a raiz) vai com a placa do XML (<code>I50:EnviarPlacaVeiculo=true</code>); a <code>PuxadaTSP</code> vai sem placa (<code>I50:EnviarPlacaVeiculoTsp=false</code>). Ver 8.2.</li>
 </ul>
 <p>Nome da onda da TSP: <code>TSP-AAAAMMDD-NN-NOME</code> (ex.: <code>TSP-20261111-01-SOROCABA</code>).</p>
 <ul>
@@ -714,7 +767,13 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </ul>
 <p>No relatório, a coluna <strong>Tipo</strong> (<code>PUXADA</code> ou <code>TSP</code>) e a coluna <strong>Origem</strong> (<code>Puxada</code>, <code>PuxadaTSP</code> ou <code>raiz</code>) permitem conferir se o ZIP foi para a pasta certa. A TSP é agrupada por onda; a puxada, por transporte. O resumo do e-mail e o resumo semanal contam as notas por tipo e as da raiz.</p>
 <h3>8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</h3>
-<p><strong>Status:</strong> implementado e testado com WMS simulado (839 testes aprovados, build sem avisos). <strong>Teste no homolog pendente</strong>: a proprietária BRF (01.838.723/0098-50) ainda não é encontrada no homolog e depende do fornecedor. Roteiro: <code>docs\ROTEIRO-TESTE-I51-I60.md</code>. Escopo: <code>docs\ESCOPO-I51-I60.md</code>. <strong>Em produção, mantenha as duas chaves desligadas</strong> até o teste no homolog.</p>
+<p><strong>Status:</strong> implementado, testado com WMS simulado (926 testes aprovados e 9 ignorados no build da release, 0 avisos) e <strong>validado no WMS de homologação em 13/11/2026: 7 de 7 notas associadas</strong> (retorno da I51, I60 <code>INE</code> e associação). Roteiro e resultados: <code>docs\ROTEIRO-TESTE-I51-I60.md</code>. Escopo: <code>docs\ESCOPO-I51-I60.md</code>. Nos arquivos versionados e no exemplo de produção, <code>I51:Habilitada</code>, <code>I60:Habilitada</code> e <code>Devolucao:Habilitada</code> ficam <code>false</code>; ligar em produção só com o OK do responsável, as duas da I51/I60 juntas.</p>
+<p><strong>Pré-requisitos no WMS de produção</strong> (já existem no homolog; sem eles a I51 volta vazia e nada associa):</p>
+<ol>
+<li>O <strong>EDI <code>WEBAPI-I51</code></strong> configurado com o meio de retorno <strong><code>WEBSERVI</code></strong> (o identificador é configurável em <code>I51:Identificador</code>).</li>
+<li>O <strong>evento interno do WMS</strong> que gera o retorno da separação. No homolog ele não tinha sido criado no início do teste de 13/11; depois de criado, o retorno passou a chegar e as 7 notas associaram.</li>
+</ol>
+<p><strong>Defaults validados no homolog (13/11/2026):</strong> <code>I60:QtdeVolumeZero=true</code> e <code>I60:QtdeTotalNotaZero=true</code> (a I60 vai com volume 0 e total da nota 0; ver 8.3).</p>
 <p><strong>Ciclo:</strong> <code>I50 → separação (WMS) → I51 → emissão da nota → I60</code>. A I60 só associa DocCarga já separado; por isso o integrador acompanha cada nota depois da I50 e só envia a I60 quando a I51 retorna. O retorno da I51 é um evento configurado no WMS (EDI com meio de retorno WEBSERVI) e só existe com a separação concluída (não há separação parcial).</p>
 <p><strong>Chaves de configuração</strong> (<code>appsettings</code>, ou variável de ambiente com <code>__</code>; reinicie o serviço):</p>
 <table>
@@ -756,8 +815,23 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </tr>
 <tr>
 <td><code>I51:DiasRetencaoEstado</code></td>
-<td><code>60</code></td>
-<td>Retenção do estado e dos brutos.</td>
+<td><code>30</code></td>
+<td>Retenção do estado terminal, XML copiado, brutos e logs de <code>alertas</code> (era 60 até 13/11/2026).</td>
+</tr>
+<tr>
+<td><code>I60:AlertaImediato</code></td>
+<td><code>true</code></td>
+<td>Alerta imediato por e-mail, arquivo e log (ver abaixo). Só age com a I51 ligada.</td>
+</tr>
+<tr>
+<td><code>I60:QtdeVolumeZero</code> / <code>I60:QtdeTotalNotaZero</code></td>
+<td><code>true</code> (arquivo)</td>
+<td><code>qtdeVolume = 0</code> e <code>qtdeTotalNota = 0</code> na I60 (validado no homolog).</td>
+</tr>
+<tr>
+<td><code>I60:MaxTentativasOutro</code></td>
+<td><code>3</code></td>
+<td>Tentativas para uma resposta não reconhecida, antes de rejeitar a nota.</td>
 </tr>
 <tr>
 <td><code>I60:TipoOperacaoNota</code></td>
@@ -791,11 +865,63 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <p><strong>DocCarga encerrado (ENC → IMP).</strong> Quando o WMS recusa a I60 <code>INE</code> por DocCarga encerrado (texto configurável em <code>I60:PadroesDocCargaEncerrado</code>), o integrador reenvia a I60 como <strong><code>IMP</code></strong> (só importa a nota, sem associação automática) e <strong>registra o erro "doccarga encerrado"</strong> no estado e no relatório. Essa nota nunca é marcada como Associada. A resposta "Nota já existe, TpAcao precisa ser UPD" gera um reenvio com <code>UPD</code>. Falha de comunicação nunca rejeita a nota: há nova tentativa com espera crescente. A detecção do ENC por texto de recusa é uma hipótese e <strong>precisa ser confirmada no homolog</strong>.</p>
 <p><strong>Relatório diário (12:00).</strong> HTML, PDF e e-mail, na identidade do "Relatório de Integração", gravado em <code>&lt;Relatorio:PastaSaida&gt;\i60</code>. Mostra aguardando separação (com idade), separadas, I60 associadas, I60 rejeitadas com motivo (por exemplo doccarga encerrado, quantidade diferente), ajustes de quantidade item a item e atrasadas. <strong>Decisão sobre a visão por pacote:</strong> ficou como <strong>seção dentro do relatório diário</strong>, sem relatório separado por pacote. O mesmo relatório lista as notas que ficaram em IMP ou rejeitadas como <strong>candidatas à devolução pela I40</strong> (<code>RelatorioI60:ListarCandidatasI40</code>). Destinatários: TXT <code>RelatorioI60:CaminhoDestinatarios</code> (um e-mail por linha); se não existir, usa a lista do resumo semanal. Gerar na hora: <code>Worker.exe --relatorio-i60 [--enviar]</code>.</p>
 <p><strong>Comandos úteis</strong> (no servidor, em <code>app\</code>): <code>--consultar-i51</code> (só UNICO), `--reenfileirar-i60 [--motivo &lt;motivo&gt;] [--chave &lt;chave&gt;]<code> e </code>--relatorio-i60 [--enviar]`. O reenfileiramento grava um pedido em <code>Estado\i51\comandos</code>, que o serviço em execução aplica no ciclo seguinte (sem reiniciar).</p>
-<p><strong>Ainda a confirmar no homolog:</strong> texto real do ENC, <code>TpAcao</code> do IMP, sinal de "associada", campo do UNICO e mensagem do retorno sem documentos (<code>sucesso=N</code>).</p>
+<p><strong>Bloco Atenção no relatório diário.</strong> O relatório (HTML, e-mail e PDF) abre com o bloco <strong>Atenção</strong>, antes de "Saúde da consulta": ENC/IMP, rejeitadas, respostas não reconhecidas, atrasadas e total (estado atual das notas). Notas <code>Separada</code> com resposta não reconhecida (<code>TentativasOutro &gt;= 1</code>) entram também em "I60 com problema". Zerado, o bloco diz que nenhuma nota exige atenção.</p>
+<h4>Alerta imediato (<code>I60:AlertaImediato</code>)</h4>
+<p>A cada ciclo da I51, logo depois do passo da I60, o Worker varre as notas e avisa <strong>uma vez por nota e por evento</strong>. É por estado (não por evento), então reiniciar o serviço não repete o aviso: o carimbo fica no JSON da nota (<code>AlertaI60Em</code> e <code>AlertaAtrasoEm</code>).</p>
+<table>
+<thead><tr>
+<th>Evento</th>
+<th>Quando</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>Rejeitada</code></td>
+<td>Qualquer motivo (outro, volume ou quantidade diferente, já existe, doccarga encerrado sem reenvio, XML indisponível, sem quantidade separada).</td>
+</tr>
+<tr>
+<td>ENC/IMP ou pendente</td>
+<td>I60 enviada que <strong>não virou</strong> <code>Associada</code> (IMP/ENC, pendente na interface, pendente com ressalva).</td>
+</tr>
+<tr>
+<td><code>NaoReconhecida</code></td>
+<td>Nota <code>Separada</code> com resposta do WMS que o integrador não reconhece, ainda em tentativas.</td>
+</tr>
+<tr>
+<td><code>Atrasada</code></td>
+<td>Sem retorno da separação em <code>I51:HorasParaAtraso</code>.</td>
+</tr>
+</tbody></table>
+<p><code>Associada</code> nunca alerta. Detalhes:</p>
+<ul>
+<li><strong>E-mail em lote:</strong> todas as notas do ciclo num e-mail só, assunto `[KitWms] I60 precisa de atenção: N nota(s)<code> (prefixo de </code>RelatorioI60:AssuntoPrefixo`). Por nota: número, série, transporte, onda, situação, motivo e texto do WMS (mensagem + ressalvas, até 300 caracteres, sem tokens, senhas nem corpo de nota).</li>
+<li><strong>Destinatários:</strong> os mesmos do relatório diário da I51/I60: <code>destinatarios-i60.txt</code> (apontado por <code>RelatorioI60:CaminhoDestinatarios</code>; vazio = <code>&lt;telemetria&gt;\destinatarios-i60.txt</code>), relido a cada envio; sem ele, a lista do resumo semanal; sem ela, <code>ti@friozem.com.br</code>. Em produção, ponha o arquivo em <code>C:\Friozem\importacao_notas\config\destinatarios-i60.txt</code> e aponte a chave.</li>
+<li><strong>Sem SMTP</strong> (<code>Email:Habilitado=false</code>, sem <code>Host</code> ou sem <code>Remetente</code>): grava arquivo e log, carimba a nota e não envia. <strong>Falha de e-mail:</strong> vira Warning e a nota é carimbada mesmo assim (o texto continua no arquivo de alertas e no relatório diário).</li>
+<li><strong>Log (Warning):</strong> <code>I60 precisa de atencao: N nota(s) neste ciclo (e-mail: ...)</code> e, por nota, `I60 atencao: nota ... serie ... situacao ... motivo ...`.</li>
+<li><strong>Arquivo de calibração:</strong> <code>Estado\i51\alertas\AAAA-MM-DD.log</code>, uma linha por evento, colunas separadas por tabulação: horário local, evento, nota, série, transporte, onda, situação, motivo e texto do WMS em uma linha (até 500 caracteres). Limpo com <code>I51:DiasRetencaoEstado</code> (30 dias).</li>
+<li><strong>Reenfileirar:</strong> <code>--reenfileirar-i60</code> zera o carimbo <code>AlertaI60Em</code> (nova tentativa, novo alerta possível).</li>
+<li><strong>Desligar:</strong> <code>I60:AlertaImediato=false</code> desliga e-mail, arquivo e log de alerta; o contador do relatório diário continua.</li>
+</ul>
+<p><strong>Como calibrar o ENC (<code>I60:PadroesDocCargaEncerrado</code>).</strong> O texto real do WMS para "doccarga encerrado" ainda não foi capturado. Quando chegar um alerta <code>NaoReconhecida</code> (ou <code>ENC/IMP</code> com texto diferente do esperado):</p>
+<ol>
+<li>Abra o e-mail do alerta ou a linha correspondente em <code>Estado\i51\alertas\AAAA-MM-DD.log</code>.</li>
+<li>Copie um <strong>trecho característico</strong> do texto do WMS (curto, sem número de nota nem datas).</li>
+<li>Acrescente o trecho a <code>I60:PadroesDocCargaEncerrado</code> em <code>config\appsettings.Production.json</code> (lista separada por <code>;</code>, sem diferenciar acento nem maiúsculas; padrão atual <code>encerrad;status ENC</code>) e reinicie o serviço.</li>
+<li>Para a nota já em tentativas, <code>Worker.exe --reenfileirar-i60 --chave &lt;chave&gt;</code> libera nova tentativa.</li>
+</ol>
+<p><strong>Ainda a confirmar:</strong> texto real do ENC (calibrar com o alerta), <code>TpAcao</code> do IMP, sinal de "associada" e mensagem do retorno sem documentos (<code>sucesso=N</code>). O fluxo normal (I50, separação, I51, I60 <code>INE</code>, associada) foi validado no homolog com 7 de 7 notas.</p>
 <h3>8.6. Última alternativa: tela de devolução pela I40 (seção removível)</h3>
 <blockquote><p>Esta seção é independente do resto do manual e pode ser removida inteira (junto do item do índice e da linha da tabela da seção 12) sem afetar as demais.</p></blockquote>
 <p>A devolução tem uma ordem de preferência: (1) <strong>I60 associada</strong> pelo fluxo I51 → I60 <code>INE</code>; (2) <strong>I60 como <code>IMP</code></strong> (DocCarga encerrado), com o erro registrado; (3) <strong>tela de devolução pela I40</strong>, a <strong>última alternativa</strong>.</p>
-<p>A tela da I40 está <strong>pronta e funcionando</strong>, mas <strong>desligada por padrão</strong> (<code>Devolucao:Habilitada=false</code>). Pesquisa a nota por chave de 44 dígitos <strong>ou</strong> por número + série, envia a devolução ao WMS com <code>tipoOperacaoNota</code> <code>IMP</code>, sem placa e sem motorista. Porta HTTP em <code>Devolucao:Porta</code> (padrão 8085). O trabalho da I51/I60 não altera a I40 (há testes de regressão). Desde 13/11/2026 a tela tem um <strong>login simples</strong>: <code>POST /api/devolucao/enviar</code> exige <code>usuario</code> (1 a 60 caracteres; letras, números, <code>. _ - @</code> e espaço; senão 400) e a senha digitada nem é enviada pela página nem lida pelo servidor. A auditoria <code>devolucao_yyyyMMdd.log</code> passou a <code>data;ip;usuario;chave;nota;status;transacao;mensagem</code> (linhas antigas têm 7 campos) e o log traz <code>usuario=</code>. O WMS segue chamado com a conta de serviço. Decisão do usuário (13/11/2026): link aberto na rede interna, sem restrição de firewall; risco aceito: quem tem o link pode enviar e a identificação é autodeclarada. Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue com OK do responsável.</p>
+<p>A tela da I40 está <strong>pronta e funcionando</strong>, mas <strong>desligada por padrão</strong> (<code>Devolucao:Habilitada=false</code>). Pesquisa a nota por chave de 44 dígitos <strong>ou</strong> por número + série, envia a devolução ao WMS com <code>tipoOperacaoNota</code> <code>IMP</code>, sem placa e sem motorista. Porta HTTP em <code>Devolucao:Porta</code> (padrão 8085). O trabalho da I51/I60 não altera a I40 (há testes de regressão). <strong>Busca limitada a 30 dias.</strong> A busca lê o XML em <code>Processados</code> (nunca <code>Erro</code>), e a limpeza mantém 30 dias (seção 8). Nota mais antiga: "Nota não encontrada na retenção de 30 dias." (era 60 dias até 13/11/2026).</p>
+<h4>Login simples (o link fica aberto)</h4>
+<p>Pedido do usuário em 13/11/2026: como a tela deve ser usada pouco e fica aberta na rede interna, ela tem uma seção de <strong>login falso</strong>: o operador informa o <strong>login do WMS</strong> (a senha é opcional na tela, mas a senha digitada nem é enviada pela página nem lida pelo servidor) e o sistema <strong>registra quem enviou</strong>.</p>
+<ul>
+<li>A tela só libera o botão "Enviar devolução" depois de confirmar o usuário; mostra "Enviando como: usuário" e "Trocar usuário".</li>
+<li><code>POST /api/devolucao/enviar</code> exige <code>usuario</code> (1 a 60 caracteres; letras, números, <code>. _ - @</code> e espaço; senão 400). O WMS segue chamado com a conta de serviço.</li>
+<li>A auditoria <code>devolucao_yyyyMMdd.log</code> (em <code>PastaAuditoria</code>, padrão <code>&lt;Estado&gt;\devolucao</code>) passou a <code>data;ip;usuario;chave;nota;status;transacao;mensagem</code> (linhas antigas têm 7 campos) e o log traz <code>usuario=</code>.</li>
+<li><strong>Risco aceito (decisão do usuário, 13/11/2026):</strong> sem restrição de firewall na rede interna; quem tem o link consegue enviar e a identificação é <strong>autodeclarada</strong>, não autenticada. Serve para saber quem enviou, não para impedir. Se isso mudar, a regra de firewall da porta <code>Devolucao:Porta</code> é o controle disponível.</li>
+</ul>
+<p>Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue (<code>Devolucao:Habilitada=true</code>) com OK do responsável.</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -838,7 +964,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <tbody>
 <tr>
 <td><code>EsperaJanelaMs</code></td>
-<td>Abertura do pacote até a foto da pasta (janela de coleta)</td>
+<td>Abertura do pacote até a foto da pasta (coleta pela janela de silêncio; rótulo "Coleta (janela de silêncio)" no relatório)</td>
 <td><code>GerenciadorPacote</code></td>
 </tr>
 <tr>
@@ -873,6 +999,14 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <li><strong>Limitação:</strong> o tempo de geração do relatório não pode aparecer dentro do próprio relatório. Ele fica <strong>só na telemetria</strong> (<code>TempoRelatorioMs</code>); o relatório e o e-mail mostram as etapas concluídas antes.</li>
 <li>Pacote retomado depois de uma queda: espera da janela e leitura ficam sem valor (0 na telemetria, linha omitida no relatório); integração no WMS e ondas saem do diário e continuam corretas.</li>
 </ul>
+<h3>10.1.1. O relatório de integração: cabeçalho, tempo e cartões</h3>
+<p>O relatório do pacote (HTML, PDF e corpo do e-mail de fechamento) segue esta ordem:</p>
+<ol>
+<li><strong>Cabeçalho:</strong> faixa azul com a logo e o título "Relatório de Integração" e, abaixo, a linha com o pacote e o tipo (<code>PUXADA</code>, <code>TSP</code> ou <code>PUXADA + TSP</code>), a data de geração e a <strong>Coleta</strong> (primeiro e último arquivo gravado na pasta para o pacote).</li>
+<li><strong>Resumo:</strong> cartões Notas processadas, Integradas, Integradas — revisar produto, Pendentes, Não integradas, Arquivos ignorados e <strong>Transportes</strong> (transportes distintos do pacote), mais a linha "Por tipo" (notas <code>PUXADA</code>, <code>TSP</code> e da raiz). A linha "Notas por transporte" saiu do resumo; a contagem segue no título de cada grupo da tabela.</li>
+<li><strong>Tempo de integração</strong> (10.1): resumo do pacote, etapas ("Coleta (janela de silêncio)", leitura, integração no WMS) e, só quando há TSP, o tempo por onda.</li>
+<li><strong>Tabela de notas:</strong> agrupada por transporte (<code>PUXADA</code>) ou por onda (<code>TSP</code>), com as colunas Tipo e Origem.</li>
+</ol>
 <h3>10.2. Logo do relatório e do e-mail</h3>
 <p>A logo Friozem (versão negativa, branca) vem <strong>embutida no programa</strong>. <code>Relatorio:LogoPath</code> é opcional e só troca por outro PNG; vazio, inexistente ou inválido = logo embutida. Nada a copiar no servidor.</p>
 <blockquote><p>Nota de configuração: o caminho físico de <code>Estado</code>/telemetria depende de <code>Pastas:Estado</code>/<code>Monitoramento:CaminhoTelemetria</code>. Para ficarem em <code>C:\Friozem\importacao_notas\data</code> (fora do share), esses valores precisam ser **caminhos absolutos** no <code>appsettings.Production.json</code>. Confirme o valor efetivo em produção antes de supor onde estão (ver lacuna no resumo).</p></blockquote>
@@ -946,13 +1080,28 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
-<td>Janela de coleta / limpeza (60 dias)</td>
-<td><code>config\appsettings.Production.json</code>: <code>Pacote:JanelaColetaSegundos</code> / <code>Limpeza:DiasRetencao</code></td>
+<td>Janela de coleta (silêncio 15 s, teto 180 s) ou voltar à janela fixa</td>
+<td><code>config\appsettings.Production.json</code>: <code>Pacote:ModoJanela</code> (<code>Silencio</code>/<code>Fixa</code>), <code>Pacote:SilencioSegundos</code>, <code>Pacote:JanelaMaximaSegundos</code>, <code>Pacote:JanelaColetaSegundos</code> (só no modo <code>Fixa</code>)</td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Retenção/limpeza (30 dias)</td>
+<td><code>config\appsettings.Production.json</code>: <code>Limpeza:DiasRetencao</code> e <code>I51:DiasRetencaoEstado</code></td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Ligar/desligar o alerta imediato da I60</td>
+<td><code>I60:AlertaImediato</code> (padrão <code>true</code>; destinatários no TXT <code>destinatarios-i60.txt</code>) (seção 8.5)</td>
+<td><strong>Sim</strong></td>
+</tr>
+<tr>
+<td>Calibrar o texto do ENC</td>
+<td>acrescentar um trecho do texto do WMS (e-mail do alerta ou <code>Estado\i51\alertas</code>) a <code>I60:PadroesDocCargaEncerrado</code> (seção 8.5)</td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
 <td>Ligar/desligar envio da placa do veículo</td>
-<td>editar <code>I50:EnviarPlacaVeiculo</code> (Puxada) ou <code>I50:EnviarPlacaVeiculoTsp</code> (TSP, padrão sem placa) em <code>config\appsettings.Production.json</code></td>
+<td>editar <code>I50:EnviarPlacaVeiculo</code> (Puxada normal, <code>true</code> = com placa) ou <code>I50:EnviarPlacaVeiculoTsp</code> (TSP, <code>false</code> = sem placa) em <code>config\appsettings.Production.json</code></td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
@@ -961,7 +1110,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
-<td>Ligar o fluxo I51 → I60 (só no homolog, com OK)</td>
+<td>Ligar o fluxo I51 → I60 (só com OK do responsável; as duas juntas e com os pré-requisitos do WMS)</td>
 <td><code>I51:Habilitada</code> e <code>I60:Habilitada</code> em <code>config\appsettings.Production.json</code> (seção 8.5)</td>
 <td><strong>Sim</strong></td>
 </tr>
@@ -971,7 +1120,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td>Não</td>
 </tr>
 <tr>
-<td>Ligar a tela de devolução I40 (última alternativa)</td>
+<td>Ligar a tela de devolução I40 (última alternativa; login simples; busca de 30 dias)</td>
 <td><code>Devolucao:Habilitada</code> (seção 8.6, removível)</td>
 <td><strong>Sim</strong></td>
 </tr>
@@ -1018,7 +1167,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <p>Antes de aceitar qualquer sugestão da IA, confira estes <strong>guarda-rails</strong>:</p>
 <ul>
 <li><strong>Não versione nem exponha segredos</strong> do WMS/SMTP (as env <code>WMS__*</code> e o <code>email.settings.json</code> continuam sensíveis; nada de colar senha em prompt, log ou resposta).</li>
-<li><strong>Não ligue a I60 em produção</strong> (<code>I60:Habilitada</code> deve seguir <code>false</code>; testada no homolog, pausada aguardando o fornecedor; ver seção 8.3). Os dados fiscais vão na I50.</li>
+<li><strong>Não ligue a I51/I60 em produção por conta própria</strong> (<code>I51:Habilitada</code> e <code>I60:Habilitada</code> seguem <code>false</code> até o OK do responsável e os pré-requisitos do WMS; validada no homolog em 13/11/2026, ver seções 8.3 e 8.5). Os dados fiscais vão na I50.</li>
 <li><strong>Valide mudança de código</strong> com build + test <strong>no repositório, fora de produção</strong>, antes de promover.</li>
 <li><strong>Não rode teste de carga</strong> em produção ou homologação sem o <strong>OK do responsável</strong>.</li>
 <li><strong>Config antes de código</strong>: prefira ajustar configuração (JSON e os TXT de destinatários) a mexer no código; e deixe a <strong>execução no servidor</strong> (restart, publicar, rollback) para o técnico humano.</li>

@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-ee48d60</span>
+    <span>Vers&atilde;o: 2026.11.13-e3a398f</span>
   </div>
 </section>
   <header class="hd">
@@ -296,6 +296,21 @@
 <li>Pode <strong>enviar um e-mail</strong> de fechamento com o resumo e o PDF em anexo.</li>
 </ol>
 <p>Cada lote processado recebe um nome de pacote no formato <code>pacote_&lt;data_hora&gt;</code> (exemplo: <code>pacote_20250110_090000</code>). Esse mesmo nome aparece na pasta de resultado <strong>e</strong> no relatório, para você ligar um ao outro.</p>
+<h3>Quanto tempo o sistema espera antes de fechar o pacote</h3>
+<p>O sistema espera a sua cópia terminar. Ele fecha o pacote quando passam <strong>15 segundos sem chegar nenhum arquivo novo</strong> (e sem que um arquivo ainda em cópia mude de tamanho). Cada arquivo que chega <strong>reinicia essa contagem</strong>. Na prática:</p>
+<ul>
+<li><strong>Lote pequeno:</strong> fecha uns 15 segundos depois do último arquivo.</li>
+<li><strong>Lote grande, copiado aos poucos:</strong> o pacote continua aberto enquanto os arquivos chegam; o lote <strong>não é cortado</strong> em vários pacotes e vários relatórios.</li>
+<li><strong>Teto de 3 minutos:</strong> se os arquivos continuarem chegando sem parar, o pacote fecha em 3 minutos contados da abertura. O que ainda não estava pronto entra no pacote seguinte.</li>
+<li>Se você parar de copiar por mais de 15 segundos no meio de um lote, o sistema entende que acabou e fecha o pacote; o resto vira o pacote seguinte. Por isso, copie o lote de uma vez.</li>
+</ul>
+<p>Isso vale para a raiz, a <code>Puxada</code> e a <code>PuxadaTSP</code>. Se a TI precisar, ela consegue voltar para a janela fixa antiga de 10 segundos sem trocar a versão (ver o Manual Técnico).</p>
+<h3>A placa do veículo</h3>
+<ul>
+<li><strong>Puxada normal (pasta <code>Puxada</code> e raiz):</strong> a nota vai ao WMS <strong>com a placa</strong> do veículo lida do XML.</li>
+<li><strong>Puxada TSP (pasta <code>PuxadaTSP</code>):</strong> a nota vai <strong>sem placa</strong>, sempre.</li>
+</ul>
+<p>Nada muda no que você faz: o comportamento vem da pasta onde você deposita.</p>
 <h2>4. Onde ver o resultado</h2>
 <p>Tudo fica <strong>dentro do mesmo compartilhamento</strong> <code>\\SRVAPPALC02\kitbrf</code> (ou <code>\\200.200.200.213\kitbrf</code>):</p>
 <table>
@@ -364,6 +379,8 @@
 </tbody></table>
 <p>Além dos status, o relatório mostra um contador de <strong>XMLs inválidos</strong>: são arquivos que nem puderam ser lidos (por exemplo, arquivo corrompido ou cortado pela metade). Eles <strong>não</strong> viram linha de nota — aparecem como um número no resumo e o arquivo vai para <code>Erro\XmlInvalido</code>. Nesse caso, gere o XML de novo e deposite outra vez.</p>
 <p>Outras colunas úteis do relatório: Nota, Transporte, Horário, Mensagem (último erro) e Tentativas.</p>
+<h3>O resumo do relatório (os cartões)</h3>
+<p>Abaixo do cabeçalho, o <strong>Resumo</strong> mostra cartões com os totais do pacote: <strong>Notas processadas</strong>, <strong>Integradas</strong>, <strong>Integradas — revisar produto</strong>, <strong>Pendentes</strong>, <strong>Não integradas</strong>, <strong>Arquivos ignorados</strong> e <strong>Transportes</strong> (quantos transportes diferentes havia no pacote). Logo abaixo vem a linha "Por tipo", com as notas da <code>PUXADA</code>, da <code>TSP</code> e as da raiz.</p>
 <h3>Tipo e Origem: conferir se o ZIP foi para a pasta certa</h3>
 <p>Duas colunas mostram por onde cada nota entrou:</p>
 <table>
@@ -394,7 +411,7 @@
 <p>Logo depois do resumo vem o bloco <strong>"Tempo de integração"</strong>, medido pelo próprio sistema:</p>
 <ul>
 <li><strong>Resumo do pacote:</strong> início, fim, duração total, quantidade de notas, tempo médio por nota e notas por segundo.</li>
-<li><strong>Etapas:</strong> quanto tempo o sistema esperou a janela de coleta (o tempo para você terminar de depositar os arquivos), quanto levou para ler os ZIP/XML e quanto levou a <strong>integração no WMS</strong>. A coluna <strong>"Por nota"</strong> da integração no WMS é o tempo que o WMS levou por nota; é o número para comparar com o lançamento manual na tela.</li>
+<li><strong>Etapas:</strong> quanto durou a <strong>coleta (janela de silêncio)</strong>, o tempo que o sistema esperou você terminar de depositar os arquivos (ver a seção 3), quanto levou para ler os ZIP/XML e quanto levou a <strong>integração no WMS</strong>. A coluna <strong>"Por nota"</strong> da integração no WMS é o tempo que o WMS levou por nota; é o número para comparar com o lançamento manual na tela.</li>
 <li><strong>Por onda</strong> (só quando o pacote tem TSP): cada onda com a quantidade de notas, de transportes e o tempo da onda (da primeira à última nota). Na puxada normal essa tabela não aparece; o detalhe por transporte está nos grupos da tabela de notas.</li>
 </ul>
 <p>O tempo para gerar o próprio relatório não aparece nele (o relatório ainda não existia). Se uma linha não aparecer, é porque aquele tempo não foi medido (por exemplo, pacote retomado depois de uma queda do servidor).</p>
@@ -406,7 +423,7 @@
 <h2>7. Boas práticas</h2>
 <ul>
 <li><strong>Não tente apagar</strong> arquivos do compartilhamento. Você tem permissão para <strong>gravar e ler</strong>, mas <strong>não para excluir</strong> — o próprio sistema organiza e move os arquivos.</li>
-<li>Depois de soltar um lote, <strong>espere alguns segundos</strong> antes de soltar o próximo. O sistema junta em um pacote os arquivos que chegam dentro de uma pequena janela de tempo; dar um intervalo entre os lotes deixa os pacotes mais organizados.</li>
+<li><strong>Copie o lote de uma vez.</strong> O sistema junta em um pacote os arquivos que chegam sem ficar mais de 15 segundos parados (seção 3). Se parar no meio, o resto vira outro pacote e outro relatório. Entre um lote e o próximo, deixe passar uns 15 segundos para eles não se misturarem.</li>
 <li>Deposite <strong>ZIPs</strong> de nota fiscal nas pastas <code>Puxada</code> ou <code>PuxadaTSP</code>. Não coloque outros tipos de arquivo dentro do ZIP e não coloque um ZIP dentro de outro.</li>
 <li>Use sempre a pasta certa: o tipo (PUXADA ou TSP) é definido pela pasta.</li>
 <li>Confira o relatório e a pasta <code>Erro</code> depois de depositar, para saber se algo precisa de correção.</li>
@@ -420,17 +437,18 @@
 </ol>
 <p>Não é preciso apagar nada da pasta <code>Erro</code>: basta depositar o arquivo corrigido novamente.</p>
 <h2>9. Perguntas frequentes</h2>
-<p><strong>Depositei o arquivo e não aconteceu nada na hora. É normal?</strong> Sim. O sistema verifica a pasta a cada poucos segundos e ainda espera uma pequena janela para juntar o lote. Aguarde alguns segundos e confira as pastas <code>Processados</code>/<code>Erro</code> e <code>relatorios</code>.</p>
-<p><strong>Posso apagar os arquivos antigos do compartilhamento?</strong> Não, e você não tem permissão para isso. O próprio sistema faz a limpeza das pastas de resultado automaticamente depois de alguns dias.</p>
+<p><strong>Depositei o arquivo e não aconteceu nada na hora. É normal?</strong> Sim. O sistema verifica a pasta a cada poucos segundos e espera 15 segundos sem chegar arquivo novo para fechar o lote (seção 3). Aguarde meio minuto e confira as pastas <code>Processados</code>/<code>Erro</code> e <code>relatorios</code>.</p>
+<p><strong>Copiei um ZIP grande e o relatório só saiu depois de uns minutos. Por quê?</strong> O pacote fica aberto enquanto os arquivos chegam. Se a cópia é demorada, o sistema espera ela terminar para não dividir o lote em vários relatórios. O limite é de 3 minutos desde a abertura do pacote; o que não estiver pronto até lá entra no pacote seguinte.</p>
+<p><strong>Posso apagar os arquivos antigos do compartilhamento?</strong> Não, e você não tem permissão para isso. O próprio sistema faz a limpeza das pastas de resultado automaticamente: notas e pacotes com mais de <strong>30 dias</strong> são removidos de <code>Processados</code> e <code>Erro</code>. Se precisar de um XML mais antigo, peça o arquivo de novo à origem.</p>
 <p><strong>O ZIP apareceu em <code>Erro\...\ZipInvalido</code>. O que houve?</strong> O ZIP não pôde ser aberto (corrompido, protegido por senha, vazio de XML ou maior que o limite aceito). O motivo está no <code>.motivo.txt</code> ao lado. Gere o ZIP de novo e deposite outra vez.</p>
-<p><strong>Soltei vários XMLs de uma vez. Eles vão para o mesmo pacote?</strong> Os que chegarem dentro da mesma janela de coleta entram no mesmo pacote. Os que chegam depois formam o próximo pacote.</p>
+<p><strong>Soltei vários XMLs de uma vez. Eles vão para o mesmo pacote?</strong> Os que chegarem sem ficar mais de 15 segundos parados (e dentro do teto de 3 minutos) entram no mesmo pacote. Os que chegam depois formam o próximo pacote.</p>
 <p><strong>Uma nota apareceu como "Pendente". Deu erro?</strong> Não necessariamente. "Pendente" quer dizer que a nota foi importada e está aguardando processamento na tela do WMS. Acompanhe pelo WMS.</p>
 <p><strong>O que é "Integrada — revisar produto"?</strong> A nota entrou no WMS normalmente, mas há um produto provisório que alguém precisa revisar depois no WMS. A integração em si deu certo.</p>
 <p><strong>Não recebi o e-mail de fechamento.</strong> O envio depende de você estar na lista de destinatários e do e-mail estar configurado. Fale com a TI para incluir seu endereço.</p>
-<p><strong>E se eu colocar um arquivo que não é XML?</strong> O sistema <strong>não</strong> integra arquivos que não sejam <code>.xml</code>. Ele move o arquivo para <code>Erro\pacote_&lt;data_hora&gt;\ExtensaoInvalida</code> e registra no relatório como <strong>"Arquivo ignorado (não é XML)"</strong> (status cinza, aviso — não é falha de nota). Esse arquivo é removido automaticamente depois de <strong>60 dias</strong>, junto com o restante do pacote. Para evitar isso, deposite <strong>apenas ZIPs</strong> (ou XMLs na <code>Puxada</code>) de nota fiscal. Na <code>PuxadaTSP</code>, qualquer arquivo que não seja ZIP (inclusive XML solto) é tratado assim. Arquivos que ainda estão sendo copiados (com extensão temporária como <code>.tmp</code>, <code>.part</code>, <code>.crdownload</code> etc.) são <strong>deixados em paz</strong>: o sistema não os processa nem os move, espera a cópia terminar. Quando a cópia acaba e o arquivo vira <code>.xml</code>, ele entra no fluxo normal.</p>
+<p><strong>E se eu colocar um arquivo que não é XML?</strong> O sistema <strong>não</strong> integra arquivos que não sejam <code>.xml</code>. Ele move o arquivo para <code>Erro\pacote_&lt;data_hora&gt;\ExtensaoInvalida</code> e registra no relatório como <strong>"Arquivo ignorado (não é XML)"</strong> (status cinza, aviso — não é falha de nota). Esse arquivo é removido automaticamente depois de <strong>30 dias</strong>, junto com o restante do pacote. Para evitar isso, deposite <strong>apenas ZIPs</strong> (ou XMLs na <code>Puxada</code>) de nota fiscal. Na <code>PuxadaTSP</code>, qualquer arquivo que não seja ZIP (inclusive XML solto) é tratado assim. Arquivos que ainda estão sendo copiados (com extensão temporária como <code>.tmp</code>, <code>.part</code>, <code>.crdownload</code> etc.) são <strong>deixados em paz</strong>: o sistema não os processa nem os move, espera a cópia terminar. Quando a cópia acaba e o arquivo vira <code>.xml</code>, ele entra no fluxo normal.</p>
 <hr />
 <h2>10. Depois da separação: retorno (I51), associação (I60) e relatório diário</h2>
-<blockquote><p><strong>Situação:</strong> o recurso está <strong>pronto e testado em ambiente simulado</strong>, mas ainda <strong>desligado</strong>. Ele só será ligado depois do teste no WMS de homologação, que depende do fornecedor. Até lá, nada muda no seu dia a dia.</p></blockquote>
+<blockquote><p><strong>Situação:</strong> o recurso foi <strong>validado no WMS de homologação em 13/11/2026</strong> (7 de 7 notas associadas). Na produção ele segue <strong>desligado</strong> até o OK do responsável (o WMS de produção também precisa estar preparado pela TI). Até lá, nada muda no seu dia a dia.</p></blockquote>
 <p><strong>Por que existe.</strong> Para a nota ficar associada ao DocCarga no WMS, o DocCarga precisa estar <strong>separado</strong>. O ciclo é: <strong>envio da nota (I50) → separação no WMS → retorno da separação (I51) → emissão da nota → associação (I60)</strong>. O sistema passa a acompanhar cada nota enviada e só faz a associação quando o WMS avisa que a separação terminou.</p>
 <p><strong>O que o sistema faz sozinho (você não precisa fazer nada):</strong></p>
 <ul>
@@ -439,9 +457,19 @@
 <li>As <strong>ondas TSP</strong> seguem o mesmo caminho.</li>
 <li>Se o DocCarga já estiver <strong>encerrado</strong> no WMS, a nota é enviada como <strong>IMP</strong> (importada, sem associação automática) e o erro <strong>"doccarga encerrado"</strong> fica registrado. Ela não aparece como associada.</li>
 <li>Se a separação não voltar em 24 horas (configurável), a nota fica como <strong>atrasada</strong> e é consultada de novo individualmente.</li>
+<li>No WMS, o DocCarga já separado fica com volume 0 e total da nota 0 na associação; o sistema envia assim, como foi validado na homologação.</li>
 </ul>
+<p><strong>Aviso imediato por e-mail (alerta).</strong> Quando uma nota <strong>precisa de atenção</strong>, a TI e a operação da I51/I60 recebem um e-mail na hora, sem esperar o relatório das 12:00. O assunto é <code>[KitWms] I60 precisa de atenção: N nota(s)</code>. O e-mail traz, por nota: número, série, transporte, onda, situação, motivo e o texto que o WMS devolveu. O sistema avisa <strong>uma vez por nota e por motivo</strong>, e todas as notas do mesmo ciclo vão num e-mail só. Avisa quando a nota:</p>
+<ul>
+<li>foi <strong>rejeitada</strong> (por qualquer motivo);</li>
+<li>virou <strong>ENC/IMP</strong> (DocCarga encerrado) ou ficou <strong>pendente</strong> na interface do WMS, ou seja, a associação foi aceita mas não se concluiu;</li>
+<li>recebeu uma <strong>resposta do WMS que o sistema não reconhece</strong> (ainda em tentativas);</li>
+<li>ficou <strong>atrasada</strong> (sem retorno da separação no prazo).</li>
+</ul>
+<p>Nota <strong>associada</strong> nunca gera aviso. O texto do WMS que chega nesses e-mails ajuda a TI a ensinar o sistema a reconhecer o aviso de "doccarga encerrado". Se você receber um desses e-mails, avise o responsável pela operação do WMS e informe a nota e o motivo.</p>
 <p><strong>Relatório diário, todo dia às 12:00.</strong> O sistema envia por e-mail (com HTML e PDF) um relatório no mesmo visual do "Relatório de Integração", com:</p>
 <ul>
+<li>no <strong>topo</strong>, o bloco <strong>Atenção</strong>: quantas notas estão como ENC/IMP, rejeitadas, com resposta não reconhecida e atrasadas, e o total. Se estiver zerado, o relatório diz que nenhuma nota exige atenção;</li>
 <li>notas <strong>aguardando separação</strong>, com há quanto tempo esperam;</li>
 <li>notas <strong>separadas</strong> e associações <strong>concluídas</strong>;</li>
 <li>associações <strong>rejeitadas</strong>, com o motivo (por exemplo, doccarga encerrado ou quantidade diferente);</li>
@@ -450,10 +478,12 @@
 <li>uma visão <strong>por pacote</strong>, dentro do próprio relatório (não há um relatório separado por pacote);</li>
 <li>as notas que ficaram como IMP ou rejeitadas, como <strong>candidatas à devolução</strong> pela tela da seção 11.</li>
 </ul>
-<p>Quem recebe o e-mail é definido pela TI. Se uma nota aparecer como rejeitada ou atrasada, avise o responsável pela operação do WMS e informe a nota e o motivo mostrado.</p>
+<p>Quem recebe o e-mail (relatório e aviso imediato) é definido pela TI. Se uma nota aparecer como rejeitada ou atrasada, avise o responsável pela operação do WMS e informe a nota e o motivo mostrado.</p>
 <h2>11. Última alternativa: devolução pela tela (I40)</h2>
 <blockquote><p>Esta seção é separada das demais e pode ser removida sem afetar o restante do manual.</p></blockquote>
 <p>A devolução segue uma ordem: primeiro a <strong>associação (I60)</strong>, depois a nota <strong>IMP</strong> (DocCarga encerrado) e, <strong>só em último caso</strong>, a <strong>tela de devolução (I40)</strong>, em que se informa a chave da nota (ou número e série) para enviar a devolução ao WMS. A tela está <strong>pronta, mas desligada</strong>; ela só será usada com autorização do responsável pela operação. Se você achar que precisa dela, fale com a TI.</p>
+<p><strong>Até quando a nota é encontrada?</strong> A busca só acha notas dos <strong>últimos 30 dias</strong> (é o tempo que o sistema guarda os XMLs processados). Uma nota mais antiga aparece como "Nota não encontrada na retenção de 30 dias"; nesse caso fale com a TI.</p>
+<h3>Login simples da tela</h3>
 <p>Ao usar a tela, primeiro informe o <strong>usuário do WMS</strong> (e a senha, se quiser) no cartão "Quem está enviando" e confirme. O botão "Enviar devolução" só libera depois disso, e a tela mostra "Enviando como: seu usuário" (use "Trocar usuário" se outra pessoa for enviar). O login é usado só para registrar quem enviou; a senha não é verificada nem guardada. O link fica aberto na rede interna: quem tem o link consegue enviar, por isso informe sempre o seu próprio usuário.</p>
 
   </main>

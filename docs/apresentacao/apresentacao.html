@@ -225,7 +225,7 @@
     <div class="bar"></div>
     <div class="bd">
       <div class="flow">
-        <div class="step"><div class="n">1</div><h3>Pasta de entrada</h3><p>Os XMLs das notas chegam na pasta monitorada. O serviço forma um pacote com os arquivos prontos.</p></div>
+        <div class="step"><div class="n">1</div><h3>Pasta de entrada</h3><p>ZIPs ou XMLs chegam em Puxada ou PuxadaTSP. O pacote fecha após 15 s de silêncio (teto de 3 min), sem cortar lote grande.</p></div>
         <div class="arrow">›</div>
         <div class="step"><div class="n">2</div><h3>Leitura e agrupamento</h3><p>Lê cada nota e agrupa pelo número do transporte, que vem do próprio XML.</p></div>
         <div class="arrow">›</div>
@@ -283,6 +283,7 @@
             <li>Número, série e CFOP da nota</li>
             <li>Valor total, pesos e volumes</li>
             <li>Dados adicionais da nota</li>
+            <li>Placa: Puxada normal com placa, Puxada TSP sem placa</li>
           </ul>
           <p class="foot-note">Carregados na própria nota de entrada (I50) para rastreabilidade visual no WMS. A I60 (associação) passa a sair depois da separação, pelo retorno da I51 (próximos slides).</p>
         </div>
@@ -300,7 +301,7 @@
           <ul>
             <li>E-mail por pacote, com resumo no corpo e relatório em anexo</li>
             <li>Pastas Processados e Erro, esta por categoria de problema</li>
-            <li>Limpeza automática após 10 dias</li>
+            <li>Limpeza automática após 30 dias</li>
           </ul>
         </div>
       </div>
@@ -340,12 +341,13 @@
             <li>A I60 INE é recusada com a mensagem de encerrado: o integrador reenvia como IMP</li>
             <li>O erro “doccarga encerrado” fica registrado no estado e no relatório</li>
             <li>Nunca é marcada como associada</li>
+            <li>Alerta imediato por e-mail e em Estado\i51\alertas, para calibrar o texto do ENC</li>
           </ul>
         </div>
         <div class="box b">
           <span class="tag b">ÚLTIMA ALTERNATIVA</span>
           <ul>
-            <li>Devolução pela tela da I40: pronta e funcionando, desligada por padrão</li>
+            <li>Devolução pela tela da I40, com login simples (registra quem enviou): desligada por padrão, busca de 30 dias</li>
             <li>As notas que ficaram em IMP ou rejeitadas aparecem no relatório como candidatas</li>
           </ul>
         </div>
@@ -363,7 +365,7 @@
         <div class="box b">
           <span class="tag b">RELATÓRIO DIÁRIO, 12:00</span>
           <ul>
-            <li>HTML, PDF e e-mail, no padrão do Relatório de Integração</li>
+            <li>HTML, PDF e e-mail, no padrão do Relatório de Integração, com o bloco Atenção no topo (ENC/IMP, rejeitadas, não reconhecidas, atrasadas)</li>
             <li>Aguardando separação (com idade), separadas, I60 associadas e rejeitadas com motivo</li>
             <li>Ajustes de quantidade item a item e notas atrasadas</li>
             <li>Visão por pacote: decidida como seção dentro do relatório diário, sem relatório à parte</li>
@@ -376,14 +378,15 @@
             <li>Com a I51 desligada nada novo roda; a I60 só sai junto da I50 se I60:Habilitada=true, como antes</li>
             <li>Identificador da I51 (WEBAPI-I51), intervalo (5 min) e prazo de atraso (24 h) configuráveis</li>
             <li>Devolucao:Habilitada (I40) também desligada por padrão</li>
+            <li><b>QtdeVolumeZero</b>, <b>QtdeTotalNotaZero</b> e <b>AlertaImediato</b>: true</li>
           </ul>
         </div>
         <div class="box a">
           <span class="tag a">SITUAÇÃO</span>
           <ul>
-            <li>Implementado e testado com WMS simulado: 839 testes aprovados</li>
-            <li>Teste no homolog pendente: proprietária BRF ainda não encontrada no fornecedor</li>
-            <li>A confirmar no homolog: texto real do ENC, TpAcao do IMP, sinal de “associada”, campo do UNICO</li>
+            <li>Validado no homolog em 13/11: 7 de 7 notas associadas · 926 testes aprovados</li>
+            <li>Pré-requisitos no WMS de produção: EDI WEBAPI-I51 com WEBSERVI e o evento interno que gera o retorno da separação</li>
+            <li>A confirmar: texto real do ENC (o alerta imediato captura), TpAcao do IMP, sinal de “associada”</li>
           </ul>
         </div>
       </div>
@@ -596,8 +599,8 @@
           <ul>
             <li>401 intermitente no GetToken (mitigado por retry)</li>
             <li>Compatível com a conta de integração ainda em provisionamento — deve estabilizar</li>
-            <li>I51 → I60 (associação após a separação): implementada e testada com WMS simulado; teste no homolog depende do fornecedor (proprietária BRF)</li>
-            <li>Puxada TSP (ZIP por pasta, onda única por ZIP): em andamento; implementada, teste com ZIP real no homolog</li>
+            <li>I51 → I60 (associação após a separação): validada no homolog em 13/11 (7 de 7 associadas); ligar em produção depende do OK e do evento interno do WMS</li>
+            <li>Puxada normal com placa e Puxada TSP sem placa (ZIP por pasta, onda única por ZIP): implementadas na release 2026.11.13-1, a publicar</li>
           </ul>
         </div>
         <div class="box b">
@@ -606,10 +609,10 @@
             <li>Conclusão do provisionamento da conta de integração em produção (mesmos dados) — o 401 intermitente deve estabilizar</li>
             <li>Acompanhar a operação e os tempos em produção</li>
             <li>Planejar atualização do SO do servidor</li>
-            <li>I51/I60: testar no homolog, confirmar o texto do ENC e ligar as chaves</li>
-            <li>Devolução pela I40: última alternativa; tela pronta, a testar no homolog</li>
-            <li>Retenção de XML ampliada para 60 dias</li>
-            <li>Puxada TSP: testar no homolog, criar as pastas Puxada e PuxadaTSP e publicar a release</li>
+            <li>I51/I60: preparar o WMS de produção, ligar as duas chaves com OK e testar o texto do ENC com o alerta imediato</li>
+            <li>Devolução pela I40: última alternativa, com login simples; tela pronta, a testar no homolog</li>
+            <li>Retenção de XML ajustada para 30 dias (a busca da devolução vale 30 dias)</li>
+            <li>Release 2026.11.13-1: criar as pastas Puxada e PuxadaTSP no servidor e publicar (janela de silêncio de 15 s)</li>
           </ul>
         </div>
       </div>

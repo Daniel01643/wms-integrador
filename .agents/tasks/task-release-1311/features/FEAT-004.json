@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-004",
+  "type": "docs",
+  "description": "Documentacao completa de tudo o que foi feito desde a release 06/11: Manual do Usuario, Manual Tecnico e Deck, com HTML/PDF regenerados e conferencia visual. Roda DEPOIS da implementacao aprovada. Os manuais ja cobrem Puxada/TSP, I51/I60, devolucao e tempo de integracao: revisar e completar (nao reescrever).",
+  "status": "completed",
+  "steps": [
+    "MANUAL-TECNICO.md: placa corrigida (Puxada normal COM placa, TSP sem: secao 8.2, tabela da secao 12, linha ~728); janela de silencio (secao 8, chaves ModoJanela/SilencioSegundos/JanelaMaximaSegundos, como voltar a Fixa); retencao 30 dias (~320, 328, 365, 525, 728) e impacto na devolucao; I60 QtdeVolumeZero/QtdeTotalNotaZero, resultado do homolog de 13/11 (7 de 7 associadas), pre-requisitos do WMS (EDI WEBAPI-I51 com WEBSERVI e evento interno do WMS que gera o retorno da separacao); alerta imediato (AlertaImediato, destinatarios-i60.txt, Estado\\i51\\alertas, copiar o texto do ENC para I60:PadroesDocCargaEncerrado); bloco Atencao do relatorio; Puxada e PuxadaTSP (pastas, ZIP, XML solto em PuxadaTSP com onda TSP-AAAAMMDD-NN, subpastas no ZIP, so .zip); relatorio novo (cabecalho, tempo de integracao, cartao Transportes); devolucao com login simples como ultima alternativa em secao propria.",
+    "MANUAL-USUARIO.md: mesmos temas em linguagem de operador: o que acontece depois de soltar os arquivos (coleta por silencio de 15 s, lote grande nao e cortado, teto de 3 min), placa (Puxada normal com placa, TSP sem), relatorio novo, retencao de 30 dias (~248), depois da separacao (I51/I60, alerta e bloco Atencao), devolucao com login simples (ultima alternativa, so a busca vale 30 dias).",
+    "apresentacao.html (UTF-8 COM BOM, edicoes cirurgicas por substituicao de trecho, preservar o BOM e as imagens base64; slides de horas intocados): linha ~611 'Retencao de XML ampliada para 60 dias' -> 30 dias; atualizar os slides de Puxada/TSP, placa ('Puxada normal com placa, Puxada TSP sem placa'), I51/I60 (7 de 7 associadas, QtdeVolumeZero/QtdeTotalNotaZero, pre-requisitos do WMS), janela de silencio, alerta imediato, devolucao (login simples) e proximos passos (testar texto do ENC com o alerta); manter o numero de slides e o rodape 'n / 14' coerentes.",
+    "Regenerar: powershell -NoProfile -ExecutionPolicy Bypass -File c:\\wms-integrador\\docs\\manuais\\gerar-manuais.ps1; PDFs dos manuais e apresentacao.pdf com Edge headless (--headless --disable-gpu --no-pdf-header-footer --print-to-pdf=<pdf> file:///<html>); conferir visualmente com screenshots (Edge --screenshot) das paginas alteradas e salvar em c:\\wms-integrador\\.agents\\tasks\\shots-docs-1311\\; abrir as imagens.",
+    "Verificar: sem 'Puxada normal sem placa' e sem '60 dias' (comportamento atual) em manuais e deck; BOM do deck preservado (primeiros bytes 239,187,191); slides de horas byte a byte iguais (comparar o trecho antes/depois por git diff); commit pt-BR 'docs: manuais e apresentacao da release 2026.11.13'."
+  ],
+  "acceptance_criteria": [
+    "Manuais (MD, HTML, PDF) e deck (HTML, PDF) descrevem Puxada/TSP, placa corrigida, relatorio novo, I51 como gatilho da I60 com resultado do homolog e pre-requisitos do WMS, alerta, janela de silencio, retencao de 30 dias e devolucao com login simples (secao propria, ultima alternativa)",
+    "Deck mantem UTF-8 com BOM e os slides de horas inalterados",
+    "Screenshots conferidos visualmente em .agents\\tasks\\shots-docs-1311",
+    "Nenhum valor monetario nem horas humanas inventadas nos textos"
+  ],
+  "verification": [
+    "powershell -NoProfile -ExecutionPolicy Bypass -File docs\\manuais\\gerar-manuais.ps1 termina sem erro e os HTML/PDF mudam",
+    "git diff --stat mostra so trechos esperados no apresentacao.html e o BOM presente",
+    "Select-String '60 dias' e 'sem placa' nos manuais/deck sem sobras do comportamento antigo"
+  ],
+  "blocked_reason": null,
+  "findings": "Manuais (MD, HTML, PDF) e deck (HTML, PDF) atualizados: janela de silencio (15 s, teto 180 s, ModoJanela=Fixa para voltar), placa (Puxada normal com placa, TSP sem), retencao de 30 dias e impacto na devolucao, defaults QtdeVolumeZero/QtdeTotalNotaZero, homolog 13/11 (7 de 7), pre-requisitos do WMS, alerta imediato (AlertaImediato, destinatarios-i60.txt, Estado\\i51\\alertas, calibracao do ENC), bloco Atencao, relatorio novo (cabecalho, tempo, cartao Transportes), devolucao com login simples em secao propria. Deck: 14 slides mantidos, BOM preservado, slides de horas intocados. Screenshots em .agents\\tasks\\shots-docs-1311. Detalhes em .agents\\tasks\\verificacao-docs-1311.md."
+}
