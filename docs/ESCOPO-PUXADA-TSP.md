@@ -40,7 +40,7 @@ importam os XMLs e criam à mão um agrupamento de onda por TSP, com separação
 9. Não sai nada disso para o manual da devolução (a tela da I40 continua fora do manual oficial).
 10. **Placa (13/11/2026):** a **Puxada TSP vai SEMPRE sem placa** (`placaVeiculo` em branco na I50), seja ZIP ou
     XML solto em `PuxadaTSP`. Chave própria `I50:EnviarPlacaVeiculoTsp` (padrão `false`). A Puxada normal
-    mantém `I50:EnviarPlacaVeiculo` (padrão `true`).
+    usa `I50:EnviarPlacaVeiculo`, que **também passou a `false` em 13/11/2026** (Puxada normal sem placa).
 
 ## 3. Regras de funcionamento
 
@@ -102,7 +102,7 @@ não muda: a onda continua sendo o número do transporte.)
 
 ### 3.4 Puxada normal
 Sem mudança: onda = número do transporte da nota. Nota sem transporte vira pendência, como hoje. A placa do
-veículo segue `I50:EnviarPlacaVeiculo` (padrão `true`); só a TSP é diferente (sem placa, ver decisão 10).
+veículo segue `I50:EnviarPlacaVeiculo`, configurada como `false` desde 13/11/2026 (sem placa, como a TSP).
 
 ### 3.5 Relatório (HTML e PDF) e e-mail de fechamento
 - Cada nota ganha a coluna **Tipo** (`PUXADA` ou `TSP`).

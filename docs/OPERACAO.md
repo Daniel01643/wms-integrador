@@ -384,7 +384,7 @@ Formato `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA` (`XML'S S
 A **Puxada TSP sempre vai ao WMS sem placa** (`placaVeiculo` em branco na I50), seja ZIP ou XML solto em
 `PuxadaTSP` (decisão de 13/11/2026). A chave é `I50:EnviarPlacaVeiculoTsp` (padrão `false`; override por env
 `I50__EnviarPlacaVeiculoTsp`). A Puxada normal (pasta `Puxada` e raiz) continua com `I50:EnviarPlacaVeiculo`
-(padrão `true`; `false` = sem placa).
+(configurada como `false` desde 13/11/2026: Puxada normal também sem placa; `true` volta a enviar a placa do XML).
 
 ### 8.4. O que o relatório e o e-mail mostram
 

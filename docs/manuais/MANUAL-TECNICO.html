@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-f44dd6f</span>
+    <span>Vers&atilde;o: 2026.11.13-cd07828</span>
   </div>
 </section>
   <header class="hd">
@@ -609,12 +609,12 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </tr></thead>
 <tbody>
 <tr>
-<td><code>true</code> (<strong>padrão</strong>)</td>
+<td><code>true</code></td>
 <td>Envia a placa exatamente como está no XML (<code>transp/veicTransp/placa</code>).</td>
 </tr>
 <tr>
-<td><code>false</code></td>
-<td>Envia a placa <strong>em branco</strong> (<code>placaVeiculo = ""</code>), como no comportamento anterior.</td>
+<td><code>false</code> (<strong>configurado desde 13/11/2026</strong>)</td>
+<td>Envia a placa <strong>em branco</strong> (<code>placaVeiculo = ""</code>).</td>
 </tr>
 </tbody></table>
 <p>A placa é enviada <strong>como está</strong> no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras transformações além do básico.</p>
@@ -629,7 +629,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <tr>
 <td>PUXADA (pasta <code>Puxada</code> e raiz)</td>
 <td><code>I50:EnviarPlacaVeiculo</code></td>
-<td><code>true</code> (envia a placa do XML)</td>
+<td><code>false</code> desde 13/11/2026 (sem placa)</td>
 </tr>
 <tr>
 <td>TSP (pasta <code>PuxadaTSP</code>)</td>

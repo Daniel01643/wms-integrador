@@ -386,8 +386,8 @@ XML da nota em **`transp/veicTransp/placa`**. Esse envio é controlado pela chav
 
 | Valor | Efeito |
 |---|---|
-| `true` (**padrão**) | Envia a placa exatamente como está no XML (`transp/veicTransp/placa`). |
-| `false` | Envia a placa **em branco** (`placaVeiculo = ""`), como no comportamento anterior. |
+| `true` | Envia a placa exatamente como está no XML (`transp/veicTransp/placa`). |
+| `false` (**configurado desde 13/11/2026**) | Envia a placa **em branco** (`placaVeiculo = ""`). |
 
 A placa é enviada **como está** no XML, sem maiúsculas/minúsculas forçadas, sem hífen e sem outras
 transformações além do básico.
@@ -400,7 +400,7 @@ governada só por `I50:EnviarPlacaVeiculo`.
 
 | Nota | Chave que decide | Padrão |
 |---|---|---|
-| PUXADA (pasta `Puxada` e raiz) | `I50:EnviarPlacaVeiculo` | `true` (envia a placa do XML) |
+| PUXADA (pasta `Puxada` e raiz) | `I50:EnviarPlacaVeiculo` | `false` desde 13/11/2026 (sem placa) |
 | TSP (pasta `PuxadaTSP`) | `I50:EnviarPlacaVeiculoTsp` | `false` (sempre sem placa) |
 
 Override por variável de ambiente: `I50__EnviarPlacaVeiculo` e `I50__EnviarPlacaVeiculoTsp`.
