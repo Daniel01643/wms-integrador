@@ -1,0 +1,9 @@
+{
+    "reviewDoc":  "c:/wms-integrador/.agents/tasks/docs-review-i51-i60.md",
+    "verdict":  "APPROVED",
+    "findings":  [
+                     "I40 sem slide proprio no deck: box no slide 6 e linha no slide 14 (baixo, possible)",
+                     "Slide 7: \u0027I60 sai junto da I50 como antes\u0027 so vale com I60:Habilitada=true; padrao e false (baixo, likely)",
+                     "PDFs nao reinspecionados; confiou-se na verificacao registrada (possible)"
+                 ]
+}
