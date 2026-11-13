@@ -100,7 +100,7 @@ public static class EnvioManualI40
                 if (opcoes.Count == 0)
                 {
                     logger.LogError(
-                        "Nota {Numero} série {Serie} não encontrada na retenção de 60 dias em {Pasta}.",
+                        "Nota {Numero} série {Serie} não encontrada na retenção de 30 dias em {Pasta}.",
                         numeroInt, serieInt, pastas.CaminhoProcessados);
                     return 2;
                 }
@@ -144,7 +144,7 @@ public static class EnvioManualI40
                 if (achado is null)
                 {
                     logger.LogError(
-                        "XML da chave {Chave} não encontrado em {Pasta} (retenção de 60 dias; Erro não é pesquisada).",
+                        "XML da chave {Chave} não encontrado em {Pasta} (retenção de 30 dias; Erro não é pesquisada).",
                         chave, pastas.CaminhoProcessados);
                     return 2;
                 }

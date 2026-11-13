@@ -108,7 +108,7 @@ public sealed class ServicoDevolucao : IServicoDevolucao
                 if (caminho is null)
                 {
                     resultados[i] = Local(chave, notaDaChave, StatusChaveDevolucao.XmlNaoEncontrado,
-                        "XML não encontrado na retenção de 60 dias.");
+                        "XML não encontrado na retenção de 30 dias.");
                     continue;
                 }
 

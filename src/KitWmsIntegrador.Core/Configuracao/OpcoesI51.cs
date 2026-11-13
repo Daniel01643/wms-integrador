@@ -70,8 +70,8 @@ public sealed class OpcoesI51
     /// <summary>Máximo de UNICO de recuperação por ciclo (0 a 200; 0 desliga).</summary>
     public int MaxUnicoPorCiclo { get; set; } = 10;
 
-    /// <summary>Retenção do estado terminal, XML copiado e brutos processados, em dias (7 a 3650).</summary>
-    public int DiasRetencaoEstado { get; set; } = 60;
+    /// <summary>Retenção do estado terminal, XML copiado e brutos processados, em dias (7 a 3650; padrão 30, ajustado de 60 em 13/11/2026).</summary>
+    public int DiasRetencaoEstado { get; set; } = 30;
 
     /// <summary><c>Zerar</c> ou <c>Omitir</c>: item da nota que o WMS não devolveu.</summary>
     public string ItemSemRetorno { get; set; } = "Zerar";

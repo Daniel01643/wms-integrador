@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "chore",
+  "description": "Defaults da I60 validados no homolog, correcao da placa (Puxada normal COM placa, TSP sem) e retencao de 60 para 30 dias, em codigo, config, testes e docs tecnicas (sem manuais/deck). Independente de FEAT-001; vem antes de FEAT-003 porque FEAT-003 tambem edita appsettings e OPERACAO.md.",
+  "status": "completed",
+  "steps": [
+    "src\\KitWmsIntegrador.Worker\\appsettings.json e deploy\\config-exemplo\\appsettings.Production.json: I60:QtdeVolumeZero=true e I60:QtdeTotalNotaZero=true com comentario (validado no homolog em 13/11/2026; DocCarga separado tem volume 0); I51/I60/Devolucao Habilitada=false mantidos; I50:EnviarPlacaVeiculo=true (comentario: Puxada normal envia a placa do XML; o false de 13/11 foi so no teste local) e EnviarPlacaVeiculoTsp=false; Limpeza:DiasRetencao=30 e I51:DiasRetencaoEstado=30 (comentarios); no exemplo de producao acrescentar blocos I51 (Habilitada=false, pre-requisitos do WMS no comentario) e Pacote se faltarem.",
+    "OpcoesLimpeza.cs (DiasRetencao=30) e OpcoesI51.cs (DiasRetencaoEstado=30 + comentarios); trocar 'retencao de 60 dias' por 30 em ModelosDevolucao.cs, ServicoDevolucao.cs (linha ~111), Worker\\TelaDevolucao\\TelaDevolucaoApp.cs (~88), PaginaDevolucao.html (~184 e ~410), Worker\\EnvioManualI40.cs (~103 e ~147), deploy\\compartilhar-pasta.ps1 (~120), deploy\\limpar-extensao-invalida.ps1 (~9).",
+    "Testes: LimpadorPastasTests (padrao 30; preserva ate 30 dias e remove depois), LimpezaSubpastaTests (comentario), ServicoDevolucaoTests (~105), TelaDevolucaoEndpointTests (~194), OpcoesSeparacaoTests se afirmar o padrao; PlacaTspConfiguracaoTests (teste do appsettings do Worker: Puxada com placa, TSP sem placa, renomear o metodo); novo ConfiguracaoReleaseTests.cs lendo o appsettings.json real: QtdeVolumeZero e QtdeTotalNotaZero true, I51/I60/Devolucao Habilitada false, DiasRetencao 30, DiasRetencaoEstado 30, EnviarPlacaVeiculo true, EnviarPlacaVeiculoTsp false.",
+    "Docs tecnicas (nao manuais, nao deck): ARQUITETURA.md (~17, 97, 307), OPERACAO.md (~131, 221, 414, 423, 444 e a secao 8.3.1 da placa e demais mencoes por grep), ESCOPO-PUXADA-TSP.md (decisao 10 e 3.4: Puxada normal com placa), ARQUITETURA-PLANO-B-I40.md (60->30 onde e o comportamento atual, nota de ajuste em 13/11/2026), ROTEIRO-TESTE-I40.md (~178, 185), ESCOPO-I51-I60.md (~71), INSTALACAO-SERVIDOR.md (~320). Nao tocar em docs\\diario, docs\\controle, CONTROLE-ESFORCO.md.",
+    "Build e testes na copia temporaria; commit local pt-BR 'config: defaults da I60, placa e retencao de 30 dias'."
+  ],
+  "acceptance_criteria": [
+    "appsettings.json e exemplo de producao tem I60 QtdeVolumeZero/QtdeTotalNotaZero true, I51/I60/Devolucao Habilitada false, placa true/TSP false, retencao 30",
+    "Nenhum texto de comportamento atual diz 60 dias em src, deploy e docs tecnicas (exceto diario/controle, manuais e deck)",
+    "Nenhuma doc tecnica diz que a Puxada normal vai sem placa",
+    "dotnet build Release com 0 avisos e dotnet test Release sem falhas"
+  ],
+  "verification": [
+    "dotnet build KitWmsIntegrador.sln -c Release na copia temporaria (0 avisos)",
+    "dotnet test KitWmsIntegrador.sln -c Release (suite completa) sem falhas",
+    "Select-String -Pattern '60 dias|retencao de 60|retenção de 60' em src, deploy e docs (exceto diario, controle, manuais) sem sobras do comportamento atual"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementado. appsettings.json e exemplo de producao: I60 QtdeVolumeZero/QtdeTotalNotaZero=true, I51/I60/Devolucao Habilitada=false, I50 EnviarPlacaVeiculo=true e EnviarPlacaVeiculoTsp=false, Limpeza:DiasRetencao=30 e I51:DiasRetencaoEstado=30; exemplo ganhou bloco I51 (Habilitada=false, pre-requisitos do WMS) e ja tinha Pacote. Codigo: OpcoesLimpeza/OpcoesI51 com padrao 30; textos de retencao 60->30 em Core, Worker, deploy, testes e docs tecnicas (ARQUITETURA, OPERACAO, ESCOPO-PUXADA-TSP, ARQUITETURA-PLANO-B-I40, ROTEIRO-TESTE-I40, ESCOPO-I51-I60, INSTALACAO-SERVIDOR, ENCERRAMENTO so a linha da placa). Testes: LimpadorPastasTests (30 dias, idades 29/31), PlacaTspConfiguracaoTests (appsettings: Puxada com placa, TSP sem; metodo renomeado), novo ConfiguracaoReleaseTests (5 testes). Verificacao na copia temporaria (apagada): dotnet build Release 0 avisos 0 erros; dotnet test Release 910 aprovados, 0 falhas, 9 ignorados. Varredura de 60 dias em src/deploy/docs (exceto diario, controle, manuais, deck): so resta docs/ENCERRAMENTO.md linha 16 (historico de 09-10/11, fica para FEAT-005). Nao tocado: manuais, deck, docs/diario, docs/controle."
+}

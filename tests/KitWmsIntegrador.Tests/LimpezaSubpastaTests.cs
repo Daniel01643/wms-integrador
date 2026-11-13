@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace KitWmsIntegrador.Tests;
 
 /// <summary>
-/// Limpeza de 60 dias da Etapa 7c: a subpasta de pacote vencida é removida por INTEIRO (idade pela
+/// Limpeza de 30 dias da Etapa 7c: a subpasta de pacote vencida é removida por INTEIRO (idade pela
 /// MAIOR LastWriteTimeUtc do seu conteúdo); subpastas dentro do prazo e as pastas protegidas
 /// (Entrada/Estado/Relatórios) ficam intactas; config perigosa é recusada.
 /// </summary>

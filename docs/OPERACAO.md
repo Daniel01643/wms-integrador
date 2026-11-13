@@ -138,7 +138,7 @@ vale o primeiro registrado. Uma nota em voo na queda ainda pode ser reenviada um
 existe", ela segue para `Processados` e a mensagem começa com "Já existia no WMS (reprocesso)".
 ## 3. Limpeza
 
-`Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **60**; o Plano B precisa achar o XML da venda original por até 60 dias). Roda na partida e a cada 24 h.
+`Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **30**; o Plano B precisa achar o XML da venda original por até 30 dias). Roda na partida e a cada 24 h.
 A limpeza opera por **subpasta de pacote**: cada subpasta imediata de `Processados`/`Erro` é removida
 **por inteiro** quando toda ela está vencida, usando a **maior** (`LastWriteTimeUtc` mais recente) data
 do seu conteúdo — assim um pacote que ainda tenha qualquer arquivo dentro do prazo é preservado inteiro.
@@ -229,7 +229,7 @@ SChannel do sistema (validar no servidor).
     "ModoJanela": "Silencio", "SilencioSegundos": 15, "JanelaMaximaSegundos": 180, "JanelaColetaSegundos": 10,
     "TimeoutArquivoSegundos": 300, "BackoffMaximoSegundos": 120, "MaxTransportesConcorrentes": 1
   },
-  "Limpeza": { "Habilitada": true, "DiasRetencao": 60 }
+  "Limpeza": { "Habilitada": true, "DiasRetencao": 30 }
 }
 ```
 
@@ -390,12 +390,12 @@ Formato `TSP-AAAAMMDD-NN-NOME`, por exemplo `TSP-20261111-01-SOROCABA` (`XML'S S
   cria uma segunda onda. Um ZIP diferente com o mesmo nome ganha novo `NN`.
 - O DocCarga continua sendo um por nota. Nota de TSP sem transporte sobe normalmente.
 
-### 8.3.1. Placa do veículo na TSP
+### 8.3.1. Placa do veículo (Puxada com placa, TSP sem placa)
 
 A **Puxada TSP sempre vai ao WMS sem placa** (`placaVeiculo` em branco na I50), seja ZIP ou XML solto em
 `PuxadaTSP` (decisão de 13/11/2026). A chave é `I50:EnviarPlacaVeiculoTsp` (padrão `false`; override por env
 `I50__EnviarPlacaVeiculoTsp`). A Puxada normal (pasta `Puxada` e raiz) continua com `I50:EnviarPlacaVeiculo`
-(configurada como `false` desde 13/11/2026: Puxada normal também sem placa; `true` volta a enviar a placa do XML).
+(configurada como `true`: a Puxada normal **vai com a placa** lida do XML; `false` envia em branco). O `false` de 13/11/2026 foi só no teste local.
 
 ### 8.4. O que o relatório e o e-mail mostram
 
@@ -422,7 +422,7 @@ A **Puxada TSP sempre vai ao WMS sem placa** (`placaVeiculo` em branco na I50), 
 Recurso **desligado** (`Devolucao:Habilitada=false`). Nada foi ligado em produção. Quando ligado, o
 Worker abre uma página web simples na porta `Devolucao:Porta` (padrão 8085), com um login simples (só identifica quem envia), onde o
 colaborador digita ou bipa a chave de NF-e, ou pesquisa pelo número da nota + série (até 30 notas por envio). O sistema localiza o XML da venda em
-`Processados` (retenção de 60 dias), monta a I40 (`tipoNota=DE`) e envia ao WMS, mostrando o
+`Processados` (retenção de 30 dias), monta a I40 (`tipoNota=DE`) e envia ao WMS, mostrando o
 resultado por chave.
 
 - **Sem placa:** a placa e o motorista foram removidos da tela e do código (10/11/2026). O envio vai
@@ -431,7 +431,7 @@ resultado por chave.
 - **Busca por número + série:** `GET /api/devolucao/buscar`. Lê só os nomes dos arquivos
   `NFE<chave>.XML` em `Processados` e `pacote_*` (nunca `Erro`), filtra pelo CNPJ de
   `Operacional:CnpjDepositante` e, havendo mais de uma chave para o mesmo número e série, a tela pede
-  a escolha (nada é enviado sozinho). Sem resultado: "Nota não encontrada na retenção de 60 dias."
+  a escolha (nada é enviado sozinho). Sem resultado: "Nota não encontrada na retenção de 30 dias."
 - **Auditoria:** `<Estado>\devolucao\devolucao_yyyyMMdd.log` (ou `Devolucao:PastaAuditoria`), uma linha por
   chave com data, IP de origem, **usuário do WMS informado na tela**, chave, nota, status, transação e mensagem
   (linhas antigas têm 7 campos, sem o usuário). Sem senha. Cada chave também aparece em `logs\worker.out.log`
@@ -452,7 +452,7 @@ resultado por chave.
 ## 10. Retorno de separação (I51) e relatório diário da I60
 
 - Chaves (todas `false` por padrão): `I51__Habilitada`, `I60__Habilitada`. Demais chaves em `appsettings.json`, seções `I51`, `I60` (padrões e `TpAcaoReenvioImp`) e `RelatorioI60`.
-- Estado em `Estado\i51\` (`notas`, `xml`, `orfaos`, `brutos\pendentes|processados|falhos`, `comandos`, `consulta.json`). Retenção: `I51__DiasRetencaoEstado` (60).
+- Estado em `Estado\i51\` (`notas`, `xml`, `orfaos`, `brutos\pendentes|processados|falhos`, `comandos`, `consulta.json`). Retenção: `I51__DiasRetencaoEstado` (30).
 - Comandos: `--consultar-i51 --tipo UNICO --cnpj <cnpj> --numero <n>`; `--reenfileirar-i60 --chave <c>|--motivo <MotivoI60>` (o Worker em execução aplica no ciclo seguinte); `--relatorio-i60 [--enviar]`.
 - Relatório diário às 12:00 em `Relatorio:PastaSaida\i60`; destinatários em `destinatarios-i60.txt` (telemetria), com fallback na lista do resumo semanal.
 - Logs não trazem token, senha nem corpo de nota. Roteiro de teste: `ROTEIRO-TESTE-I51-I60.md`.

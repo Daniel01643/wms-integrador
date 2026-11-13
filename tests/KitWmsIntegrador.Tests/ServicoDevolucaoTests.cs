@@ -102,7 +102,7 @@ public sealed class ServicoDevolucaoTests : IDisposable
         Assert.Equal(
             new[] { StatusChaveDevolucao.ChaveInvalida, StatusChaveDevolucao.Enviada, StatusChaveDevolucao.XmlNaoEncontrado, StatusChaveDevolucao.ChaveInvalida },
             r.Resultados.Select(x => x.Status).ToArray());
-        Assert.Contains("60 dias", r.Resultados[2].Mensagem);
+        Assert.Contains("30 dias", r.Resultados[2].Mensagem);
     }
 
     [Fact]

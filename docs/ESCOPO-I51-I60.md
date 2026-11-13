@@ -68,7 +68,7 @@ I50 aceita → AguardandoSeparacao → (I51 retornou) Separada → I60 enviada �
 
 - Como casar o retorno da I51 com a nota enviada: `Numero` do documento × número do
   doccarga/transporte que enviamos na I50; filtro por CNPJ.
-- Onde guardar o estado (padrão `Estado\i51\`) e por quanto tempo (retenção, como a de 60 dias).
+- Onde guardar o estado (padrão `Estado\i51\`) e por quanto tempo (retenção, como a de 30 dias).
 - Se a I60 atual (ConstrutorI60, `I60:Habilitada`) é disparada junto com a I50 — ela deve
   passar a ser disparada **somente** pelo fluxo da I51.
 - Reaproveitar o agendador do resumo semanal (Monitoramento) para o relatório diário das 12:00.

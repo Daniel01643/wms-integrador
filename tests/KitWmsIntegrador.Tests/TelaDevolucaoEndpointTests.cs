@@ -191,7 +191,7 @@ public sealed class TelaDevolucaoEndpointTests : IAsyncLifetime
         var corpo = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-        Assert.Equal("Nota não encontrada na retenção de 60 dias.", corpo.GetProperty("erro").GetString());
+        Assert.Equal("Nota não encontrada na retenção de 30 dias.", corpo.GetProperty("erro").GetString());
     }
 
     [Fact]

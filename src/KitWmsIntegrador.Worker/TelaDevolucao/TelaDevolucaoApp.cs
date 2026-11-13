@@ -85,7 +85,7 @@ public static class TelaDevolucaoApp
                 if (busca.Opcoes.Count == 0)
                 {
                     return Results.Json(
-                        new { erro = "Nota não encontrada na retenção de 60 dias.", numero = busca.Numero, serie = busca.Serie },
+                        new { erro = "Nota não encontrada na retenção de 30 dias.", numero = busca.Numero, serie = busca.Serie },
                         statusCode: 404);
                 }
 

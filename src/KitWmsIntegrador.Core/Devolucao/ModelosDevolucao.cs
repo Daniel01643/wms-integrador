@@ -12,7 +12,7 @@ public enum StatusChaveDevolucao
     /// <summary>WMS recusou ou o envio falhou; a mensagem traz o texto do WMS.</summary>
     ErroWms,
 
-    /// <summary>XML da venda não encontrado em Processados (retenção de 60 dias).</summary>
+    /// <summary>XML da venda não encontrado em Processados (retenção de 30 dias).</summary>
     XmlNaoEncontrado,
 
     /// <summary>Chave sem 44 dígitos ou com dígito verificador inválido.</summary>

@@ -144,7 +144,7 @@ public class PlacaTspConfiguracaoTests
     }
 
     [Fact]
-    public void AppsettingsDoWorker_TrazTspEPuxadaSemPlaca()
+    public void AppsettingsDoWorker_TrazPuxadaComPlacaETspSemPlaca()
     {
         var caminho = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
         var config = new ConfigurationBuilder().AddJsonFile(caminho, optional: false).Build();
@@ -152,8 +152,8 @@ public class PlacaTspConfiguracaoTests
         var opcoes = new OpcoesI50();
         config.GetSection(OpcoesI50.Secao).Bind(opcoes);
 
-        // Decisão de 13/11/2026: Puxada normal e TSP vão sem placa.
-        Assert.False(opcoes.EnviarPlacaVeiculo);
+        // Puxada normal envia a placa do XML; a TSP vai sempre sem placa (o false de 13/11/2026 foi só no teste local).
+        Assert.True(opcoes.EnviarPlacaVeiculo);
         Assert.False(opcoes.EnviarPlacaVeiculoTsp);
     }
 }

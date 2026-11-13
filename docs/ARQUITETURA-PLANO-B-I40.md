@@ -22,7 +22,7 @@ ou bipa (leitor de código de barras) as chaves de NF-e. A rotina:
 3. envia ao WMS e mostra o resultado por chave.
 
 Decisões do usuário: sem autenticação real (a tela só lê XML e envia, não guarda nada e não altera dados
-locais); retenção de 60 dias (já aplicada em `Limpeza:DiasRetencao`); XML convertido é o da
+locais); retenção de 30 dias (ajustada de 60 para 30 em 13/11/2026; já aplicada em `Limpeza:DiasRetencao`); XML convertido é o da
 venda original.
 
 ## 2. Fluxo
@@ -168,7 +168,7 @@ ambiente (`Devolucao__Habilitada=true`), no mesmo padrão da I60.
 
 | Risco | Tratamento proposto |
 |---|---|
-| XML fora da retenção (mais de 60 dias) | Mensagem "XML não encontrado (retenção de 60 dias)". Fallback: orientar importação manual no WMS. |
+| XML fora da retenção (mais de 30 dias) | Mensagem "XML não encontrado (retenção de 30 dias)". Fallback: orientar importação manual no WMS. |
 | Chave inexistente ou digitada errada | Validar 44 dígitos e dígito verificador (módulo 11) na tela, antes de procurar. |
 | Nota já devolvida / envio duplicado | Sem guardar estado (decisão do usuário), a proteção fica no WMS (rejeita duplicidade, a validar no homolog). Mitigação local leve: avisar se a mesma chave aparece duas vezes no mesmo envio. Se for preciso histórico, exige guardar estado (decisão a tomar, P7). |
 | Nota original nunca integrada (está em `Erro\`) | Não localizar em `Erro`; informar "nota não consta como integrada". |
@@ -294,7 +294,7 @@ Conclusões:
 | A | `InverterPartes` padrão **false**. A variante invertida não é necessária; a opção continua existindo e está documentada como validada. | `Devolucao:InverterPartes` |
 | B | `tipoOperacaoNota` padrão passa de ICD para **IMP**. | `Devolucao:TipoOperacaoNota` = `IMP` |
 | C | **Substituída pela decisão F (seção 19): a placa foi removida.** Texto original: a **tela tinha um flag** "Enviar placa do veículo", que começa **desligado**. Placa desligada: `tipoOperacaoNota` = `TipoOperacaoNota` (IMP), `placaVeiculoPrevistoNota` e `nomeMotorista` em branco, sem exigir placa nem motorista. Placa ligada: `tipoOperacaoNota` = `TipoOperacaoNotaComPlaca` (ICD), placa obrigatória e `nomeMotorista` = `Devolucao:NomeMotorista` (obrigatório configurar). | chaves `EnviarPlacaPadrao`, `TipoOperacaoNotaComPlaca` e `NomeMotorista` (removidas do código) |
-| D | CFOP da venda, `tipoNota` DE, sem autenticação na tela (só login declarado, seção 20). Retenção de 60 dias (`Limpeza:DiasRetencao`) já existente. | `ConstrutorI40`; `Devolucao:TipoNota` = `DE` |
+| D | CFOP da venda, `tipoNota` DE, sem autenticação na tela (só login declarado, seção 20). Retenção de 30 dias (`Limpeza:DiasRetencao`) já existente. | `ConstrutorI40`; `Devolucao:TipoNota` = `DE` |
 
 ## 15. Estado da fase 2 (tela web no Worker)
 
@@ -335,12 +335,12 @@ Override por variável de ambiente: `Devolucao__Habilitada`, `Devolucao__Porta`,
 |---|---|
 | `GET /` | A página HTML única. |
 | `GET /api/config` | `{ "maxChaves": 30 }` |
-| `GET /api/devolucao/buscar?numero=&serie=` | Resolve número + série em chave(s): 200 com `numero`, `serie` e `opcoes[]` (`chave`, `numero`, `serie`, `dataArquivo`, `pacote`); 404 "Nota não encontrada na retenção de 60 dias."; 400 para entrada inválida; 503 sem `Pastas:Entrada` ou CNPJ do depositante. Não envia nada ao WMS. |
+| `GET /api/devolucao/buscar?numero=&serie=` | Resolve número + série em chave(s): 200 com `numero`, `serie` e `opcoes[]` (`chave`, `numero`, `serie`, `dataArquivo`, `pacote`); 404 "Nota não encontrada na retenção de 30 dias."; 400 para entrada inválida; 503 sem `Pastas:Entrada` ou CNPJ do depositante. Não envia nada ao WMS. |
 | `GET /api/saude` | `{ "status": "ok" }` |
 | `POST /api/devolucao/enviar` | Corpo `{ "chaves": [...] }`. Resposta 200 com `total`, `enviadas`, `transacao` e `resultados[]` (`chave`, `nota`, `serie`, `status`, `sucesso`, `mensagem`). |
 
 `status`: `Enviada`, `ErroWms` (texto do WMS sem alteração), `XmlNaoEncontrado` ("XML não encontrado
-na retenção de 60 dias."), `ChaveInvalida` e `ErroInterno`. Erros do pedido: **400** (corpo
+na retenção de 30 dias."), `ChaveInvalida` e `ErroInterno`. Erros do pedido: **400** (corpo
 inválido, lista vazia, mais chaves que o máximo), **503**
 (`Pastas:Entrada` não configurado) e **500** genérico, sem detalhe
 interno, para falha inesperada (o detalhe vai para o log). O corpo aceito tem no máximo 64 KB. A
@@ -418,14 +418,14 @@ traz tudo. Layout da chave (44 dígitos, posições a partir de 1): cUF 1-2, AAM
 7-20, modelo 21-22, série 23-25, número 26-34, tpEmis 35, cNF 36-43, DV 44.
 
 - Pastas: as mesmas do localizador atual (`Processados` e `Processados\pacote_*`, nunca `Erro`), na
-  mesma retenção de 60 dias.
+  mesma retenção de 30 dias.
 - Filtro: só entram arquivos cujo nome é uma chave válida (44 dígitos e DV) e cujo CNPJ do emitente
   é o do depositante (`Operacional:CnpjDepositante`, BRF 01.838.723/0098-50; compara só os dígitos).
 - Número e série são comparados como **inteiros** (zeros à esquerda não contam: `006` é igual a `6`).
 - A mesma chave em mais de um pacote vale uma vez, pela cópia mais recente.
 - **Uma** chave encontrada: entra na lista. **Mais de uma chave distinta** para o mesmo número e série:
   a tela mostra as opções (chave, data do arquivo, pacote) e o colaborador escolhe; **nada é enviado
-  automaticamente**. **Nenhuma**: "Nota não encontrada na retenção de 60 dias."
+  automaticamente**. **Nenhuma**: "Nota não encontrada na retenção de 30 dias."
 - Endpoint: `GET /api/devolucao/buscar?numero=&serie=` (tabela da seção 15). O servidor valida as
   entradas (só dígitos; número com no máximo 9 e série com no máximo 3).
 - Modo manual: `--enviar-i40 --chave <44 dígitos>` ou `--enviar-i40 --numero <n> --serie <s>`, mais

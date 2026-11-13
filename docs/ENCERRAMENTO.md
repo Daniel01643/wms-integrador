@@ -71,7 +71,7 @@ rollback, segredos).
 - **Esforço registrado só em horas** (steering `.kiro\steering\esforco-em-horas.md`).
 - **Subpastas por pacote** em `Processados` e `Erro`.
 - **Não-XML** vai para `Erro\<pacote>\ExtensaoInvalida` com `.motivo.txt`; temporários ignorados.
-- **Placa do veículo** na I50 via `I50:EnviarPlacaVeiculo` (padrão ligado) para a Puxada. A **Puxada TSP vai sempre sem placa**
+- **Placa do veículo** na I50 via `I50:EnviarPlacaVeiculo` (padrão ligado: Puxada normal COM placa) para a Puxada. A **Puxada TSP vai sempre sem placa**
   (13/11/2026): chave própria `I50:EnviarPlacaVeiculoTsp`, padrão `false`.
 - **TLS 1.2/1.3 forçado** no cliente HTTP e **GetToken com retry** (causa dos 401 em massa no 2012 R2).
 - **Resumo semanal**: segunda 12:00 (hora local do servidor).

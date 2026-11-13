@@ -6,7 +6,7 @@
 .DESCRIPTION
     Roda NO SERVIDOR (RDP) ou via WinRM. Remove o conteudo e a propria pasta de cada
     `Erro\<pacote_...>\ExtensaoInvalida` encontrada sob a Entrada informada, sem esperar o ciclo
-    automatico de limpeza de 60 dias. E IDEMPOTENTE (rodar de novo sem itens apenas informa que nao
+    automatico de limpeza de 30 dias. E IDEMPOTENTE (rodar de novo sem itens apenas informa que nao
     ha nada a remover) e suporta `-WhatIf` (lista o que faria e NAO apaga nada).
 
     GUARDAS DE SEGURANCA (so apaga DENTRO de <Entrada>\Erro, nunca fora):

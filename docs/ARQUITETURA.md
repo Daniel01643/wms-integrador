@@ -14,7 +14,7 @@ iteração. Ver `BRIEFING.md` para as regras de negócio.
 > caixas dos itens, não mais `transp/vol/qVol`). Em produção continua desligada; o teste é em
 > homolog (`docs/wms-codigo-customizado/ROTEIRO-TESTE-HOMOLOG.md`). O tipo de operação da I60 é
 > configurável (`I60:TipoOperacaoNota`, padrão `INE`). A retenção de `Processados`/`Erro` passou
-> para 60 dias. O Plano B (devolução pela I40) está arquitetado em `ARQUITETURA-PLANO-B-I40.md`
+> para 60 dias (ajustada para 30 dias em 13/11/2026). O Plano B (devolução pela I40) está arquitetado em `ARQUITETURA-PLANO-B-I40.md`
 > (não implementado).
 >
 > **Atualização (12/11/2026, Puxada TSP):** a entrada tem as subpastas `Puxada` e `PuxadaTSP` (e a raiz,
@@ -306,7 +306,7 @@ trava real é do WMS. Consequência no reprocesso de um grupo falho:
 2. **Fase 2 — alertas**: notificador por e-mail nas exceções definidas.
 3. **Fase 3 — automação total**: watcher contínuo da pasta, concorrência ajustada.
    *Implementada na Etapa 7* (ver §2.1 e `docs/OPERACAO.md`): watcher por polling,
-   pacote com início/fim, movimentação, limpeza de 60 dias (era 10; ampliada em 09/11 para o Plano B) e e-mail com PDF.
+   pacote com início/fim, movimentação, limpeza de 30 dias (era 10; ampliada para 60 em 09/11 para o Plano B e ajustada para 30 em 13/11/2026) e e-mail com PDF.
 
 ---
 

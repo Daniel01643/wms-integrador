@@ -175,14 +175,14 @@ dotnet run --project c:\wms-integrador\src\KitWmsIntegrador.Worker -c Release
      data do arquivo e pacote, e o botão "Usar esta chave" em cada linha. Esperado: nada entra na lista
      até escolher. Se não houver caso real no homolog, esse cenário está coberto pelos testes
      automatizados; anote "não reproduzido".
-   - **Nota não encontrada:** número `999999` série `6`. Esperado: "Nota não encontrada na retenção de 60 dias."
+   - **Nota não encontrada:** número `999999` série `6`. Esperado: "Nota não encontrada na retenção de 30 dias."
    - **Entrada inválida:** número com letras ou mais de 9 dígitos, série com mais de 3 dígitos. Esperado:
      mensagem de erro, sem consultar a retenção.
    - **Duplicidade:** use a nota 15671241 (série 6, chave `35251201838723009850550060156712411843547443`),
      que já foi devolvida antes. Esperado: a tela mostra o que o WMS responder (registre o texto da mensagem
      de duplicidade).
    - **Chave inválida** (mude um dígito): "Chave inválida", sem tentar enviar.
-   - **Chave sem XML** (chave válida de outra nota): "XML não encontrado (retenção de 60 dias)".
+   - **Chave sem XML** (chave válida de outra nota): "XML não encontrado (retenção de 30 dias)".
    - **Duplicada na lista:** colar a mesma chave duas vezes, ou adicionar por chave e depois por número e
      série, mantém só uma.
    - **Teclado e leitor:** digitar a chave e teclar Enter adiciona; nos campos de número e série o Enter

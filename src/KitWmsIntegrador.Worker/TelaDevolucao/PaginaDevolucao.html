@@ -181,7 +181,7 @@
   var ROTULOS = {
     Enviada: ['Enviada com sucesso', 'ok', '\u2714 '],
     ErroWms: ['Erro do WMS', 'err', '\u2716 '],
-    XmlNaoEncontrado: ['XML não encontrado (retenção de 60 dias)', 'warn', '\u26A0 '],
+    XmlNaoEncontrado: ['XML não encontrado (retenção de 30 dias)', 'warn', '\u26A0 '],
     ChaveInvalida: ['Chave inválida', 'err', '\u2716 '],
     ErroInterno: ['Erro ao ler o XML', 'err', '\u2716 ']
   };
@@ -407,7 +407,7 @@
           aviso('msg-busca', '');
           mostrarOpcoes(res.dados);
         } else {
-          aviso('msg-busca', 'Nota não encontrada na retenção de 60 dias.', 'erro');
+          aviso('msg-busca', 'Nota não encontrada na retenção de 30 dias.', 'erro');
         }
       }).catch(function () {
         aviso('msg-busca', 'Sem conexão com o serviço. Verifique a rede e tente novamente.', 'erro');
