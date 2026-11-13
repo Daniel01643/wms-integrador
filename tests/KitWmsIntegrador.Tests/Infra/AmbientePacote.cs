@@ -119,6 +119,9 @@ public sealed class AmbientePacote : IDisposable
 
     public IGeradorRelatorio? GeradorSubstituto { get; set; }
 
+    /// <summary>Registrador da separação (I51) injetado no ProcessadorLote; null = comportamento anterior.</summary>
+    public KitWmsIntegrador.Core.Separacao.IRegistradorSeparacao? RegistradorSeparacao { get; set; }
+
     public string Caminho(string nome) => Path.Combine(Entrada, nome);
 
     /// <summary>Grava um XML de NF-e sintético na entrada e devolve o caminho.</summary>
@@ -254,7 +257,8 @@ public sealed class AmbientePacote : IDisposable
             Options.Create(Pacote),
             new LeitorZipSeguro(Options.Create(new OpcoesZip()), Options.Create(Pastas), NullLogger<LeitorZipSeguro>.Instance),
             new RegistroOndasTsp(Clock, Options.Create(Pastas), NullLogger<RegistroOndasTsp>.Instance),
-            NullLogger<ProcessadorLote>.Instance);
+            NullLogger<ProcessadorLote>.Instance,
+            RegistradorSeparacao);
     }
 
     public GerenciadorPacote CriarGerenciador(IOrquestrador orquestrador)

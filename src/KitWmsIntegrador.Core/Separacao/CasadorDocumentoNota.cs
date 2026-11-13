@@ -87,7 +87,7 @@ public sealed class CasadorDocumentoNota
         var consumidos = 0;
         foreach (var (arquivo, o) in lista)
         {
-            if (Destino(Converter(o), out _) == DestinoDoc.Descartar)
+            if (Destino(Converter(o), out _, out _) == DestinoDoc.Descartar)
             {
                 _orfaos.Remover(arquivo);
                 consumidos++;
@@ -103,13 +103,14 @@ public sealed class CasadorDocumentoNota
     private ResultadoCasamento Resolver(IReadOnlyList<DocumentoI51> docs, string brutoOrigem, bool guardarOrfaos)
     {
         var porNota = new Dictionary<string, List<DocumentoI51>>(StringComparer.Ordinal);
+        var ambiguas = new HashSet<string>(StringComparer.Ordinal);
         var orfaos = 0;
         var descartados = 0;
         var falhas = 0;
 
         foreach (var doc in docs)
         {
-            switch (Destino(doc, out var nota))
+            switch (Destino(doc, out var nota, out var ambigua))
             {
                 case DestinoDoc.Casa:
                     if (!porNota.TryGetValue(nota!.Chave, out var lista))
@@ -118,6 +119,11 @@ public sealed class CasadorDocumentoNota
                     }
 
                     lista.Add(doc);
+                    if (ambigua)
+                    {
+                        ambiguas.Add(nota.Chave);
+                    }
+
                     break;
                 case DestinoDoc.Descartar:
                     descartados++;
@@ -144,7 +150,7 @@ public sealed class CasadorDocumentoNota
         var separadas = 0;
         foreach (var (chave, docsNota) in porNota)
         {
-            if (Aplicar(chave, docsNota, brutoOrigem))
+            if (Aplicar(chave, docsNota, brutoOrigem, ambiguas.Contains(chave)))
             {
                 separadas++;
             }
@@ -158,9 +164,10 @@ public sealed class CasadorDocumentoNota
     }
 
     // Decide o destino de um documento. Desempate: CNPJ destinatário, depois a nota mais antiga.
-    private DestinoDoc Destino(DocumentoI51 doc, out NotaSeparacao? nota)
+    private DestinoDoc Destino(DocumentoI51 doc, out NotaSeparacao? nota, out bool ambigua)
     {
         nota = null;
+        ambigua = false;
         var todas = _repositorio.Listar().Where(n => Igual(n.Numero, doc.Numero)).ToList();
         var candidatas = todas.Where(n => n.Situacao is SituacaoNota.AguardandoSeparacao or SituacaoNota.Atrasada).ToList();
         if (candidatas.Count == 0)
@@ -180,13 +187,14 @@ public sealed class CasadorDocumentoNota
         nota = candidatas.OrderBy(n => n.RegistradaEm).First();
         if (candidatas.Count > 1)
         {
+            ambigua = true;
             _logger.LogWarning("Documento {Numero} da I51 ambíguo ({Quantidade} notas); casado com a mais antiga.", doc.Numero, candidatas.Count);
         }
 
         return DestinoDoc.Casa;
     }
 
-    private bool Aplicar(string chave, List<DocumentoI51> docs, string brutoOrigem)
+    private bool Aplicar(string chave, List<DocumentoI51> docs, string brutoOrigem, bool ambigua)
     {
         var nota = _repositorio.Obter(chave);
         if (nota is null)
@@ -196,8 +204,6 @@ public sealed class CasadorDocumentoNota
 
         var ajuste = CalculadorAjuste.Calcular(nota.Itens, docs.SelectMany(d => d.Itens), _opcoes.OmitirItemSemRetorno);
         var volumes = docs.Sum(d => d.QtdeVolumes);
-        var ambigua = _repositorio.Listar().Count(n =>
-            n.Situacao is SituacaoNota.AguardandoSeparacao or SituacaoNota.Atrasada && Igual(n.Numero, nota.Numero)) > 1;
         if (docs.Count > 1)
         {
             _logger.LogInformation("{Quantidade} documentos da I51 somados para a nota {Numero}.", docs.Count, nota.Numero);
