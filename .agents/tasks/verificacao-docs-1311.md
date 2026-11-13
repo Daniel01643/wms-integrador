@@ -21,3 +21,8 @@
 - Sem build/teste de codigo (so docs). Numero de testes citado (926 aprovados, 9 ignorados) vem do commit de integracao e3a398f.
 - Alguns `**` multilinha antigos do Manual Tecnico seguem sem negrito no HTML (preexistentes, nao tocados).
 - Nenhum valor monetario nem horas humanas nos textos.
+## Conferencia de convergencia (iteracao 1)
+- Todos os topicos de FEAT-004 conferidos contra o codigo (OpcoesPacote 15 s/180 s/ModoJanela, appsettings: placa true/false, retencao 30, AlertaImediato, PadroesDocCargaEncerrado, Porta 8085) e contra o plano: sem lacunas.
+- Sem sobras de '60 dias' (so o historico 'era 60 dias') nem de 'Puxada normal sem placa'; BOM do deck 239,187,191; slides de horas sem diff.
+- Regeneracao dos HTML dos manuais sem mudanca de conteudo (so o carimbo de versao com o hash do commit); HTML/PDF/apresentacao.pdf mais novos que as fontes.
+- Nenhum valor monetario nem horas humanas inventadas.
