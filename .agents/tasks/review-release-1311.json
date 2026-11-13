@@ -1,0 +1,1 @@
+{"verdict":"APPROVED","findings":["Texto real do ENC desconhecido (possible, nao bloqueante): calibrar via arquivo de alertas e I60:PadroesDocCargaEncerrado.","docs/ENCERRAMENTO.md ainda cita 60 dias em linhas historicas (16, 70, 87), escopo da FEAT-005 (confirmed, nao bloqueante)."],"reviewDoc":"c:\\wms-integrador\\.agents\\tasks\\review-release-1311.md"}

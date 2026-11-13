@@ -54,7 +54,13 @@ quantidade da I60 (retomar terça 03/11).
 | 2026-11-10 | 4,5 | 7,5 | 12,0 | I60 Plano A pausado (aguarda fornecedor); I40 validada no homolog e tela de devolução implementada |
 | 2026-11-11 | 2,0 | 3,5 | 5,5 | Repositório no GitHub (XMLs fora); tela da I40 com busca por número+série, sem placa; escopo da Puxada TSP |
 | 2026-11-12 | 4,24 | 7,5 | 11,74 | Puxada TSP implementada e testada no homolog; relatório com tempo de integração, cabeçalho/logo e cartão Transportes; escopo, design e plano da I51/I60 |
-| **Total parcial (até 12/11)** | **10,74** | **18,5** | **29,24** | |
+| 2026-11-13 | 5,0 | 10,0 | 15,0 | I51 → I60 validada no homolog (7/7 associadas); Puxada e TSP validadas; TSP com XML solto/subpastas e sem placa; login na tela de devolução; alerta da I60, janela de silêncio, retenção 30 dias; release preparada |
+| **Total parcial (até 13/11)** | **15,74** | **28,5** | **44,24** | |
+
+**Estado em 13/11.** Fluxo I50 → separação → I51 → I60 validado no homolog: 7 de 7 notas associadas (INE,
+`qtdeVolume` e `qtdeTotalNota` = 0, ajuste de quantidade 11 → 9 aceito). Pré-requisitos no WMS: EDI da I51
+(WEBSERVI) e evento interno de retorno da separação. Release preparada localmente; publicação no servidor
+fica para outro dia. Texto do ENC ainda desconhecido: alerta imediato por e-mail para capturar.
 
 **Estado em 12/11.** Puxada TSP testada no homolog: ondas `TSP-20261112-01-SOROCABA` e `-02-SJC`
 criadas e notas enviadas, mas pendentes na interface ("Proprietaria/Chave 01.838.723/0098-50 nao

@@ -36,29 +36,37 @@ pelo tempo de execução/sessão do agente.
 | 2026-11-11 | IA      | 3,50  | Aprox.: XMLs fora do repositório e travas, tela da I40 com busca por número+série, manuais sem devolução, análise dos ZIPs e escopo da Puxada TSP — estimado |
 | 2026-11-12 | Humana  | 4,24  | Puxada TSP (decisões, teste no homolog com ZIPs reais), relatório (tempo, cabeçalho), diagnóstico do 401, escopo I51/I60 e decisões |
 | 2026-11-12 | IA      | 7,50  | Aprox.: Puxada TSP (2,5 h), relatório com tempo de integração/cabeçalho/logo e cartão Transportes (2,5 h), apoio ao teste no homolog (0,5 h), escopo, design (3 revisões) e plano da I51/I60 (2,0 h) — estimado |
+| 2026-11-13 | Humana  | 5,00  | Testes no homolog (Puxada, TSP, I51/I60 com 7 de 7 associadas), configuração do EDI e do evento da I51 no WMS, decisões (placa, login da devolução, retenção 30 dias, janela de silêncio), comunicado de aprovação |
+| 2026-11-13 | IA      | 10,00 | Aprox.: implementação, testes e docs da I51/I60 (2,0 h); TSP com XML solto/subpastas e sem placa (1,2 h); apoio aos testes no homolog e QtdeTotalNotaZero (1,5 h); comunicado e análise do log do servidor (0,8 h); investigação e login da tela de devolução (1,3 h); release: janela de silêncio, alerta da I60, retenção 30 dias, manuais e deck (3,2 h) — estimado |
 
 Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**
 (entrega inicial, até a produção). Com 09/11: **31,15 h**. Com 10/11: **35,65 h**. Com 11/11: **37,65 h**.
-Com 12/11: **41,89 h**.
+Com 12/11: **41,89 h**. Com 13/11: **46,89 h**.
 
 ## Totais
 
-| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-12/11) |
+| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-13/11) |
 |----------------------|-----------------------------|-------------------------|
-| Humana               | **26,25**                   | **41,89**               |
-| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 36,90**        |
-| **Total de esforço** | **aprox. 40,65**            | **aprox. 78,79**        |
+| Humana               | **26,25**                   | **46,89**               |
+| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 46,90**        |
+| **Total de esforço** | **aprox. 40,65**            | **aprox. 93,79**        |
 
 O comparativo abaixo e a apresentação usam a **entrega inicial** (do desenho à produção).
 09/11 a 11/11 são acabamento, a retomada da I60 (Plano A pausado, aguarda o fornecedor), a
 devolução pela I40 (Plano B: formato validado no homolog e tela implementada, fora do manual
 oficial) e o escopo da Puxada TSP.
-Retomada (09-12/11): **15,64 h humanas** e **aprox. 22,50 h de IA**.
+Retomada (09-13/11): **20,64 h humanas** e **aprox. 32,50 h de IA**.
 
 Em 12/11: **4,24 h humanas** (informadas pelo usuário) e **aprox. 7,50 h de IA** (estimadas pelo tempo
 de sessão). Puxada TSP implementada e testada no homolog (ondas TSP criadas; notas pendentes por
 proprietária BRF não encontrada, aguarda o fornecedor); relatório com tempo de integração e cabeçalho
 novo; I51 como gatilho da I60 em andamento (design aprovado, plano pronto, implementação a partir de 13/11).
+
+Em 13/11: **5,00 h humanas** (informadas pelo usuário) e **aprox. 10,00 h de IA** (estimadas pelo tempo de
+sessão e dos workflows). I51 → I60 implementada e **validada no homolog (7 de 7 notas associadas)**; Puxada e
+Puxada TSP validadas no homolog; TSP com XML solto e ZIP com subpastas; TSP sem placa; tela de devolução com
+login simples; alerta imediato da I60; janela de silêncio e retenção de 30 dias; release preparada (não
+publicada no servidor).
 
 O grosso do esforço humano está em decisões, validação e operação; a IA atua como
 multiplicador de produtividade na escrita de código, testes e documentação.

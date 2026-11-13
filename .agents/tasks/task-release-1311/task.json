@@ -1,0 +1,7 @@
+{
+  "task_id": "task-release-1311",
+  "task_description": "Release de producao 2026.11.13-1 do KitWms Integrador: janela de silencio, defaults da I60 validados no homolog, alerta imediato de I60 (ENC/nao reconhecida/atrasada), retencao de 30 dias, correcao da placa (Puxada normal com placa, TSP sem), documentacao completa, pacote local e checklist de deploy. Plano completo em c:\\wms-integrador\\.agents\\tasks\\plano-release-1311.md",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

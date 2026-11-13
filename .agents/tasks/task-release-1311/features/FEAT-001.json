@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Janela de silencio na coleta do pacote (brief .agents\\tasks\\brief-janela-silencio.md). Independente de FEAT-002/003, mas deve ser a primeira por mexer em AmbientePacote e no rotulo do relatorio.",
+  "status": "completed",
+  "steps": [
+    "OpcoesPacote.cs: adicionar ModoJanela (Silencio padrao | Fixa), SilencioSegundos=15, JanelaMaximaSegundos=180; manter JanelaColetaSegundos=10 (so modo Fixa); Validar() (modo valido, silencio >= 1, teto >= silencio) e propriedade de silencio efetivo = max(SilencioSegundos, EstabilizacaoSegundos); logar problemas/aviso na partida (ver Worker\\Program.cs ou Worker.cs).",
+    "DetectorArquivoPronto.cs: ResultadoDeteccao ganha UltimaAtividadeUtc (DateTimeOffset?, parametro opcional no fim) = maior instante entre 'visto pela primeira vez' e 'tamanho/data mudou' dos arquivos presentes.",
+    "GerenciadorPacote.cs: campo _ultimaAtividade (inicia na abertura e na Retomar); no estado Coletando atualizar com deteccao.UltimaAtividadeUtc; fechar a coleta (tirar a foto) quando agora-_ultimaAtividade >= silencio efetivo OU agora-_inicio >= JanelaMaximaSegundos (modo Silencio); modo Fixa mantem o codigo atual; backoff de foto vazia usa o silencio efetivo como base no modo Silencio; atualizar o log 'Pacote aberto' e logar o motivo do fechamento (silencio/teto/janela fixa) e a duracao.",
+    "BlocoTempo.cs e renderizadores/testes que usam o texto 'Espera da janela de coleta' (grep em src e tests): trocar para 'Coleta (janela de silencio)'; ajustar BlocoTempoTests, CorpoEmailTempoTests, RelatorioCabecalhoTempoTests, MedicaoTempoPacoteTests.",
+    "tests\\Infra\\AmbientePacote.cs: Pacote.ModoJanela = \"Fixa\" para os testes antigos; novo tests\\KitWmsIntegrador.Tests\\JanelaSilencioTests.cs com FakeClock: chegada continua por 25 s = 1 pacote; pausa maior que o silencio = 2 pacotes; chegada continua alem do teto fecha no teto; arquivo crescendo adia o fechamento; lote unico pequeno fecha em ~15 s; modo Fixa = comportamento antigo; Puxada, PuxadaTSP (XML solto = uma onda) e raiz; DetectorArquivoProntoTests cobre UltimaAtividadeUtc.",
+    "appsettings.json (Worker) e deploy\\config-exemplo\\appsettings.Production.json: chaves e comentario da secao Pacote (ModoJanela, SilencioSegundos, JanelaMaximaSegundos); docs\\OPERACAO.md e docs\\ARQUITETURA.md (janela de coleta por silencio, como voltar a Fixa).",
+    "Build e testes na copia temporaria; commit local pt-BR 'feat: janela de silencio na coleta do pacote'."
+  ],
+  "acceptance_criteria": [
+    "Com FakeClock, 25 s de chegada continua resultam em 1 pacote e uma pausa maior que o silencio resulta em 2",
+    "O pacote nunca passa de JanelaMaximaSegundos desde a abertura",
+    "ModoJanela=Fixa reproduz o comportamento antigo (GerenciadorPacoteTests antigos passam sem alteracao de logica)",
+    "Relatorio mostra a etapa 'Coleta (janela de silencio)'",
+    "dotnet build Release com 0 avisos e dotnet test Release sem falhas"
+  ],
+  "verification": [
+    "robocopy para a copia temporaria e dotnet build KitWmsIntegrador.sln -c Release (0 avisos)",
+    "dotnet test KitWmsIntegrador.sln -c Release --filter \"FullyQualifiedName~JanelaSilencio|FullyQualifiedName~GerenciadorPacote|FullyQualifiedName~DetectorArquivoPronto|FullyQualifiedName~MedicaoTempo\" e depois a suite completa"
+  ],
+  "blocked_reason": null,
+  "findings": "Implementado na main (commit local 'feat: janela de silencio na coleta do pacote'). OpcoesPacote: ModoJanela (Silencio padrao|Fixa), SilencioSegundos=15, JanelaMaximaSegundos=180, UsaSilencio, SilencioEfetivoSegundos=max(silencio, estabilizacao), JanelaMaximaEfetivaSegundos, Validar() e Avisos(); Worker.cs valida a secao Pacote na partida (erro para o servico, como as demais secoes) e loga aviso se silencio < estabilizacao. DetectorArquivoPronto: ResultadoDeteccao.UltimaAtividadeUtc (parametro opcional no fim). GerenciadorPacote: _ultimaAtividade (abertura e Retomar), fecha por silencio ou teto (modo Silencio), modo Fixa inalterado, backoff de foto vazia com silencio efetivo, logs 'Pacote aberto' atualizado e 'Fim da coleta por {motivo} apos {duracao}s'. Rotulo do relatorio: 'Coleta (janela de silencio)' (BlocoTempo + BlocoTempoTests, CorpoEmailTempoTests, RelatorioCabecalhoTempoTests). Testes antigos: AmbientePacote e AmbienteStress fixam ModoJanela=Fixa (MedicaoTempoPacoteTests ficou valido sem mudanca). Novos: JanelaSilencioTests.cs (12 testes: 25 s continuos = 1 pacote, pausa > silencio = 2, teto fecha em 60 s com 12 notas, arquivo crescendo adia, lote pequeno fecha em 15 s, Fixa divide, Puxada ZIPs, PuxadaTSP XML solto = 1 onda, raiz, EsperaJanelaMs=15000 na telemetria, padroes/validacao, silencio efetivo) e 2 testes de UltimaAtividadeUtc no DetectorArquivoProntoTests. Config/docs: appsettings.json do Worker e deploy\\config-exemplo\\appsettings.Production.json (secao Pacote com comentario), docs\\OPERACAO.md, docs\\ARQUITETURA.md, docs\\RELATORIO-LOGS.md. Manuais/deck ficam para FEAT-004. Verificacao na copia temporaria ($env:TEMP\\kitwms-build-1311, ja apagada): dotnet build KitWmsIntegrador.sln -c Release = 0 avisos, 0 erros; dotnet test com o filtro (JanelaSilencio|GerenciadorPacote|DetectorArquivoPronto|MedicaoTempo) = 35 aprovados, 0 falhas; suite completa = 905 aprovados, 9 ignorados, 0 falhas (linha de base 891; +14 testes novos). Horas de IA: nao medidas por este passo (registro mestre fica com o orquestrador)."
+}
