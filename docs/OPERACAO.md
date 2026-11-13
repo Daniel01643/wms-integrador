@@ -460,3 +460,13 @@ resultado por chave.
 - **Como calibrar o ENC:** o texto real do WMS para doccarga encerrado ainda não foi capturado. Quando chegar um alerta `NaoReconhecida` (ou `ENC/IMP` com texto diferente do esperado), copie um trecho característico do texto do WMS do e-mail ou do arquivo `alertas` para `I60:PadroesDocCargaEncerrado` (lista separada por `;`, sem acento e sem diferenciar maiúsculas) no `appsettings.Production.json` e reinicie o serviço.
 - **Relatório diário:** ganhou o bloco **Atenção** no topo (HTML, e-mail e PDF) com ENC/IMP, rejeitadas, respostas não reconhecidas, atrasadas e total (estado atual das notas); notas `Separada` com resposta não reconhecida aparecem em "I60 com problema".
 - Logs não trazem token, senha nem corpo de nota. Roteiro de teste: `ROTEIRO-TESTE-I51-I60.md`.
+
+## 11. Release 2026.11.13-1 (o que muda na operação)
+Pacote local pronto (`artifacts\2026.11.13-1`), **ainda não publicado**; checklist em `.agents\tasks\checklist-release-2026-11-13.md`.
+- **Janela de silêncio (`Pacote:ModoJanela=Silencio`):** a coleta do pacote fecha depois de 15 s sem arquivo novo (`SilencioSegundos`), com teto de 180 s (`JanelaMaximaSegundos`). Lotes grandes deixam de ser divididos em vários pacotes. Log: "Pacote aberto" e "Fim da coleta por silêncio|teto da janela|janela fixa". `ModoJanela=Fixa` volta à janela fixa de `JanelaColetaSegundos` sem trocar a release.
+- **Placa:** Puxada normal envia a placa do XML (`I50:EnviarPlacaVeiculo=true`); Puxada TSP vai sem placa (`I50:EnviarPlacaVeiculoTsp=false`).
+- **I60:** `QtdeVolumeZero` e `QtdeTotalNotaZero` em `true` (validado no homolog em 13/11/2026: 7 de 7 notas associadas). I51/I60 seguem desligadas até o OK do usuário e dos pré-requisitos do WMS de produção.
+- **Retenção de 30 dias** em `Processados`, `Erro` e `Estado\i51` (era 60). A tela de devolução só acha notas dos últimos 30 dias.
+- **Alerta imediato da I60** e bloco "Atenção" no relatório diário: ver seção 10.
+- **Pendência:** texto real do ENC (doccarga encerrado) ainda não capturado; calibrar `I60:PadroesDocCargaEncerrado` com o primeiro alerta.
+- **Verificação após publicar:** serviço Running, "Pacote aberto" no log, arquivo de teste (nunca nota real) em `Puxada` e `PuxadaTSP`, e-mail de fechamento com cabeçalho e tempo de integração.

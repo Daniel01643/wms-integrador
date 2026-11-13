@@ -1,30 +1,38 @@
 # Pausa do projeto — KitWms Integrador
 
 Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa: 10/11/2026.
-**Atualizado em 12/11/2026, fim do dia** (Puxada TSP testada no homolog; I51/I60 em andamento).
+**Atualizado em 13/11/2026, fim do dia** (release 2026.11.13-1 empacotada localmente; I51/I60 validadas no homolog; falta publicar no servidor).
 
-> **Retomar em 13/11:** retomar o workflow `wf_ba4d4666d4c5be64` (I51 como gatilho da I60), pausado depois
-> do plano (`.agents\tasks\plan-i51-i60.md`). Próximos passos dele: implementação e revisão, depois deck e
-> manuais. Escopo em `docs\ESCOPO-I51-I60.md`. No homolog, as notas TSP ficaram pendentes com
-> "Proprietaria/Chave - 01.838.723/0098-50 nao encontrada": aguardando o fornecedor.
+> **Retomar:** publicar a release **2026.11.13-1** no servidor seguindo o checklist
+> `.agents\tasks\checklist-release-2026-11-13.md` (pacote em `artifacts\2026.11.13-1`, gerado localmente,
+> **não enviado ao servidor**). Ligar I51 e I60 (e a tela de devolução) só depois do OK do usuário.
+> Escopo da I51/I60 em `docs\ESCOPO-I51-I60.md`; resultado do homolog em `docs\ROTEIRO-TESTE-I51-I60.md`.
+> Notas TSP do homolog de 12/11 ficaram pendentes por proprietária BRF não encontrada (aguarda o fornecedor).
 
 ## 1. Estado na pausa
 
 - Integra NF-e (XML) da pasta de entrada para o WMS Friozem via webservice (I50), **em produção**
   no servidor SRVAPPALC02 (Windows Server 2012 R2), serviço NSSM `Friozem-ImportacaoNotas`.
 - Versão em produção: a última documentada é a série **2026.11.06-1 a -5** (diário de 06/11).
-  **Conferir no servidor** qual está em `app\current`. As mudanças de 09-10/11 (retenção de 60 dias,
-  I60 configurável, I40 e tela de devolução) estão **só no repositório**, ainda não publicadas.
+  **Conferir no servidor** qual está em `app\current`. **Release 2026.11.13-1 pronta e empacotada
+  localmente (self-contained win-x64), ainda NÃO publicada no servidor.** Ela reúne tudo o que estava só no
+  repositório: Puxada/Puxada TSP, I40 e tela de devolução (desligada), I51/I60 (desligadas), relatório novo
+  e, desta release: janela de silêncio na coleta do pacote (`Pacote:ModoJanela=Silencio`, 15 s de silêncio,
+  teto de 180 s; `Fixa` volta ao comportamento antigo), defaults `I60:QtdeVolumeZero` e
+  `I60:QtdeTotalNotaZero` em `true`, placa (Puxada normal COM placa, TSP sem), retenção de **30 dias**
+  (`Limpeza:DiasRetencao` e `I51:DiasRetencaoEstado`) e alerta imediato da I60 (`I60:AlertaImediato`).
 - Resumo semanal de telemetria funcionando (verificado e reenviado em 09/11).
-- **Puxada TSP implementada em 12/11/2026** (só no repositório, ainda não publicada no servidor):
+- **Puxada TSP implementada em 12/11/2026** (entra na release 2026.11.13-1, ainda não publicada no servidor):
   pastas `Puxada` e `PuxadaTSP` (e a raiz, aceita como puxada), leitura segura de ZIP, uma onda por ZIP
   na TSP (`TSP-AAAAMMDD-NN-NOME`) e relatório/e-mail com as colunas Tipo e Origem. **Testada no homolog
   com ZIPs reais em 12/11:** ondas criadas e notas enviadas, mas pendentes na interface por proprietária
   BRF não encontrada (aguarda o fornecedor).
 - Relatório (12/11): tempo de integração (nível B) no relatório e no e-mail, cabeçalho com logo, título
   "Relatório de Integração", cartão Transportes corrigido.
-- **I51 como gatilho da I60** (12/11): escopo, design e plano prontos; implementação a partir de 13/11.
-- Último build: 0 avisos e 0 erros (Debug e Release). Testes (12/11): **655 aprovados, 9 ignorados (stress), 0 falhas**.
+- **I51 como gatilho da I60** (13/11): implementada e validada no homolog (7 de 7 notas associadas, com
+  `qtdeVolume` e `qtdeTotalNota` em 0 e o evento interno do WMS que gera o retorno da separação). Em
+  produção fica **desligada** até o OK do usuário e dos pré-requisitos do WMS de produção.
+- Último build (13/11, cópia temporária): 0 avisos e 0 erros (Release). Testes: **926 aprovados, 9 ignorados (stress), 0 falhas** (detalhes em `.agents\tasks\relatorio-release-1311.md`).
 
 ### Frentes pausadas
 
@@ -67,7 +75,7 @@ rollback, segredos).
   puxada (onda = transporte). XML solto na raiz continua aceito como puxada (Origem `raiz`, opção
   `Pastas:AceitarRaiz`). O relatório mostra Tipo e Origem para corrigir pasta errada. Limites de ZIP em
   `Zip:MaxArquivos` (1000) e `Zip:MaxTamanhoMb` (500). Escopo em `ESCOPO-PUXADA-TSP.md`.
-- **Retenção de 60 dias** em `Processados` e `Erro` (para achar o XML da venda na devolução).
+- **Retenção de 30 dias** (ajustada de 60 em 13/11/2026) em `Processados`, `Erro` e `Estado\i51`: a tela de devolução só acha notas dos últimos 30 dias. (Entre 09/11 e 13/11 era 60 dias.)
 - **Esforço registrado só em horas** (steering `.kiro\steering\esforco-em-horas.md`).
 - **Subpastas por pacote** em `Processados` e `Erro`.
 - **Não-XML** vai para `Erro\<pacote>\ExtensaoInvalida` com `.motivo.txt`; temporários ignorados.
@@ -84,7 +92,9 @@ rollback, segredos).
 | **Puxada TSP:** criar `Puxada` e `PuxadaTSP` em `C:\Friozem\kitbrf` e publicar a release com a Puxada TSP (`INSTALACAO-SERVIDOR.md`, §3.4c) | Usuário / TI |
 | Enviar ao fornecedor as perguntas da I60 (`HISTORICO-PLANO-A.md`) | Usuário |
 | Testar a tela de devolução no homolog (`ROTEIRO-TESTE-I40.md`, seção 9) | Usuário |
-| Publicar a nova release (retenção de 60 dias + I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |
+| Publicar a release 2026.11.13-1 (retenção de 30 dias, janela de silêncio, alerta I60, I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |
+| **Texto do ENC:** o texto real do WMS para doccarga encerrado ainda não foi capturado; calibrar `I60:PadroesDocCargaEncerrado` com o e-mail de alerta e `Estado\i51\alertas` quando acontecer em produção | Usuário / IA |
+| Ligar `I51:Habilitada` e `I60:Habilitada` JUNTAS em produção, só depois de EDI WEBAPI-I51 com WEBSERVI e do evento interno do WMS de produção | Usuário / equipe WMS |
 | Homolog: desativar o código customizado de pré-processamento da nota de venda (teste) e voltar "ChecaItensVenda" para SIM | Usuário |
 | Homolog: o pós-processamento `QTD_VOLUMES` do DocCarga continua ativo e aborta doccarga sem caixas (`QTDVOL-POS:2`) | Usuário |
 | Restaurar o `email.settings.json` local (renomeado para `*.off-teste` no projeto e em `bin` durante os testes) | Usuário / IA |

@@ -1,0 +1,27 @@
+{
+    "id":  "FEAT-005",
+    "type":  "chore",
+    "description":  "Pacote local da release 2026.11.13-1, atualizacao de ENCERRAMENTO/INSTALACAO-SERVIDOR/OPERACAO, checklist do orquestrador e relatorio final. Ultimo passo; sem push, sem tocar no servidor.",
+    "status":  "completed",
+    "steps":  [
+                  "Conferir git limpo e que implementacao e documentacao foram aprovadas (review-release-1311.json e review-docs-1311.json APPROVED).",
+                  "Atualizar docs\\ENCERRAMENTO.md (versao em producao, itens da release, linhas ~16, 18, 70, 87 que dizem 60 dias e \u0027so no repositorio\u0027, pendencia do texto do ENC), docs\\INSTALACAO-SERVIDOR.md (secao 3.9 nova release, pastas Puxada/PuxadaTSP, chaves novas) e docs\\OPERACAO.md (secao da release).",
+                  "Gerar o pacote numa copia temporaria sem parar o Worker: powershell -NoProfile -ExecutionPolicy Bypass -File \u003ccopia\u003e\\deploy\\publicar.ps1 -Versao 2026.11.13-1 -SaidaStaging c:\\wms-integrador\\artifacts (self-contained win-x64). Esperado: c:\\wms-integrador\\artifacts\\2026.11.13-1\\KitWmsIntegrador-2026.11.13-1-win-x64.zip (+ manuais, manuais.zip). Conferir o conteudo do zip (EXE, appsettings.json com Habilitada=false nas tres chaves, QtdeVolumeZero true, retencao 30) e calcular o SHA-256. NAO copiar para o servidor, NAO rodar nada remoto.",
+                  "Escrever c:\\wms-integrador\\.agents\\tasks\\checklist-release-2026-11-13.md conforme a secao FEAT-005 do plano: caminho e hash do pacote; passo a passo no servidor (publicar-release.ps1 em C:\\Friozem\\importacao_notas\\tools\\deploy, servico.ps1); criacao de C:\\Friozem\\kitbrf\\Puxada e C:\\Friozem\\kitbrf\\PuxadaTSP; config de C:\\Friozem\\importacao_notas\\config\\appsettings.Production.json separada em \u0027pode aplicar agora\u0027 (EnviarPlacaVeiculo=true, EnviarPlacaVeiculoTsp=false, QtdeVolumeZero/QtdeTotalNotaZero true, AlertaImediato, retencao 30 e DiasRetencaoEstado 30, ModoJanela/SilencioSegundos/JanelaMaximaSegundos, pastas, destinatarios-i60.txt) e \u0027somente depois do OK do usuario\u0027 (I51:Habilitada e I60:Habilitada juntas com os pre-requisitos do WMS de producao: EDI WEBAPI-I51 com WEBSERVI e evento interno do WMS que gera o retorno da separacao; Devolucao:Habilitada, porta 8085 e comando de firewall da rede interna); rollback com deploy\\rollback.ps1; verificacao pos-deploy (servico Running, log \u0027Pacote aberto\u0027, arquivo de teste, e-mail, ciclo I51 e alertas). NAO incluir \u0027sem placa na puxada normal\u0027.",
+                  "Escrever c:\\wms-integrador\\.agents\\tasks\\relatorio-release-1311.md (o que mudou, caminho do checklist e do pacote, build/testes, evidencias PNG, pendencias, horas de IA; horas humanas so se informadas; sem valores monetarios).",
+                  "Apagar copias temporarias; git status limpo (artifacts e ignorado); commit local pt-BR \u0027docs: checklist e fechamento da release 2026.11.13\u0027; nao dar push."
+              ],
+    "acceptance_criteria":  [
+                                "Existe o zip c:\\wms-integrador\\artifacts\\2026.11.13-1\\KitWmsIntegrador-2026.11.13-1-win-x64.zip e o checklist cita o caminho e o SHA-256",
+                                "Checklist separa \u0027pode aplicar agora\u0027 e \u0027somente depois do OK do usuario\u0027 e traz rollback e verificacao pos-deploy",
+                                "Relatorio final cita checklist, pacote e horas de IA, sem valores monetarios",
+                                "Nada foi enviado ao servidor nem ao GitHub"
+                            ],
+    "verification":  [
+                         "Test-Path do zip e Get-FileHash -Algorithm SHA256",
+                         "Listar o zip por [IO.Compression.ZipFile]::OpenRead e conferir KitWmsIntegrador.Worker.exe e appsettings.json",
+                         "git status e git log --oneline -n 8 mostrando commits locais pt-BR e nenhum push"
+                     ],
+    "blocked_reason":  null,
+    "findings":  "Pacote c:\\wms-integrador\\artifacts\\2026.11.13-1\\KitWmsIntegrador-2026.11.13-1-win-x64.zip (SHA-256 F097D770C9D0B4432BB2E9CB5614505C5E1918EAB5D7C8C762650DB8E565BC08), gerado de copia temporaria (apagada) com publicar.ps1; zip conferido (EXE, appsettings com Habilitada=false x3, QtdeVolumeZero true, retencao 30). ENCERRAMENTO, INSTALACAO-SERVIDOR (3.9) e OPERACAO (sec. 11) atualizados. Checklist e relatorio em .agents\\tasks. Build 0 avisos; 926 aprovados, 9 ignorados, 0 falhas. Nada enviado ao servidor nem ao GitHub. Pendencias: texto do ENC; ligar I51/I60/Devolucao so com OK do usuario. Horas de IA: ver relatorio-release-1311.md; horas humanas nao informadas."
+}

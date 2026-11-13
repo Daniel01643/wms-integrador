@@ -305,6 +305,29 @@ release, para acompanharem a versão (`instalar.ps1` faz o mesmo). Se os scripts
 .\rollback.ps1 -Versao 2026.01.15-1
 ```
 
+#### Release 2026.11.13-1 (pacote local, ainda não publicada)
+Pacote gerado na máquina de build por `publicar.ps1 -Versao 2026.11.13-1 -SaidaStaging c:\wms-integrador\artifacts`
+(self-contained win-x64): `artifacts\2026.11.13-1\KitWmsIntegrador-2026.11.13-1-win-x64.zip` (mais `manuais\` e
+`manuais.zip`). Nada foi copiado ao servidor; o passo a passo completo, com hash, está em
+`.agents\tasks\checklist-release-2026-11-13.md`. Resumo:
+```powershell
+# No servidor (RDP), a partir de C:\Friozem\importacao_notas\tools\deploy, com o zip e a pasta deploy\ já em C:\temp:
+.\publicar-release.ps1 -ReleaseZip C:\temp\KitWmsIntegrador-2026.11.13-1-win-x64.zip -Versao 2026.11.13-1
+.\servico.ps1 -Acao Status
+# Rollback, se preciso:
+.\rollback.ps1
+```
+- **Pastas de depósito:** criar `C:\Friozem\kitbrf\Puxada` e `C:\Friozem\kitbrf\PuxadaTSP` (item 3.4c) e conferir o compartilhamento.
+- **Chaves novas (todas com padrão seguro no `appsettings.json` do pacote):** `Pacote:ModoJanela` (`Silencio`/`Fixa`),
+  `Pacote:SilencioSegundos` (15), `Pacote:JanelaMaximaSegundos` (180), `I50:EnviarPlacaVeiculo` (true, Puxada normal com placa),
+  `I50:EnviarPlacaVeiculoTsp` (false), `I60:QtdeVolumeZero` e `I60:QtdeTotalNotaZero` (true), `I60:AlertaImediato` (true),
+  `Limpeza:DiasRetencao` e `I51:DiasRetencaoEstado` (30), `Pastas:Puxada`/`Pastas:PuxadaTsp`.
+  O `config\appsettings.Production.json` do servidor sobrepõe o do pacote: aplique as chaves acima só se o arquivo do servidor
+  as definir com outro valor (modelo em `deploy\config-exemplo\appsettings.Production.json`).
+- **Continuam desligadas** (`false`) no pacote: `I51:Habilitada`, `I60:Habilitada` e `Devolucao:Habilitada`. Ligar só com OK do
+  usuário (I51 e I60 juntas, com os pré-requisitos do WMS de produção; tela de devolução conforme 3.12).
+- **Retenção de 30 dias:** ao subir, a limpeza passa a apagar `Processados`, `Erro` e estado terminal da I51 com mais de 30 dias
+  (antes eram 60). A tela de devolução só encontra notas dos últimos 30 dias.
 ### 3.10 Remoção
 ```powershell
 # A partir de C:\Friozem\importacao_notas\tools\deploy no servidor (RDP):
