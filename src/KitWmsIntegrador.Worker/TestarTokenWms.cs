@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 namespace KitWmsIntegrador.Worker;
 
 /// <summary>
-/// CLI <c>--testar-token [--vezes N]</c>: faz GetToken real (sem cache nem cooldown; N de 1 a 20, 2 s entre eles) e imprime SÓ o status,\n/// host/porta, o identificador do servidor (hash do cookie de afinidade) e a latência.
+/// CLI <c>--testar-token [--vezes N]</c>: faz GetToken real (sem cache nem cooldown; N de 1 a 20, 2 s entre eles) e imprime SÓ o status,
+/// host/porta, o identificador do servidor (hash do cookie de afinidade) e a latência.
 /// Exit code 0 = token válido; 1 = qualquer outra coisa (inclui credenciais ausentes). Nunca imprime
 /// token, usuário nem senha. Não toca em notas nem em pastas.
 /// </summary>
