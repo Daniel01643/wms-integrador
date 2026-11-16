@@ -25,6 +25,12 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > I51 iniciada: identificador=WEBAPI-I51 intervalo=5 min". Primeiro ciclo sem notas aguardando (o TODOS só roda
 > quando há nota registrada). Monitorar de 16/11 para 17/11. Para desligar: voltar as duas chaves para `false`,
 > copiar o arquivo para `app\current` e reiniciar o serviço.
+> **16/11/2026, 18:44:** release **2026.11.16-3 publicada** (token por envio, nova tentativa em conexão nova,
+> diagnóstico por servidor do balanceador Oracle `X-Oracle-BMC-LBS-Route`). `--testar-token --vezes 2`: 200 em dois
+> servidores diferentes. **Tela de devolução ligada** (`Devolucao:Habilitada=true`, porta 8085, regra de firewall
+> "Friozem Devolucao I40 (8085)" no perfil Domínio): `http://SRVAPPALC02:8085/` ou `http://200.200.200.213:8085/`;
+> `/api/saude` = `{"status":"ok"}`. Primeiro pacote na versão nova (18:22, 578 notas, 559 integradas, 19 pendentes por
+> placa "em outra operação" no WMS) entrou na I51 aguardando separação.
 
 ## 1. Estado na pausa
 
