@@ -157,6 +157,9 @@ usuário ocorreu em 15/11 por volta de 17:27 ou 18:34. Isso precisa ser conferid
 - **Atenção na próxima troca de senha:** atualizar as DUAS fontes (variáveis de máquina via `configurar-segredos.ps1`
   e o `AppEnvironmentExtra` do NSSM), ou remover o `AppEnvironmentExtra` e reiniciar o servidor.
 - A senha do BRF ficou visível no chat em 16/11: trocar quando estável.
-- `--testar-token` sem `Wms__BaseUrl` no ambiente devolveu 401 de forma consistente; com a URL forçada, o resultado
-  bateu com a sonda direta. Suspeita: a CLI não está pegando o `Wms:BaseUrl` do `appsettings.Production.json`
-  (usaria o `:8888` do `appsettings.json`). A corrigir.
+- `--testar-token` sem `Wms__BaseUrl` no ambiente devolveu 401 nas tentativas com BLUEFOOD. **Correção (hotfix
+  2026.11.16-2):** a suspeita de URL errada **não se confirmou**: um listener mostrou que a CLI já chamava
+  `friozem.assistsoftware.com.br:443` (produção). Os 401 da CLI eram a própria conta BLUEFOOD alternando, e o 200
+  "com URL forçada" foi coincidência. Isso reforça que o problema era a conta BLUEFOOD no WMS. O hotfix unificou o
+  carregador de configuração do serviço e das CLIs (divergência real em `--reenfileirar-i60`, `--consultar-i51`,
+  `--relatorio-i60`, `--enviar-i40/i60` e smoke test) e o `--testar-token` passou a mostrar host e porta.
