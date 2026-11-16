@@ -47,7 +47,7 @@ quantidade da I60 (retomar terça 03/11).
 
 ---
 
-## Semana 2026-W46 (10/nov a 16/nov) — em aberto
+## Semana 2026-W46 (10/nov a 16/nov) — fechada
 
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
@@ -55,7 +55,14 @@ quantidade da I60 (retomar terça 03/11).
 | 2026-11-11 | 2,0 | 3,5 | 5,5 | Repositório no GitHub (XMLs fora); tela da I40 com busca por número+série, sem placa; escopo da Puxada TSP |
 | 2026-11-12 | 4,24 | 7,5 | 11,74 | Puxada TSP implementada e testada no homolog; relatório com tempo de integração, cabeçalho/logo e cartão Transportes; escopo, design e plano da I51/I60 |
 | 2026-11-13 | 5,0 | 10,0 | 15,0 | I51 → I60 validada no homolog (7/7 associadas); Puxada e TSP validadas; TSP com XML solto/subpastas e sem placa; login na tela de devolução; alerta da I60, janela de silêncio, retenção 30 dias; release preparada |
-| **Total parcial (até 13/11)** | **15,74** | **28,5** | **44,24** | |
+| 2026-11-16 | 4,0 | 10,0 | 14,0 | Releases 2026.11.16-1/-2/-3 em produção; 401 resolvido (3 servidores, token por envio, usuário BRF); I51/I60 e tela de devolução ligadas; deck final; **projeto finalizado** |
+| **Total da semana** | **19,74** | **38,5** | **58,24** | |
+
+**Estado em 16/11 (fechamento).** Produção na release 2026.11.16-3. Causa do 401 confirmada pela Assist
+(3 servidores em balanceamento; orientação: um token por envio). Usuário do WMS trocado para BRF. I51/I60
+ligadas em produção (EDI e evento configurados no WMS). Tela de devolução no ar em
+`http://SRVAPPALC02:8085/`. Primeiro lote na versão nova (578 notas de um ZIP, 1 pacote) aguardando separação.
+**Projeto travado como finalizado**; reabre só para novos ajustes.
 
 **Estado em 13/11.** Fluxo I50 → separação → I51 → I60 validado no homolog: 7 de 7 notas associadas (INE,
 `qtdeVolume` e `qtdeTotalNota` = 0, ajuste de quantidade 11 → 9 aceito). Pré-requisitos no WMS: EDI da I51

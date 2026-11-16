@@ -33,8 +33,11 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-ESFOR
 | Semana | Período | Humana | IA | Total |
 |--------|---------|--------|-----|-------|
 | W45 | 03/11–09/11 | 23,15 | 16,0 | 39,15 |
-| W46 (parcial, até 13/11) | 10/11–13/11 | 15,74 | 28,5 | 44,24 |
-| **Total parcial do mês (até 13/11)** | | **38,89** | **44,5** | **83,39** |
+| W46 | 10/11–16/11 | 19,74 | 38,5 | 58,24 |
+| **Total do mês (até 16/11, fechamento do projeto)** | | **42,89** | **54,5** | **97,39** |
+
+> Em 16/11: releases 2026.11.16-1/-2/-3 em produção; 401 resolvido; I51/I60 e tela de devolução ligadas;
+> **projeto finalizado e travado** (reabre só para novos ajustes).
 
 > Em 13/11: I51 → I60 validada no homolog (7 de 7 notas associadas); release preparada, não publicada.
 

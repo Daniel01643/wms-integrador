@@ -1,9 +1,18 @@
-﻿# Pausa do projeto — KitWms Integrador
+﻿# Encerramento do projeto — KitWms Integrador
 
 Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa: 10/11/2026.
-**Atualizado em 16/11/2026** (release 2026.11.16-1 empacotada localmente, substitui a 2026.11.13-1; 401 tratado no código; falta publicar no servidor).
 
-> **Retomar:** publicar a release **2026.11.16-1** no servidor seguindo o checklist
+> ## PROJETO FINALIZADO (travado em 16/11/2026)
+> Produção na release **2026.11.16-3** (SRVAPPALC02). Puxada e Puxada TSP, I50 com `PIC;FEF;PLL`, janela de
+> silêncio de 20 s, retenção de 30 dias, I51 → I60 ligada, tela de devolução no ar
+> (`http://SRVAPPALC02:8085/`), token por envio com o usuário BRF. **Só reabrir em caso de novos ajustes.**
+> Acompanhamento fora do escopo: Assist (conta BLUEFOOD / servidor que recusava o login), troca da senha do BRF,
+> texto real do ENC, aprovação da operação para o fluxo Puxada/TSP, primeiro envio real pela tela de devolução.
+> Horas finais em `docs\CONTROLE-ESFORCO.md`.
+
+> *Histórico:* a nota abaixo era o ponto de retomada antes da publicação de 16/11 (já feita).
+
+> **Retomar (histórico):** publicar a release **2026.11.16-1** no servidor seguindo o checklist
 > `.agents\tasks\checklist-release-2026-11-16.md` (pacote em `artifacts\2026.11.16-1`, gerado localmente,
 > **não enviado ao servidor**; a 2026.11.13-1 nunca foi publicada e está incluída nesta). Antes e depois do deploy,
 > rodar `--testar-token`; reprocessar as 383 notas de 15/11 só com o teste OK e com OK do usuário. Ligar I51 e I60
