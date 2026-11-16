@@ -492,7 +492,11 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
   relatório e o e-mail do pacote mostram "Falhas de autenticação (GetToken): N" e o aviso de pacote
   interrompido só quando houve falha.
 - **Teste manual:** `KitWmsIntegrador.Worker.exe --testar-token` faz um GetToken com a configuração do serviço
-  e imprime só `GetToken: HTTP <código> OK|FALHA` (exit 0 = ok, 1 = falha ou credenciais ausentes).
+  e imprime só `GetToken: HTTP <código> OK|FALHA (<host>, porta <n>)` (exit 0 = ok, 1 = falha ou credenciais ausentes).
+  O host e a porta são os efetivos (`friozem.assistsoftware.com.br, porta 443` = produção; `porta 8888` = homologação);
+  nunca aparecem usuário, senha nem token. Todas as CLIs manuais usam a mesma configuração do serviço: `appsettings.json`,
+  `appsettings.Production.json`, variáveis de ambiente, linha de comando e `email.settings.json`, lidos da pasta do
+  executável (não do diretório atual).
 - **Reprocesso das notas que já foram para `Erro` por 401** (ex.: 15/11/2026): `deploy\reprocessar-erro-401.ps1`
   (em `<RaizInstalacao>\tools\deploy`). Rode primeiro com `-WhatIf`. Só move XMLs cujo `.motivo.txt` cita 401,
   devolve para a pasta de origem (linha `Origem:` dos sidecars novos) ou para `-DestinoPadrao` (`Puxada`,
@@ -518,7 +522,8 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
    ```powershell
    & 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token
    ```
-   `GetToken: HTTP 200 OK` = a credencial e a rede estão boas; o serviço volta sozinho no fim do cooldown.
+   `GetToken: HTTP 200 OK (friozem.assistsoftware.com.br, porta 443)` = a credencial e a rede estão boas; o serviço volta
+   sozinho no fim do cooldown. Confira o host impresso: `porta 8888` significaria URL de homologação.
    `FALHA` com 401 = anotar hora e status e seguir para o passo 4. "credenciais ausentes" = conferir `WMS__Usuario`/`WMS__Senha`
    (ver manual técnico, seção 4).
 3. Não repetir `--testar-token` em sequência (cada uso é uma chamada ao WMS). Um teste a cada alguns minutos basta.
@@ -533,6 +538,17 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
    .\reprocessar-erro-401.ps1 -DestinoPadrao Puxada    # use PuxadaTSP para notas da TSP
    ```
 
+**Troca (rotação) de senha do WMS**
+O serviço lê as credenciais de **duas** fontes: a variável de máquina `WMS__Usuario`/`WMS__Senha` e o parâmetro NSSM
+`AppEnvironmentExtra` (`HKLM\SYSTEM\CurrentControlSet\Services\Friozem-ImportacaoNotas\Parameters`, `REG_MULTI_SZ`; existe porque
+o SCM não vê variável de máquina nova sem reiniciar o servidor). Troque as duas e só então reinicie:
+1. `cd C:\Friozem\importacao_notas\tools\deploy` e `.\configurar-segredos.ps1 -Fase Producao -WhatIf` (confira o que será gravado).
+2. Rode sem `-WhatIf` e informe usuário/senha sem eco. O script grava a env de máquina **e** o `AppEnvironmentExtra`
+   (preserva as outras entradas; `-SemNssm` pula o segundo). Nunca imprime a senha.
+3. Reinicie o serviço em janela combinada com o responsável: `.\servico.ps1 -Acao Restart`.
+4. Confirme com `KitWmsIntegrador.Worker.exe --testar-token` (esperado `HTTP 200 OK` em `friozem.assistsoftware.com.br, porta 443`).
+Um shell/sessão WinRM aberto antes da troca pode ainda enxergar a senha antiga (a sessão herda o ambiente na hora em que abre);
+abra uma sessão nova antes de testar.
 **Perguntas para a Assist** (base: `.agents\tasks\investigacao-401.md`)
 1. O usuário de integração tem bloqueio temporário por tentativas, limite de sessões ou token único por usuário? Qual a
    janela e como é liberado?

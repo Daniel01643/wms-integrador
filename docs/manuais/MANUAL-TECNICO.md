@@ -205,7 +205,10 @@ powershell -ExecutionPolicy Bypass -File .\configurar-segredos.ps1 -Fase Homolog
 ```
 
 - `-Fase` aceita `Homolog` (padrão) ou `Producao` — é apenas um rótulo do que está sendo gravado.
-- Por padrão (`-Escopo Maquina`) grava nas env de máquina `WMS__Usuario`/`WMS__Senha`.
+- Por padrão (`-Escopo Maquina`) grava nas env de máquina `WMS__Usuario`/`WMS__Senha` **e** no parâmetro do serviço
+  `AppEnvironmentExtra` (NSSM, `HKLM\SYSTEM\CurrentControlSet\Services\Friozem-ImportacaoNotas\Parameters`). O serviço
+  lê as duas fontes, porque o Windows não entrega variável de máquina nova ao serviço sem reiniciar o servidor. O script
+  preserva as outras entradas do parâmetro e aceita `-WhatIf` (mostra sem gravar). `-SemNssm` grava só a env de máquina.
 - O script pergunta `WMS Usuario` e `WMS Senha` sem mostrar o que você digita. Deixar em branco
   **pula** aquele item (não apaga o que já existe).
 
@@ -748,8 +751,11 @@ pasta de entrada** e entram no próximo pacote. Enquanto durar o cooldown o serv
   ```powershell
   & 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token
   ```
-  `GetToken: HTTP 200 OK` = credencial e rede boas. `FALHA` = anotar o código. `credenciais ausentes` = conferir `WMS__Usuario` e
-  `WMS__Senha` (seção 4). Não repetir em sequência.
+  `GetToken: HTTP 200 OK (friozem.assistsoftware.com.br, porta 443)` = credencial e rede boas (o texto entre parênteses é o
+  host e a porta efetivos; `porta 8888` seria homologação). `FALHA` = anotar o código. `credenciais ausentes` = conferir `WMS__Usuario` e
+  `WMS__Senha` (seção 4). Não repetir em sequência. Esse teste e as demais linhas de comando do executável (`--smoke-wms`,
+  `--enviar-i60`, `--enviar-i40`, `--consultar-i51`, `--relatorio-i60`, `--reenfileirar-i60`) leem a **mesma configuração do serviço**:
+  `appsettings.json`, `appsettings.Production.json`, variáveis de ambiente, argumentos e `email.settings.json`, todos da pasta do executável.
 - **Quando acionar a Assist:** 401 que passa de 15 min (cooldown no teto) ou que volta em vários dias. Levar os horários do log, o IP do
   servidor e as perguntas de `docs\OPERACAO.md` §12.1. O diagnóstico no log traz status, `WWW-Authenticate`, id da requisição e até 200
   caracteres do corpo, nunca token, usuário ou senha.
@@ -876,8 +882,9 @@ Passos na ordem:
 1. **Veja os logs** (seção 3), especialmente `worker.err.log`. A mensagem
    `Serviço não iniciado: corrija a seção 'Pastas' do appsettings.` indica config de `Pastas`
    inválida (por exemplo `Estado` igual a `Processados`/`Erro`).
-2. **Confirme as variáveis de máquina** do WMS: o serviço lê `WMS__Usuario`/`WMS__Senha` das env de
-   **máquina**; se foram gravadas e o serviço não reiniciou, ele ainda não as herdou — reinicie.
+2. **Confirme as variáveis do WMS**: o serviço lê `WMS__Usuario`/`WMS__Senha` das env de **máquina** e do
+   `AppEnvironmentExtra` do NSSM (seção 4); se foram gravadas e o serviço não reiniciou, ele ainda não as herdou — reinicie.
+   Na troca de senha, os dois lugares precisam ter o mesmo valor (rode `configurar-segredos.ps1` sem `-SemNssm`).
 3. **Rode o diagnóstico** (somente leitura, sempre termina sem erro), a partir de
    `C:\Friozem\importacao_notas\tools\deploy`:
 
@@ -906,7 +913,7 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Ver situação do serviço | `tools\deploy\servico.ps1 -Acao Status` | — |
 | Iniciar / parar / reiniciar | `tools\deploy\servico.ps1 -Acao Start\|Stop\|Restart` | — (é a própria ação) |
 | Ver logs | `logs\worker.out.log` / `logs\worker.err.log` | Não |
-| Trocar usuário/senha do WMS | `tools\deploy\configurar-segredos.ps1` (env de máquina) | **Sim** |
+| Trocar usuário/senha do WMS | `tools\deploy\configurar-segredos.ps1` (env de máquina + `AppEnvironmentExtra` do NSSM) | **Sim** |
 | Trocar SMTP (usuário/senha/remetente) | `tools\deploy\configurar-segredos.ps1` ou editar `config\email.settings.json` | Recarrega ao salvar; na dúvida reinicie |
 | Trocar URL do WMS | editar `Wms:BaseUrl` em `config\appsettings.Production.json` | **Sim** |
 | Destinatários do fechamento | editar o TXT `config\destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |

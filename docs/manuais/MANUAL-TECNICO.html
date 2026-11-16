@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-16</span>
-    <span>Vers&atilde;o: 2026.11.16-19346e3</span>
+    <span>Vers&atilde;o: 2026.11.16-9811a5b</span>
   </div>
 </section>
   <header class="hd">
@@ -509,7 +509,7 @@ C:\Friozem\importacao_notas\logs\worker.err.log   (erros)</code></pre>
 powershell -ExecutionPolicy Bypass -File .\configurar-segredos.ps1 -Fase Homolog</code></pre>
 <ul>
 <li><code>-Fase</code> aceita <code>Homolog</code> (padrão) ou <code>Producao</code> — é apenas um rótulo do que está sendo gravado.</li>
-<li>Por padrão (<code>-Escopo Maquina</code>) grava nas env de máquina <code>WMS__Usuario</code>/<code>WMS__Senha</code>.</li>
+<li>Por padrão (<code>-Escopo Maquina</code>) grava nas env de máquina <code>WMS__Usuario</code>/<code>WMS__Senha</code> <strong>e</strong> no parâmetro do serviço <code>AppEnvironmentExtra</code> (NSSM, <code>HKLM\SYSTEM\CurrentControlSet\Services\Friozem-ImportacaoNotas\Parameters</code>). O serviço lê as duas fontes, porque o Windows não entrega variável de máquina nova ao serviço sem reiniciar o servidor. O script preserva as outras entradas do parâmetro e aceita <code>-WhatIf</code> (mostra sem gravar). <code>-SemNssm</code> grava só a env de máquina.</li>
 <li>O script pergunta <code>WMS Usuario</code> e <code>WMS Senha</code> sem mostrar o que você digita. Deixar em branco <strong>pula</strong> aquele item (não apaga o que já existe).</li>
 </ul>
 <blockquote><p><strong>Depois de gravar, REINICIE o serviço</strong> para que ele herde a nova variável de ambiente:  ```powershell powershell -ExecutionPolicy Bypass -File .\servico.ps1 -Acao Restart ```</p></blockquote>
@@ -957,7 +957,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li><strong>Teste de token</strong> (um único GET; imprime só o status, nunca o token nem a senha):</li>
 </ul>
 <pre><code>  &amp; 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token</code></pre>
-<p><code>GetToken: HTTP 200 OK</code> = credencial e rede boas. <code>FALHA</code> = anotar o código. <code>credenciais ausentes</code> = conferir <code>WMS__Usuario</code> e <code>WMS__Senha</code> (seção 4). Não repetir em sequência.</p>
+<p><code>GetToken: HTTP 200 OK (friozem.assistsoftware.com.br, porta 443)</code> = credencial e rede boas (o texto entre parênteses é o host e a porta efetivos; <code>porta 8888</code> seria homologação). <code>FALHA</code> = anotar o código. <code>credenciais ausentes</code> = conferir <code>WMS__Usuario</code> e <code>WMS__Senha</code> (seção 4). Não repetir em sequência. Esse teste e as demais linhas de comando do executável (<code>--smoke-wms</code>, <code>--enviar-i60</code>, <code>--enviar-i40</code>, <code>--consultar-i51</code>, <code>--relatorio-i60</code>, <code>--reenfileirar-i60</code>) leem a <strong>mesma configuração do serviço</strong>: <code>appsettings.json</code>, <code>appsettings.Production.json</code>, variáveis de ambiente, argumentos e <code>email.settings.json</code>, todos da pasta do executável.</p>
 <ul>
 <li><strong>Quando acionar a Assist:</strong> 401 que passa de 15 min (cooldown no teto) ou que volta em vários dias. Levar os horários do log, o IP do servidor e as perguntas de <code>docs\OPERACAO.md</code> §12.1. O diagnóstico no log traz status, <code>WWW-Authenticate</code>, id da requisição e até 200 caracteres do corpo, nunca token, usuário ou senha.</li>
 <li><strong>Reprocesso das notas que já foram para <code>Erro</code> por 401</strong> (ex.: 383 de 15/11): <code>deploy\reprocessar-erro-401.ps1</code>, sempre com <code>-WhatIf</code> primeiro, só depois de o teste de token dar 200 e com OK do responsável (<code>docs\OPERACAO.md</code> §12.1).</li>
@@ -1057,7 +1057,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <p>Passos na ordem:</p>
 <ol>
 <li><strong>Veja os logs</strong> (seção 3), especialmente <code>worker.err.log</code>. A mensagem <code>Serviço não iniciado: corrija a seção 'Pastas' do appsettings.</code> indica config de <code>Pastas</code> inválida (por exemplo <code>Estado</code> igual a <code>Processados</code>/<code>Erro</code>).</li>
-<li><strong>Confirme as variáveis de máquina</strong> do WMS: o serviço lê <code>WMS__Usuario</code>/<code>WMS__Senha</code> das env de <strong>máquina</strong>; se foram gravadas e o serviço não reiniciou, ele ainda não as herdou — reinicie.</li>
+<li><strong>Confirme as variáveis do WMS</strong>: o serviço lê <code>WMS__Usuario</code>/<code>WMS__Senha</code> das env de <strong>máquina</strong> e do <code>AppEnvironmentExtra</code> do NSSM (seção 4); se foram gravadas e o serviço não reiniciou, ele ainda não as herdou — reinicie. Na troca de senha, os dois lugares precisam ter o mesmo valor (rode <code>configurar-segredos.ps1</code> sem <code>-SemNssm</code>).</li>
 <li><strong>Rode o diagnóstico</strong> (somente leitura, sempre termina sem erro), a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>:</li>
 </ol>
 <pre><code>   cd C:\Friozem\importacao_notas\tools\deploy
@@ -1094,7 +1094,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 </tr>
 <tr>
 <td>Trocar usuário/senha do WMS</td>
-<td><code>tools\deploy\configurar-segredos.ps1</code> (env de máquina)</td>
+<td><code>tools\deploy\configurar-segredos.ps1</code> (env de máquina + <code>AppEnvironmentExtra</code> do NSSM)</td>
 <td><strong>Sim</strong></td>
 </tr>
 <tr>

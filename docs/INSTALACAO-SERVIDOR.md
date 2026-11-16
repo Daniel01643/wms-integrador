@@ -224,9 +224,21 @@ já traz as chaves.
 Pede (sem eco) usuário/senha do WMS e do SMTP. Grava:
 - WMS → variáveis de ambiente de **máquina** `WMS__Usuario`/`WMS__Senha` (padrão `-Escopo Maquina`;
   alternativa `-Escopo Arquivo` grava em `config\appsettings.Production.json`).
+- WMS, com `-Escopo Maquina` → **também** o parâmetro do serviço NSSM
+  `HKLM\SYSTEM\CurrentControlSet\Services\Friozem-ImportacaoNotas\Parameters\AppEnvironmentExtra` (`REG_MULTI_SZ`).
+  Desde 16/11/2026 o serviço lê `WMS__Usuario`/`WMS__Senha` também dali, porque o SCM não enxerga variável de
+  máquina nova sem reiniciar o servidor. O script cria/atualiza só essas duas entradas, preserva as demais, aceita
+  `-WhatIf`, nunca exibe a senha e pula esse passo com `-SemNssm`. Sem a chave do serviço (não instalado via NSSM),
+  avisa e segue.
 - SMTP → `config\email.settings.json` (`smtp.friozem.com.br:587`, `UsarTls=false`).
-Reaplica a ACL de `config\`. Depois de gravar env de máquina, o serviço precisa ser **reiniciado**
-para herdá-la.
+Reaplica a ACL de `config\`. Depois de gravar as credenciais, o serviço precisa ser **reiniciado**
+(`servico.ps1 -Acao Restart`) e a troca confirmada com `KitWmsIntegrador.Worker.exe --testar-token`.
+> **Fontes de configuração (serviço e CLIs manuais, idênticas):** `appsettings.json`, `appsettings.Production.json`
+> (ambiente Production por padrão), variáveis de ambiente, argumentos de linha de comando e, por último,
+> `email.settings.json`, todos lidos da **pasta do executável** (`app\current`), nunca do diretório atual e nunca de
+> `config\` diretamente (o `publicar-release.ps1` copia `config\appsettings.Production.json` e `email.settings.json`
+> para dentro da release). Todas as CLIs (`--testar-token`, `--smoke-wms`, `--enviar-i60`, `--enviar-i40`,
+> `--consultar-i51`, `--relatorio-i60`, `--reenfileirar-i60`) usam o mesmo carregador (`ConfiguracaoAplicacao`).
 
 > Também copie o molde `deploy\config-exemplo\appsettings.Production.json` para
 > `C:\Friozem\importacao_notas\config\appsettings.Production.json`. `Pastas:Entrada` já vem com o
@@ -435,7 +447,8 @@ O Worker (host genérico) lê, em ordem: `appsettings.json` (na release) + `apps
 
 - **Overrides sem segredo** (pastas/URL/flags): preferir **env de máquina** (`Pastas__Entrada`,
   `Wms__BaseUrl`, `Email__Habilitado`...) — persistem entre releases e tornam a virada trivial.
-- **Segredos**: WMS em env de máquina `WMS__Usuario`/`WMS__Senha` (ou `config\appsettings.Production.json`
+- **Segredos**: WMS em env de máquina `WMS__Usuario`/`WMS__Senha` **e** no `AppEnvironmentExtra` do NSSM (o
+  `configurar-segredos.ps1` grava os dois; ou `config\appsettings.Production.json`
   com ACL); SMTP em `config\email.settings.json` (ACL). **Nunca** no `appsettings.json` versionado.
 - **Scripts de operação**: vivem de forma **permanente** em `tools\deploy` (fonte de verdade no
   servidor). `instalar.ps1`/`publicar-release.ps1` os **replicam/atualizam** (idempotente) junto da
