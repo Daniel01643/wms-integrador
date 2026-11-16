@@ -26,7 +26,7 @@ public sealed class OpcoesI50
     /// Tipo de separação 1 — busca da 1ª carga (campo <c>tipoSeparacao</c>).
     /// Default do template (a confirmar p/ BRF).
     /// </summary>
-    public string TipoSeparacao { get; set; } = "RES;FEF;PLI";
+    public string TipoSeparacao { get; set; } = "PIC;FEF;PLL";
 
     /// <summary>
     /// Tipo de separação 2 — busca da 2ª carga (campo <c>tipoSeparacao2</c>).

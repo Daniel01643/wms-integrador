@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using KitWmsIntegrador.Core.Agrupamento;
+using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Modelos;
@@ -73,6 +74,14 @@ public sealed class ProcessadorLote
     /// <c>ProcessarAsync</c>. Um pacote tem uma chamada; antes de qualquer chamada vale 0.
     /// </summary>
     public long UltimaLeituraMs { get; private set; }
+
+    /// <summary>
+    /// Verdadeiro se a última chamada de <c>ProcessarAsync</c> foi interrompida porque o GetToken do WMS falhou
+    /// (ou está em cooldown). As notas restantes NÃO foram para Erro: seguem na entrada para nova tentativa.
+    /// </summary>
+    public bool UltimoAbortoAutenticacao => Volatile.Read(ref _abortoAutenticacao) != 0;
+
+    private int _abortoAutenticacao;
 
     /// <summary>Arquivos enviados ao WMS cujo move ainda está pendente (não bloqueiam o fechamento).</summary>
     public IReadOnlyCollection<string> MovePendentes => _movePendentes.Keys.ToList();
@@ -211,6 +220,7 @@ public sealed class ProcessadorLote
     {
         ArgumentNullException.ThrowIfNull(entradas);
         var registros = new ConcurrentQueue<RegistroDiario>();
+        Volatile.Write(ref _abortoAutenticacao, 0);
 
         var ordenados = entradas
             .OrderBy(e => ObterCriacao(e.Caminho))
@@ -253,9 +263,18 @@ public sealed class ProcessadorLote
             }
 
             // O ZIP só sai da pasta depois que todos os seus XMLs foram tratados (cada um já foi
-            // movido para Processados\<id> ou Erro\<id>\...).
+            // movido para Processados\<id> ou Erro\<id>\...). Se o pacote foi interrompido por falha
+            // de autenticação, o ZIP com XML ainda não tratado fica na entrada para o retry.
             foreach (var zip in zips)
             {
+                if (UltimoAbortoAutenticacao && TemXmlNaoTratado(zip, lidos))
+                {
+                    _logger.LogWarning(
+                        "ZIP {Zip} mantido na entrada: pacote interrompido por falha de autenticação do WMS.",
+                        Path.GetFileName(zip.Entrada.Caminho));
+                    continue;
+                }
+
                 MoverZipTratado(zip, identificadorPacote);
             }
 
@@ -410,6 +429,11 @@ public sealed class ProcessadorLote
         }
     }
 
+    // XML do ZIP que ainda está na pasta temporária e sem move pendente = nunca foi finalizado.
+    private bool TemXmlNaoTratado(ZipTratado zip, List<Lido> lidos) =>
+        lidos.Any(l => string.Equals(l.ZipCaminho, zip.Entrada.Caminho, StringComparison.OrdinalIgnoreCase)
+                       && File.Exists(l.Arquivo) && !_movePendentes.ContainsKey(l.Arquivo));
+
     private void MoverZipTratado(ZipTratado zip, string identificadorPacote)
     {
         var caminho = zip.Entrada.Caminho;
@@ -437,6 +461,11 @@ public sealed class ProcessadorLote
             foreach (var nota in notas)
             {
                 ct.ThrowIfCancellationRequested();
+                if (UltimoAbortoAutenticacao)
+                {
+                    return; // pacote interrompido: as notas restantes ficam na entrada
+                }
+
                 var (arquivo, _, ctx) = arquivoDe[nota];
                 // TSP: o argumento é o nome da onda; o relatório mostra o transporte da própria nota.
                 var exibido = ctx.EhTsp ? nota.NumeroTransporte ?? string.Empty : transporte;
@@ -450,6 +479,16 @@ public sealed class ProcessadorLote
                         : throw new InvalidOperationException("O Orquestrador não devolveu resultado para a nota.");
                     RegistrarSeparacao(nota, resultado, arquivo, ctx, transporte, identificadorPacote);
                     Concluir(registros, arquivo, resultado, identificadorPacote, ctx, ctx.EhTsp ? exibido : null, inicioNota);
+                }
+                catch (AutenticacaoWmsIndisponivelException ex)
+                {
+                    // Falha de autenticação NÃO é erro da nota: não registra, não move para Erro e interrompe o pacote.
+                    Volatile.Write(ref _abortoAutenticacao, 1);
+                    _logger.LogWarning(
+                        "Pacote interrompido: autenticação do WMS indisponível (status={Status}, cooldown={Cooldown}). " +
+                        "A nota {Nota} e as demais permanecem na entrada para nova tentativa.",
+                        ex.Status, ex.EmCooldown, nota.Numero);
+                    return;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -552,7 +591,8 @@ public sealed class ProcessadorLote
     private static string MotivoSidecar(RegistroDiario r) =>
         $"Nota: {r.NumeroNota}{Environment.NewLine}Transporte: {r.NumeroTransporte}{Environment.NewLine}" +
         $"Tentativas: {r.Tentativas}{Environment.NewLine}Data: {r.Horario.ToLocalTime():yyyy-MM-dd HH:mm:ss}{Environment.NewLine}" +
-        $"Mensagem: {r.Mensagem}";
+        $"Mensagem: {r.Mensagem}" +
+        (string.IsNullOrWhiteSpace(r.Origem) ? string.Empty : $"{Environment.NewLine}Origem: {r.Origem}");
 
     private RegistroDiario Registro(
         string arquivo, bool xmlInvalido, string nota, string transporte, string mensagem, bool integrada,

@@ -85,6 +85,8 @@ public class RegistroClienteWmsTests
         services.AddLogging();
         services.AddSingleton<KitWmsIntegrador.Core.Tempo.IClock, KitWmsIntegrador.Core.Tempo.SystemClock>();
         services.AddOptions<OpcoesWms>().Configure(o => { o.BaseUrl = "https://exemplo.local/api"; o.TimeoutSegundos = 5; });
+        services.AddSingleton<IAlertaAutenticacaoWms>(new AlertaAutenticacaoFalso()); // o real exige e-mail/destinatários
+        services.AddSingleton<IAlertaAutenticacaoWms>(new AlertaAutenticacaoFalso()); // o real exige e-mail/destinatários
         services.AdicionarClienteWms();
         using var provider = services.BuildServiceProvider();
 

@@ -64,7 +64,8 @@ public sealed class FechadorPacote
         // Medição de tempo (IClock): o relatório mostra só o que terminou antes de ser renderizado.
         // O tempo da própria geração (abaixo) não cabe dentro dele: vai só para a telemetria.
         var medicao = MedicaoTempo.De(registros, inicio, fim, etapas?.EsperaJanelaMs, etapas?.LeituraMs);
-        var dados = new DadosPacote(identificadorPacote, medicao);
+        var dados = new DadosPacote(
+            identificadorPacote, medicao, etapas?.FalhasGetToken ?? 0, etapas?.AbortadoPorAutenticacao ?? false);
         var cronometro = System.Diagnostics.Stopwatch.StartNew();
         long tempoRelatorioMs;
 

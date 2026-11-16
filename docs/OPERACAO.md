@@ -85,10 +85,10 @@ O pacote é uma **foto** da pasta de entrada:
    (cada arquivo é movido para lá durante o processamento) quanto para o nome do relatório — garantindo
    que ambos tenham exatamente o mesmo carimbo.
 2. **Coletando** (janela de silêncio, padrão desde a release 2026.11.13-1): o pacote fecha a coleta quando
-   passam `Pacote:SilencioSegundos` (padrão 15 s) **sem chegar arquivo novo nem mudar o tamanho/data de um
+   passam `Pacote:SilencioSegundos` (padrão 20 s) **sem chegar arquivo novo nem mudar o tamanho/data de um
    existente**, ou quando a coleta atinge o teto `Pacote:JanelaMaximaSegundos` (padrão 180 s) contado da
    abertura (o pacote nunca passa disso). Cada arquivo novo ou alterado reinicia a contagem do silêncio,
-   então lote pequeno fecha em ~15 s e lote grande, copiado aos poucos, não é dividido em vários pacotes e
+   então lote pequeno fecha em ~20 s e lote grande, copiado aos poucos, não é dividido em vários pacotes e
    relatórios. O silêncio efetivo nunca é menor que `EstabilizacaoSegundos` (aviso no log da partida se a
    configuração pedir menos). Vale para a raiz, `Puxada` e `PuxadaTSP`. O log registra "Pacote aberto" com
    a janela e "Fim da coleta por ..." com o motivo (silêncio, teto ou janela fixa) e a duração.
@@ -226,7 +226,7 @@ SChannel do sistema (validar no servidor).
   "Pastas": { "Entrada": "C:\\Envia xml", "Processados": "Processados", "Erro": "Erro", "Estado": "Estado", "OrganizacaoErro": "PorCategoria" },
   "Pacote": {
     "IntervaloVarreduraSegundos": 5, "EstabilizacaoSegundos": 3,
-    "ModoJanela": "Silencio", "SilencioSegundos": 15, "JanelaMaximaSegundos": 180, "JanelaColetaSegundos": 10,
+    "ModoJanela": "Silencio", "SilencioSegundos": 20, "JanelaMaximaSegundos": 180, "JanelaColetaSegundos": 10,
     "TimeoutArquivoSegundos": 300, "BackoffMaximoSegundos": 120, "MaxTransportesConcorrentes": 1
   },
   "Limpeza": { "Habilitada": true, "DiasRetencao": 30 }
@@ -463,10 +463,42 @@ resultado por chave.
 
 ## 11. Release 2026.11.13-1 (o que muda na operação)
 Pacote local pronto (`artifacts\2026.11.13-1`), **ainda não publicado**; checklist em `.agents\tasks\checklist-release-2026-11-13.md`.
-- **Janela de silêncio (`Pacote:ModoJanela=Silencio`):** a coleta do pacote fecha depois de 15 s sem arquivo novo (`SilencioSegundos`), com teto de 180 s (`JanelaMaximaSegundos`). Lotes grandes deixam de ser divididos em vários pacotes. Log: "Pacote aberto" e "Fim da coleta por silêncio|teto da janela|janela fixa". `ModoJanela=Fixa` volta à janela fixa de `JanelaColetaSegundos` sem trocar a release.
+- **Janela de silêncio (`Pacote:ModoJanela=Silencio`):** a coleta do pacote fecha depois de 15 s sem arquivo novo (`SilencioSegundos`; 20 s a partir da release de 16/11/2026, ver seção 12), com teto de 180 s (`JanelaMaximaSegundos`). Lotes grandes deixam de ser divididos em vários pacotes. Log: "Pacote aberto" e "Fim da coleta por silêncio|teto da janela|janela fixa". `ModoJanela=Fixa` volta à janela fixa de `JanelaColetaSegundos` sem trocar a release.
 - **Placa:** Puxada normal envia a placa do XML (`I50:EnviarPlacaVeiculo=true`); Puxada TSP vai sem placa (`I50:EnviarPlacaVeiculoTsp=false`).
 - **I60:** `QtdeVolumeZero` e `QtdeTotalNotaZero` em `true` (validado no homolog em 13/11/2026: 7 de 7 notas associadas). I51/I60 seguem desligadas até o OK do usuário e dos pré-requisitos do WMS de produção.
 - **Retenção de 30 dias** em `Processados`, `Erro` e `Estado\i51` (era 60). A tela de devolução só acha notas dos últimos 30 dias.
 - **Alerta imediato da I60** e bloco "Atenção" no relatório diário: ver seção 10.
 - **Pendência:** texto real do ENC (doccarga encerrado) ainda não capturado; calibrar `I60:PadroesDocCargaEncerrado` com o primeiro alerta.
 - **Verificação após publicar:** serviço Running, "Pacote aberto" no log, arquivo de teste (nunca nota real) em `Puxada` e `PuxadaTSP`, e-mail de fechamento com cabeçalho e tempo de integração.
+
+## 12. Release de 16/11/2026: autenticação do WMS (401), tipos de separação e espera de coleta
+
+- **Falha do GetToken nunca manda nota para `Erro`.** Se o `GET Integracao/GetToken` falhar (401, 403, 5xx,
+  timeout, rede ou resposta sem token), o pacote é interrompido: as notas já integradas seguem para
+  `Processados`, as demais **ficam na pasta de entrada** (XML e ZIP) e entram no próximo pacote. Log:
+  "Pacote interrompido: autenticação do WMS indisponível".
+- **Espera crescente (cooldown global):** após `Wms:TokenTentativasImediatas` (2) tentativas seguidas, nenhuma
+  chamada ao WMS é feita por 1 min; se a próxima tentativa falhar, 2, 5, 10 e 15 min (teto), conforme
+  `Wms:CooldownTokenSegundos` = `60;120;300;600;900`. O primeiro sucesso zera a escada. Enquanto o cooldown
+  vale, o serviço não abre pacote e registra uma vez "Aguardando autenticação do WMS até HH:mm:ss".
+- **Validade máxima do token:** `Wms:ValidadeMaximaTokenMinutos` (3) renova o token a cada 3 min mesmo que o
+  `exp` do JWT seja maior (`0` desliga). Se a renovação falhar e o token atual ainda estiver dentro do `exp`,
+  ele continua sendo usado. 401 no POST continua renovando o token uma vez.
+- **Diagnóstico no log:** status, `WWW-Authenticate`, id da requisição (`X-Request-Id`, `Request-Id`,
+  `X-Correlation-Id` ou `traceparent`) e até 200 caracteres do corpo da resposta. Nunca token, usuário, senha
+  ou header `Authorization`.
+- **Alerta por e-mail:** um e-mail quando a autenticação fica indisponível e um quando volta
+  (`Wms:AlertaAutenticacao=true`; respeita `Email:Habilitado` e usa os destinatários do fechamento). O
+  relatório e o e-mail do pacote mostram "Falhas de autenticação (GetToken): N" e o aviso de pacote
+  interrompido só quando houve falha.
+- **Teste manual:** `KitWmsIntegrador.Worker.exe --testar-token` faz um GetToken com a configuração do serviço
+  e imprime só `GetToken: HTTP <código> OK|FALHA` (exit 0 = ok, 1 = falha ou credenciais ausentes).
+- **Reprocesso das notas que já foram para `Erro` por 401** (ex.: 15/11/2026): `deploy\reprocessar-erro-401.ps1`
+  (em `<RaizInstalacao>\tools\deploy`). Rode primeiro com `-WhatIf`. Só move XMLs cujo `.motivo.txt` cita 401,
+  devolve para a pasta de origem (linha `Origem:` dos sidecars novos) ou para `-DestinoPadrao` (`Puxada`,
+  `PuxadaTSP` ou `Raiz`) nos antigos, renomeia o sidecar para `.reprocessado-<carimbo>` e grava o log em
+  `Estado\logs\reprocessar-erro-401-<data>.log` (só nomes e contagens). Usar só com OK do responsável.
+- **I50:** `I50:TipoSeparacao` = `PIC;FEF;PLL` (era `RES;FEF;PLI`) e `I50:TipoSeparacao2` = `AGL;FEF;PLL`, no
+  cabeçalho e em cada item.
+- **Espera de coleta:** `Pacote:SilencioSegundos` = 20 (era 15); `JanelaMaximaSegundos` 180 e
+  `EstabilizacaoSegundos` 3 sem mudança. Override sem release: `Pacote__SilencioSegundos`.

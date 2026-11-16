@@ -29,7 +29,7 @@ public sealed class OpcoesPacote
     public string ModoJanela { get; set; } = ModoSilencio;
 
     /// <summary>Modo Silencio: segundos sem nenhuma atividade (arquivo novo ou alterado) para encerrar a coleta.</summary>
-    public int SilencioSegundos { get; set; } = 15;
+    public int SilencioSegundos { get; set; } = 20;
 
     /// <summary>Modo Silencio: teto da coleta, contado da abertura do pacote (nunca passa disso).</summary>
     public int JanelaMaximaSegundos { get; set; } = 180;

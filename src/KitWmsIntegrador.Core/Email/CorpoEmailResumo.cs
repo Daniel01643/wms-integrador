@@ -80,6 +80,7 @@ public static class CorpoEmailResumo
 
         AppendCabecalho(sb, temLogo);
         AppendPeriodo(sb, inicio, fim, periodo, ci);
+        AppendAutenticacao(sb, pacote);
         AppendCartoes(sb, r, xmlsInvalidos, ci);
         var tempo = BlocoTempo.Montar(r, pacote?.Medicao);
         AppendTempo(sb, tempo);
@@ -98,6 +99,25 @@ public static class CorpoEmailResumo
 
         var imagem = temLogo ? new ImagemInline(CidLogo, logoPng!) : null;
         return new CorpoEmail(sb.ToString(), imagem);
+    }
+
+    // Só aparece quando houve falha de GetToken no pacote (contador > 0) ou o pacote foi interrompido.
+    private static void AppendAutenticacao(StringBuilder sb, DadosPacote? pacote)
+    {
+        if (pacote is null || (pacote.FalhasGetToken <= 0 && !pacote.PacoteInterrompido))
+        {
+            return;
+        }
+
+        sb.Append("<tr><td style=\"padding:8px 24px 0;\"><p style=\"margin:0;color:").Append(IdentidadeVisual.Vermelho)
+          .Append(";font-size:13px;\"><b>Falhas de autenticação (GetToken):</b> ")
+          .Append(pacote.FalhasGetToken.ToString(CultureInfo.InvariantCulture));
+        if (pacote.PacoteInterrompido)
+        {
+            sb.Append("<br />Pacote interrompido: as notas restantes aguardam na entrada para nova tentativa automática.");
+        }
+
+        sb.Append("</p></td></tr>");
     }
 
     private static void AppendCabecalho(StringBuilder sb, bool temLogo)

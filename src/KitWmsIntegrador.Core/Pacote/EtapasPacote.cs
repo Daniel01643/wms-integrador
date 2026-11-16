@@ -6,4 +6,7 @@ namespace KitWmsIntegrador.Core.Pacote;
 /// </summary>
 /// <param name="EsperaJanelaMs">Da abertura do pacote até a foto da pasta (janela de coleta).</param>
 /// <param name="LeituraMs">Leitura do ZIP/XML (fase de parse).</param>
-public sealed record EtapasPacote(long? EsperaJanelaMs, long? LeituraMs);
+/// <param name="FalhasGetToken">Falhas definitivas do GetToken ocorridas durante o pacote.</param>
+/// <param name="AbortadoPorAutenticacao">O pacote foi interrompido por falha de autenticação.</param>
+public sealed record EtapasPacote(
+    long? EsperaJanelaMs, long? LeituraMs, int FalhasGetToken = 0, bool AbortadoPorAutenticacao = false);

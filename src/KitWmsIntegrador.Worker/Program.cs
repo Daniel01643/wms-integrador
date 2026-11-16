@@ -23,6 +23,12 @@ if (args.Contains(SmokeTestWms.Argumento))
     return await SmokeTestWms.ExecutarAsync(args);
 }
 
+// Teste de autenticação: um GetToken, imprime só o status (exit 0 = ok, 1 = falha).
+if (args.Contains(TestarTokenWms.Argumento))
+{
+    return await TestarTokenWms.ExecutarAsync(args);
+}
+
 // Envio manual de diagnóstico: só a I60 a partir de um XML (fora do fluxo padrão).
 if (args.Contains(EnvioManualI60.Argumento))
 {

@@ -1,6 +1,7 @@
-using KitWmsIntegrador.Core.ClienteWms;
+﻿using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace KitWmsIntegrador.Worker;
@@ -31,26 +32,34 @@ public static class RegistroClienteWms
 
                 http.Timeout = TimeSpan.FromSeconds(opcoes.TimeoutSegundos);
             })
-            .ConfigurePrimaryHttpMessageHandler(() =>
-                // Windows Server 2012 R2: o WMS de produção exige TLS 1.2. Forçamos o protocolo no handler para
-                // não depender do SChannel/registro do SO (que negociava de forma intermitente, causando 401 no
-                // GetToken). TLS 1.2 e TLS 1.3 quando disponível. PooledConnectionLifetime renova o DNS/conexões
-                // porque o HttpClient agora vive o tempo todo do processo (singleton).
-                new SocketsHttpHandler
-                {
-                    PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-                    SslOptions = new System.Net.Security.SslClientAuthenticationOptions
-                    {
-                        EnabledSslProtocols =
-                            System.Security.Authentication.SslProtocols.Tls12 |
-                            System.Security.Authentication.SslProtocols.Tls13,
-                    },
-                });
+            .ConfigurePrimaryHttpMessageHandler(CriarHandler);
 
+        // Guarda global do GetToken (cooldown e contador) e alerta por e-mail: uma instância por processo.
+        // TryAdd: os testes podem registrar um alerta falso antes.
+        services.AddSingleton<GuardaAutenticacaoWms>();
+        services.AddSingleton<IEstadoAutenticacaoWms>(sp => sp.GetRequiredService<GuardaAutenticacaoWms>());
+        services.TryAddSingleton<IAlertaAutenticacaoWms, AlertaAutenticacaoWmsEmail>();
         services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ClienteWmsHttp>(
             sp, sp.GetRequiredService<IHttpClientFactory>().CreateClient(NomeHttpClient)));
         services.AddSingleton<IClienteWms>(sp => sp.GetRequiredService<ClienteWmsHttp>());
         services.AddSingleton<IClienteWmsBruto>(sp => sp.GetRequiredService<ClienteWmsHttp>());
         return services;
     }
+
+    /// <summary>
+    /// Handler do HttpClient do WMS. Windows Server 2012 R2: o WMS de produção exige TLS 1.2. Forçamos o protocolo no
+    /// handler para não depender do SChannel/registro do SO (que negociava de forma intermitente). TLS 1.2 e TLS 1.3
+    /// quando disponível. PooledConnectionLifetime renova o DNS/conexões porque o HttpClient vive o tempo todo do processo.
+    /// </summary>
+    public static HttpMessageHandler CriarHandler() =>
+        new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            {
+                EnabledSslProtocols =
+                    System.Security.Authentication.SslProtocols.Tls12 |
+                    System.Security.Authentication.SslProtocols.Tls13,
+            },
+        };
 }

@@ -123,6 +123,9 @@ public sealed class AmbientePacote : IDisposable
 
     public IGeradorRelatorio? GeradorSubstituto { get; set; }
 
+    /// <summary>Estado de autenticação do WMS (cooldown do GetToken) injetado no gerenciador; null = sem gate.</summary>
+    public KitWmsIntegrador.Core.ClienteWms.IEstadoAutenticacaoWms? Autenticacao { get; set; }
+
     /// <summary>Registrador da separação (I51) injetado no ProcessadorLote; null = comportamento anterior.</summary>
     public KitWmsIntegrador.Core.Separacao.IRegistradorSeparacao? RegistradorSeparacao { get; set; }
 
@@ -288,7 +291,7 @@ public sealed class AmbientePacote : IDisposable
             NullLogger<FechadorPacote>.Instance);
         return new GerenciadorPacote(
             Clock, Options.Create(Pastas), Options.Create(Pacote), detector, processador, diario, fechador,
-            NullLogger<GerenciadorPacote>.Instance);
+            NullLogger<GerenciadorPacote>.Instance, Autenticacao);
     }
 
     /// <summary>Roda ciclos (avançando o relógio) até o estado voltar a Ocioso. Devolve a quantidade de ciclos.</summary>

@@ -63,7 +63,7 @@ Na BRF, `tipoCarga`, `tipoSeparacao` e `tipoSeparacao2` vêm de **configuração
       "tipoCarga": "CN",                               // CONFIG. "CD" distribuição / "CN" normal / "TR" transferência
       "tipoAcondicionamento": "PP",                    // "PP" palete padrão / "PE" / "PC" picking / "PA" packing
       "tpAcao": "I",                                   // Sempre "I"
-      "tipoSeparacao": "RES;FEF;PLI",                  // CONFIG (busca 1a carga)
+      "tipoSeparacao": "PIC;FEF;PLL",                  // CONFIG (busca 1a carga)
       "tipoSeparacao2": "AGL;FEF;PLL",                 // CONFIG (busca 2a carga)
       "dataEmissao": "05/12/2022 00:00:00",            // Data geração da remessa/pedido (DD/MM/YYYY HH:MM:SS)
       "dataprev": "06/12/2022 18:30:00",               // Previsão de entrega
@@ -95,7 +95,7 @@ Na BRF, `tipoCarga`, `tipoSeparacao` e `tipoSeparacao2` vêm de **configuração
           "qtdeEmbalagem": 10,                         // Qtd de caixas a separar
           "quantidadeProduto": 300,                    // Qtd na unidade menor (UND/KG)
           "qtdMandante": "E",                          // "E" embalagens/caixas ou "U" produtos
-          "tipoSeparacao": "RES;FEF;PLI",              // CONFIG (mesmo da sep1)
+          "tipoSeparacao": "PIC;FEF;PLL",              // CONFIG (mesmo da sep1)
           "tipoSeparacao2": "AGL;FEF;PLL",             // CONFIG (mesmo da sep2)
           "valorDetalhe1": "", "valorDetalhe2": "", "valorDetalhe3": "", "valorDetalhe4": "",
           "tipoEspecificacaoItem": "",                 // LOTE/DATA/ShelfLife quando aplicável

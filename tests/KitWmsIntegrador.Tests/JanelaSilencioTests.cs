@@ -274,7 +274,7 @@ public sealed class JanelaSilencioTests : IDisposable
     {
         var o = new OpcoesPacote();
         Assert.Equal("Silencio", o.ModoJanela);
-        Assert.Equal(15, o.SilencioSegundos);
+        Assert.Equal(20, o.SilencioSegundos);
         Assert.Equal(180, o.JanelaMaximaSegundos);
         Assert.Equal(10, o.JanelaColetaSegundos);
         Assert.Equal(3, o.EstabilizacaoSegundos);
@@ -297,6 +297,6 @@ public sealed class JanelaSilencioTests : IDisposable
         Assert.Equal(3, o.SilencioEfetivoSegundos);
         Assert.Empty(o.Validar());
         Assert.Single(o.Avisos());
-        Assert.Equal(15, new OpcoesPacote().SilencioEfetivoSegundos);
+        Assert.Equal(20, new OpcoesPacote().SilencioEfetivoSegundos);
     }
 }

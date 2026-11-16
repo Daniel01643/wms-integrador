@@ -30,7 +30,7 @@ public class ConstrutorI50Tests
     private static OpcoesI50 I50Padrao() => new()
     {
         TipoCarga = "CN",
-        TipoSeparacao = "RES;FEF;PLI",
+        TipoSeparacao = "PIC;FEF;PLL",
         TipoSeparacao2 = "AGL;FEF;PLL",
         TipoAcondicionamento = "PC",
         QtdMandante = "U",
@@ -274,7 +274,7 @@ public class ConstrutorI50Tests
         var i50 = new OpcoesI50
         {
             TipoCarga = "CN",
-            TipoSeparacao = "RES;FEF;PLI",
+            TipoSeparacao = "PIC;FEF;PLL",
             TipoSeparacao2 = "AGL;FEF;PLL",
             TipoAcondicionamento = "PC",
             QtdMandante = "U",

@@ -1,4 +1,5 @@
-using System.Globalization;
+﻿using System.Globalization;
+using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
@@ -47,6 +48,10 @@ public sealed class GerenciadorPacote
     private readonly DiarioPacote _diario;
     private readonly FechadorPacote _fechador;
     private readonly ILogger<GerenciadorPacote> _logger;
+    private readonly IEstadoAutenticacaoWms? _autenticacao;
+    private bool _aguardandoLogado;
+    private long _falhasBase;
+    private bool _abortadoPorAutenticacao;
 
     private readonly List<RegistroDiario> _registros = new();
     private DateTimeOffset? _inicio;
@@ -71,8 +76,10 @@ public sealed class GerenciadorPacote
         ProcessadorLote processador,
         DiarioPacote diario,
         FechadorPacote fechador,
-        ILogger<GerenciadorPacote> logger)
+        ILogger<GerenciadorPacote> logger,
+        IEstadoAutenticacaoWms? autenticacao = null)
     {
+        _autenticacao = autenticacao;
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _pastas = pastas?.Value ?? throw new ArgumentNullException(nameof(pastas));
         _opcoes = opcoes?.Value ?? throw new ArgumentNullException(nameof(opcoes));
@@ -94,6 +101,15 @@ public sealed class GerenciadorPacote
     /// arquivo pronto). <see cref="DateTimeOffset.MinValue"/> quando não há backoff.
     /// </summary>
     public DateTimeOffset ProximaFotoUtc => _proximaFoto;
+
+    /// <summary>
+    /// Verdadeiro enquanto o cooldown do GetToken impede abrir pacote com arquivos na entrada
+    /// (estado "aguardando autenticação"; os arquivos continuam na entrada).
+    /// </summary>
+    public bool AguardandoAutenticacao { get; private set; }
+
+    /// <summary>Quando o GetToken será tentado de novo (null fora do estado "aguardando autenticação").</summary>
+    public DateTimeOffset? ProximaTentativaAutenticacaoUtc => AguardandoAutenticacao ? _autenticacao?.ProximaTentativaUtc : null;
 
     /// <summary>Executa um ciclo. Propaga apenas o cancelamento.</summary>
     public async Task CicloAsync(CancellationToken ct)
@@ -138,6 +154,24 @@ public sealed class GerenciadorPacote
                 return;
             }
 
+            if (_autenticacao is { Bloqueada: true })
+            {
+                // GetToken em cooldown: abrir pacote só geraria notas sem token. Os arquivos ficam na entrada.
+                AguardandoAutenticacao = true;
+                if (!_aguardandoLogado)
+                {
+                    _aguardandoLogado = true;
+                    _logger.LogWarning(
+                        "Aguardando autenticação do WMS até {Proxima:HH:mm:ss}; {Arquivos} arquivo(s) permanecem na entrada.",
+                        _autenticacao.ProximaTentativaUtc?.ToLocalTime(), candidatos);
+                }
+
+                return;
+            }
+
+            AguardandoAutenticacao = false;
+            _aguardandoLogado = false;
+            _falhasBase = _autenticacao?.TotalFalhasGetToken ?? 0;
             _inicio = agora;
             _ultimaAtividade = agora;
             _idPacote = IdDe(agora);
@@ -235,6 +269,7 @@ public sealed class GerenciadorPacote
 
                 var novos = await _processador.ProcessarAsync(fotoXml, _idPacote, ct).ConfigureAwait(false);
                 _registros.AddRange(novos);
+                _abortadoPorAutenticacao = _processador.UltimoAbortoAutenticacao;
                 if (!_pacoteRetomado)
                 {
                     _leituraMs = _processador.UltimaLeituraMs;
@@ -286,7 +321,10 @@ public sealed class GerenciadorPacote
             var id = _idPacote ?? IdDe(inicio);
             ok = await _fechador.FecharAsync(
                 registros, inicio, _clock.UtcNow, ct, _periodo, id,
-                new EtapasPacote(_esperaJanelaMs, _leituraMs)).ConfigureAwait(false);
+                new EtapasPacote(
+                    _esperaJanelaMs, _leituraMs,
+                    (int)Math.Max(0L, (_autenticacao?.TotalFalhasGetToken ?? 0) - _falhasBase),
+                    _abortadoPorAutenticacao)).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -307,6 +345,7 @@ public sealed class GerenciadorPacote
         _esperaJanelaMs = null;
         _leituraMs = null;
         _pacoteRetomado = false;
+        _abortadoPorAutenticacao = false;
         Estado = EstadoPacote.Ocioso;
         _logger.LogInformation("Pacote fechado.");
     }
@@ -327,6 +366,7 @@ public sealed class GerenciadorPacote
 
         // Pacote retomado: espera da janela e leitura não são conhecidas (as linhas somem do relatório).
         _pacoteRetomado = true;
+        _falhasBase = _autenticacao?.TotalFalhasGetToken ?? 0;
         _esperaJanelaMs = null;
         _leituraMs = null;
         var registros = ConsolidadorRegistros.Consolidar(lidos);

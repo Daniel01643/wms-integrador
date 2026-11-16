@@ -135,6 +135,13 @@ internal static class IdentidadeVisual
             itens.Add(("Coleta:", Horario(periodo.PrimeiraGravacao) + " a " + Horario(periodo.UltimaGravacao)));
         }
 
+        if (pacote is { } p && (p.FalhasGetToken > 0 || p.PacoteInterrompido))
+        {
+            itens.Add(("Falhas de autenticação (GetToken):",
+                p.FalhasGetToken.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + (p.PacoteInterrompido ? " · pacote interrompido, notas aguardam na entrada" : string.Empty)));
+        }
+
         return itens;
     }
 

@@ -1,4 +1,4 @@
-namespace KitWmsIntegrador.Core.ClienteWms;
+﻿namespace KitWmsIntegrador.Core.ClienteWms;
 
 /// <summary>
 /// Opções de configuração do cliente WMS. Configurável via <c>appsettings.json</c>
@@ -60,4 +60,43 @@ public sealed class OpcoesWms
     /// proativamente (default 60).
     /// </summary>
     public int MargemRenovacaoTokenSegundos { get; set; } = 60;
+
+    /// <summary>
+    /// Validade máxima do token em minutos, contada da obtenção (default 3). O token é renovado ao atingi-la mesmo
+    /// que o <c>exp</c> do JWT seja maior; 0 desliga o limite (vale só o <c>exp</c>).
+    /// </summary>
+    public int ValidadeMaximaTokenMinutos { get; set; } = 3;
+
+    /// <summary>
+    /// Tentativas imediatas do GetToken por episódio de falha (default 2, backoff de 0,5 s). Esgotadas,
+    /// entra o cooldown global (<see cref="CooldownTokenSegundos"/>) e nenhuma nota dispara outro GetToken.
+    /// </summary>
+    public int TokenTentativasImediatas { get; set; } = 2;
+
+    /// <summary>
+    /// Escada do cooldown global após falha do GetToken, em segundos, separada por ';'
+    /// (default <c>60;120;300;600;900</c> = 1, 2, 5, 10 e 15 min). O último valor é o teto.
+    /// </summary>
+    public string CooldownTokenSegundos { get; set; } = "60;120;300;600;900";
+
+    /// <summary>Envia e-mail de alerta na indisponibilidade e na recuperação da autenticação (default true).</summary>
+    public bool AlertaAutenticacao { get; set; } = true;
+
+    /// <summary>Escada do cooldown já interpretada (valores inválidos são ignorados; vazio = escada padrão).</summary>
+    public IReadOnlyList<TimeSpan> ListaCooldown
+    {
+        get
+        {
+            var lista = (CooldownTokenSegundos ?? string.Empty)
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => int.TryParse(s, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out var v) && v > 0 ? v : 0)
+                .Where(v => v > 0)
+                .Select(v => TimeSpan.FromSeconds(v))
+                .ToList();
+            return lista.Count > 0
+                ? lista
+                : new[] { 60, 120, 300, 600, 900 }.Select(v => TimeSpan.FromSeconds(v)).ToList();
+        }
+    }
 }

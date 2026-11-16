@@ -116,6 +116,9 @@ Investigação de 2026-10-30 sobre os 1196 XMLs reais:
 - Localizar em `infNFe/infAdic/infCpl` (texto livre).
 - Regex: `Transporte:\s*(\d+)` → captura o número (manter zeros à esquerda como string).
 - Agrupar notas por esse número = onda. `nroagrupseparacao` da I50 deriva daqui.
+- `tipoSeparacao` e `tipoSeparacao2` da I50 **não vêm do XML**: são configuração (`I50:TipoSeparacao` =
+  `PIC;FEF;PLL` e `I50:TipoSeparacao2` = `AGL;FEF;PLL` desde 16/11/2026; antes `RES;FEF;PLI`) e valem igual
+  no cabeçalho do pedido e em cada item (`ITEM_PEDIDO`).
 
 ### Ressalvas a validar antes de descartar a planilha de vez
 

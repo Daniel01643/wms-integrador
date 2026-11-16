@@ -319,7 +319,7 @@ Pacote gerado na máquina de build por `publicar.ps1 -Versao 2026.11.13-1 -Saida
 ```
 - **Pastas de depósito:** criar `C:\Friozem\kitbrf\Puxada` e `C:\Friozem\kitbrf\PuxadaTSP` (item 3.4c) e conferir o compartilhamento.
 - **Chaves novas (todas com padrão seguro no `appsettings.json` do pacote):** `Pacote:ModoJanela` (`Silencio`/`Fixa`),
-  `Pacote:SilencioSegundos` (15), `Pacote:JanelaMaximaSegundos` (180), `I50:EnviarPlacaVeiculo` (true, Puxada normal com placa),
+  `Pacote:SilencioSegundos` (20), `Pacote:JanelaMaximaSegundos` (180), `I50:EnviarPlacaVeiculo` (true, Puxada normal com placa),
   `I50:EnviarPlacaVeiculoTsp` (false), `I60:QtdeVolumeZero` e `I60:QtdeTotalNotaZero` (true), `I60:AlertaImediato` (true),
   `Limpeza:DiasRetencao` e `I51:DiasRetencaoEstado` (30), `Pastas:Puxada`/`Pastas:PuxadaTsp`.
   O `config\appsettings.Production.json` do servidor sobrepõe o do pacote: aplique as chaves acima só se o arquivo do servidor
