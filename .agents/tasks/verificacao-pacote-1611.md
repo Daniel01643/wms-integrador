@@ -25,3 +25,5 @@ Os HTML gerados pelo script seguem sem BOM, como nas versões anteriores. Não f
 
 ## Entregáveis
 `.agents\tasks\checklist-release-2026-11-16.md` e `.agents\tasks\relatorio-release-1611.md`.
+## Iteração de revisão
+- Corrigido docs\apresentacao\apresentacao.html linha 601 (`perguntas ao fornecedor a enviar`) e regenerado apresentacao.pdf via Edge headless. Código inalterado: pacote e SHA-256 permanecem os mesmos.
