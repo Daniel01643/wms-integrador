@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-13</span>
-    <span>Vers&atilde;o: 2026.11.13-e3a398f</span>
+    <span>Gerado em: 2026-11-16</span>
+    <span>Vers&atilde;o: 2026.11.16-19346e3</span>
   </div>
 </section>
   <header class="hd">
@@ -130,6 +130,7 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <li><a href="#84-puxada-e-puxada-tsp-pastas-zip-e-nome-da-onda">8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda</a></li>
 <li><a href="#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário">8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</a> (inclui pré-requisitos do WMS, alerta imediato e calibração do ENC)</li>
 <li><a href="#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível">8.6. Última alternativa: tela de devolução pela I40 (seção removível)</a> (inclui o login simples)</li>
+<li><a href="#87-falha-de-login-do-wms-401-no-gettoken-tipos-de-separação-e-espera-de-coleta-release-20261116-1">8.7. Falha de login do WMS (401), tipos de separação e espera de coleta</a></li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -490,7 +491,7 @@ C:\Friozem\importacao_notas\logs\worker.err.log   (erros)</code></pre>
 </tr>
 <tr>
 <td><code>HTTP 401 no envio WMS (identificador=...); renovando token e repetindo uma vez.</code></td>
-<td><strong>Erro de credencial/token do WMS.</strong> O sistema renova e tenta 1x; se continuar 401, as credenciais <code>WMS__Usuario</code>/<code>WMS__Senha</code> estão inválidas (ver seção 4).</td>
+<td><strong>Erro de credencial/token do WMS.</strong> O sistema renova e tenta 1x; se continuar 401, as credenciais <code>WMS__Usuario</code>/<code>WMS__Senha</code> estão inválidas (ver seção 4) <strong>ou</strong> o WMS está recusando o login por alguns minutos: ver a seção 8.7 (<code>--testar-token</code>, cooldown, nota não vai para <code>Erro</code>).</td>
 </tr>
 <tr>
 <td><code>Serviço não iniciado: corrija a seção 'Pastas' do appsettings.</code></td>
@@ -586,7 +587,7 @@ gestor@friozem.com.br</code></pre>
 <tr>
 <td>Silêncio para fechar a coleta (modo <code>Silencio</code>)</td>
 <td><code>Pacote:SilencioSegundos</code></td>
-<td><code>15</code></td>
+<td><code>20</code></td>
 </tr>
 <tr>
 <td>Teto da coleta desde a abertura (modo <code>Silencio</code>)</td>
@@ -613,7 +614,7 @@ gestor@friozem.com.br</code></pre>
 <h3>Janela de coleta: silêncio (padrão) ou fixa</h3>
 <p>Desde a release <strong>2026.11.13-1</strong> a coleta do pacote usa a <strong>janela de silêncio</strong> (<code>Pacote:ModoJanela</code> = <code>Silencio</code>). Motivo: lotes grandes copiados aos poucos (de 06 a 13/11) eram divididos em 2 a 4 pacotes e relatórios pela janela fixa de 10 s.</p>
 <ul>
-<li><strong>Como fecha:</strong> a coleta termina quando passam <code>SilencioSegundos</code> (15 s) sem chegar arquivo novo nem mudar o tamanho/data de um arquivo existente, ou quando a coleta chega ao teto <code>JanelaMaximaSegundos</code> (180 s) contado da abertura do pacote. Cada arquivo novo ou alterado reinicia a contagem do silêncio. Lote pequeno fecha em cerca de 15 s; lote grande não é cortado; nada passa de 3 minutos.</li>
+<li><strong>Como fecha:</strong> a coleta termina quando passam <code>SilencioSegundos</code> (20 s, era 15 s até a 2026.11.13) sem chegar arquivo novo nem mudar o tamanho/data de um arquivo existente, ou quando a coleta chega ao teto <code>JanelaMaximaSegundos</code> (180 s) contado da abertura do pacote. Cada arquivo novo ou alterado reinicia a contagem do silêncio. Lote pequeno fecha em cerca de 20 s; lote grande não é cortado; nada passa de 3 minutos.</li>
 <li><strong>Silêncio efetivo:</strong> nunca é menor que <code>EstabilizacaoSegundos</code> (3 s). Se a config pedir menos, o serviço registra um aviso na partida e usa o mínimo.</li>
 <li><strong>No teto:</strong> um arquivo ainda instável (em cópia) fica para o próximo pacote, como antes.</li>
 <li><strong>Vale para</strong> a raiz, <code>Puxada</code> e <code>PuxadaTSP</code> (XML solto da TSP também cai num pacote só).</li>
@@ -922,6 +923,48 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li><strong>Risco aceito (decisão do usuário, 13/11/2026):</strong> sem restrição de firewall na rede interna; quem tem o link consegue enviar e a identificação é <strong>autodeclarada</strong>, não autenticada. Serve para saber quem enviou, não para impedir. Se isso mudar, a regra de firewall da porta <code>Devolucao:Porta</code> é o controle disponível.</li>
 </ul>
 <p>Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue (<code>Devolucao:Habilitada=true</code>) com OK do responsável.</p>
+<h3>8.7. Falha de login do WMS (401 no GetToken), tipos de separação e espera de coleta (release 2026.11.16-1)</h3>
+<p><strong>401 no GetToken.</strong> Desde a release 2026.11.16-1, se o <code>GET Integracao/GetToken</code> falhar (401, 403, 5xx, timeout, rede), a nota <strong>não vai mais para <code>Erro</code></strong>: o pacote é interrompido, as notas já integradas vão para <code>Processados</code> e as demais **ficam na pasta de entrada** e entram no próximo pacote. Enquanto durar o cooldown o serviço não chama o WMS (espera 1, 2, 5, 10 e 15 min, <code>Wms:CooldownTokenSegundos</code> = <code>60;120;300;600;900</code>) e registra "Aguardando autenticação do WMS até HH:mm:ss".</p>
+<table>
+<thead><tr>
+<th>Sintoma</th>
+<th>O que significa</th>
+<th>O que fazer</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>E-mail <code>ALERTA: autenticação do WMS indisponível (GetToken)</code></td>
+<td>O WMS recusou o login; nada foi perdido</td>
+<td>Não mexer nos arquivos da entrada. Rodar o teste abaixo</td>
+</tr>
+<tr>
+<td>Log <code>Pacote interrompido: autenticação do WMS indisponível</code></td>
+<td>Pacote parou; notas aguardam na entrada</td>
+<td>Aguardar o cooldown</td>
+</tr>
+<tr>
+<td>E-mail <code>RECUPERADO: autenticação do WMS (GetToken)</code></td>
+<td>Login voltou</td>
+<td>Conferir o relatório do próximo pacote</td>
+</tr>
+<tr>
+<td>Relatório com "Falhas de autenticação (GetToken): N"</td>
+<td>Houve falha durante o pacote</td>
+<td>Anotar a hora e avisar a IA de apoio/Assist se repetir</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Teste de token</strong> (um único GET; imprime só o status, nunca o token nem a senha):</li>
+</ul>
+<pre><code>  &amp; 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token</code></pre>
+<p><code>GetToken: HTTP 200 OK</code> = credencial e rede boas. <code>FALHA</code> = anotar o código. <code>credenciais ausentes</code> = conferir <code>WMS__Usuario</code> e <code>WMS__Senha</code> (seção 4). Não repetir em sequência.</p>
+<ul>
+<li><strong>Quando acionar a Assist:</strong> 401 que passa de 15 min (cooldown no teto) ou que volta em vários dias. Levar os horários do log, o IP do servidor e as perguntas de <code>docs\OPERACAO.md</code> §12.1. O diagnóstico no log traz status, <code>WWW-Authenticate</code>, id da requisição e até 200 caracteres do corpo, nunca token, usuário ou senha.</li>
+<li><strong>Reprocesso das notas que já foram para <code>Erro</code> por 401</strong> (ex.: 383 de 15/11): <code>deploy\reprocessar-erro-401.ps1</code>, sempre com <code>-WhatIf</code> primeiro, só depois de o teste de token dar 200 e com OK do responsável (<code>docs\OPERACAO.md</code> §12.1).</li>
+<li><strong>Validade do token:</strong> <code>Wms:ValidadeMaximaTokenMinutos</code> = 3 (renova a cada 3 min; <code>0</code> desliga). Alerta: <code>Wms:AlertaAutenticacao</code> = <code>true</code>.</li>
+</ul>
+<p><strong>Tipos de separação da I50.</strong> <code>I50:TipoSeparacao</code> = <code>PIC;FEF;PLL</code> (cabeçalho do pedido) e <code>I50:TipoSeparacao2</code> = <code>AGL;FEF;PLL</code>, enviados no cabeçalho e em cada item. Antes eram <code>RES;FEF;PLI</code>. Confira que o <code>appsettings.Production.json</code> do servidor não define esses valores antigos, pois ele sobrepõe o do pacote.</p>
+<p><strong>Espera de coleta.</strong> <code>Pacote:SilencioSegundos</code> = 20 (era 15), <code>Pacote:JanelaMaximaSegundos</code> = 180 e <code>Pacote:EstabilizacaoSegundos</code> = 3. Se um lote ainda for dividido, aumente <code>SilencioSegundos</code> no <code>appsettings.Production.json</code> (ou <code>Pacote__SilencioSegundos</code>) e reinicie o serviço.</p>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -1080,7 +1123,7 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td><strong>Sim</strong></td>
 </tr>
 <tr>
-<td>Janela de coleta (silêncio 15 s, teto 180 s) ou voltar à janela fixa</td>
+<td>Janela de coleta (silêncio 20 s, teto 180 s) ou voltar à janela fixa</td>
 <td><code>config\appsettings.Production.json</code>: <code>Pacote:ModoJanela</code> (<code>Silencio</code>/<code>Fixa</code>), <code>Pacote:SilencioSegundos</code>, <code>Pacote:JanelaMaximaSegundos</code>, <code>Pacote:JanelaColetaSegundos</code> (só no modo <code>Fixa</code>)</td>
 <td><strong>Sim</strong></td>
 </tr>

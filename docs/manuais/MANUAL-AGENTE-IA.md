@@ -1,4 +1,4 @@
-# Manual do Agente de IA — KitWms Integrador
+﻿# Manual do Agente de IA — KitWms Integrador
 
 Guia operacional e de **guarda-rails** para um agente de IA acionado por um colaborador da Friozem
 para **diagnosticar falhas** ou **propor alterações** no KitWms Integrador. Tom técnico e objetivo.
@@ -109,6 +109,7 @@ Comece **sempre** pelos logs: `worker.err.log` e `worker.out.log`. Padrões de e
 | Sintoma no log / comportamento | Causa provável | Ação de diagnóstico |
 |---|---|---|
 | `HTTP 401 no envio WMS ...; renovando token e repetindo uma vez.` repetido | **Credencial WMS inválida** (`WMS__Usuario`/`WMS__Senha`). | Conferir env de máquina; validar com quem administra o WMS. Correção = `configurar-segredos.ps1` + restart. |
+| `Pacote interrompido: autenticação do WMS indisponível` / `Aguardando autenticação do WMS até ...` (release 2026.11.16-1) | **GetToken recusado (401 em janelas de minutos).** Nenhuma nota vai para `Erro`; os arquivos ficam na entrada e o serviço tenta de novo após o cooldown (1, 2, 5, 10, 15 min). A causa mais provável está no WMS/Assist (`.agents\tasks\investigacao-401.md`). | Rodar `KitWmsIntegrador.Worker.exe --testar-token` (um GET, sem token na saída). Não reprocessar nem mover arquivos sem OK do usuário; reprocesso de `Erro` antigo só com `deploy\reprocessar-erro-401.ps1 -WhatIf` primeiro. Runbook: `docs\OPERACAO.md` §12.1. |
 | Muitas notas **Pendente** de uma vez | Algo no **WMS** (fila/processamento), não no integrador. | Verificar o WMS; o integrador entregou a nota. |
 | `Falha ao enviar o e-mail do pacote: <Motivo>` / resumo gravado em disco | **SMTP**: host/porta/credencial/`UsarTls`. | Conferir `email.settings.json` e `diagnostico.ps1` (SMTP host/porta). |
 | Falha de conexão HTTPS ao WMS, sem texto fixo de "handshake" | **TLS 1.2** no SChannel (Server 2012 R2). | `diagnostico.ps1` lê o registro do SChannel; mitigação em `INSTALACAO-SERVIDOR.md` §3.6/§6. |

@@ -225,7 +225,7 @@
     <div class="bar"></div>
     <div class="bd">
       <div class="flow">
-        <div class="step"><div class="n">1</div><h3>Pasta de entrada</h3><p>ZIPs ou XMLs chegam em Puxada ou PuxadaTSP. O pacote fecha após 15 s de silêncio (teto de 3 min), sem cortar lote grande.</p></div>
+        <div class="step"><div class="n">1</div><h3>Pasta de entrada</h3><p>ZIPs ou XMLs chegam em Puxada ou PuxadaTSP. O pacote fecha após 20 s de silêncio (teto de 3 min), sem cortar lote grande.</p></div>
         <div class="arrow">›</div>
         <div class="step"><div class="n">2</div><h3>Leitura e agrupamento</h3><p>Lê cada nota e agrupa pelo número do transporte, que vem do próprio XML.</p></div>
         <div class="arrow">›</div>
@@ -261,6 +261,7 @@
           <ul>
             <li><b>Pendente na interface do WMS:</b> registrada no relatório e o lote continua</li>
             <li><b>Não integrada após 3 tentativas:</b> o arquivo vai para a pasta Erro, separado por tipo de problema, com o motivo</li>
+            <li><b>Login do WMS recusado (401):</b> a nota não vai para Erro; o pacote é interrompido, os arquivos ficam na entrada, há nova tentativa automática e alerta por e-mail</li>
             <li><b>Produto criado automaticamente:</b> a nota entra, mas o cadastro provisório é destacado para revisão do colaborador</li>
           </ul>
         </div>
@@ -501,7 +502,7 @@
           <tr><td>Placa do veículo</td><td>Lida do XML (transp/veicTransp/placa) e gravada no WMS (ex.: DQW0D26, DFF5610)</td></tr>
           <tr><td>I10 / I30 no caminho típico</td><td>0 (empresas e produtos já cadastrados)</td></tr>
           <tr><td>TLS 1.2</td><td>Forçado no handler — compatível com o WMS de produção</td></tr>
-          <tr><td>GetToken</td><td>Retry em 401/timeout/rede — resiliente a falha transitória</td></tr>
+          <tr><td>GetToken</td><td>Retry em 401/timeout/rede; na release 2026.11.16-1, falha de login mantém as notas na entrada, espera crescente e alerta por e-mail</td></tr>
           <tr><td>Arquivos não-XML</td><td>Tratados (ExtensaoInvalida), sem travar o pacote</td></tr>
           <tr><td>Limpeza / subpastas</td><td>Retenção de 10 dias · uma subpasta por pacote</td></tr>
         </tbody>
@@ -597,26 +598,27 @@
         <div class="box a">
           <span class="tag a">EM ACOMPANHAMENTO</span>
           <ul>
-            <li>401 intermitente no GetToken (mitigado por retry)</li>
-            <li>Compatível com a conta de integração ainda em provisionamento — deve estabilizar</li>
+            <li>401 intermitente no GetToken: janelas de cerca de 10 min em 15/11; causa mais provável no WMS/Assist (perguntas enviadas ao fornecedor)</li>
+            <li>Release 2026.11.16-1 torna o 401 inofensivo: notas ficam na entrada, sem martelar o WMS, com alerta por e-mail</li>
             <li>I51 → I60 (associação após a separação): validada no homolog em 13/11 (7 de 7 associadas); ligar em produção depende do OK e do evento interno do WMS</li>
-            <li>Puxada normal com placa e Puxada TSP sem placa (ZIP por pasta, onda única por ZIP): implementadas na release 2026.11.13-1, a publicar</li>
+            <li>Puxada normal com placa e Puxada TSP sem placa (ZIP por pasta, onda única por ZIP): implementadas (incluídas na release 2026.11.16-1, a publicar)</li>
+                <li>I50 com tipos de separação PIC;FEF;PLL e AGL;FEF;PLL</li>
           </ul>
         </div>
         <div class="box b">
           <span class="tag b">PRÓXIMOS PASSOS</span>
           <ul>
-            <li>Conclusão do provisionamento da conta de integração em produção (mesmos dados) — o 401 intermitente deve estabilizar</li>
+            <li>Publicar a release 2026.11.16-1, testar o token antes e depois e reprocessar as 383 notas de 15/11 com OK</li>
             <li>Acompanhar a operação e os tempos em produção</li>
             <li>Planejar atualização do SO do servidor</li>
             <li>I51/I60: preparar o WMS de produção, ligar as duas chaves com OK e testar o texto do ENC com o alerta imediato</li>
             <li>Devolução pela I40: última alternativa, com login simples; tela pronta, a testar no homolog</li>
             <li>Retenção de XML ajustada para 30 dias (a busca da devolução vale 30 dias)</li>
-            <li>Release 2026.11.13-1: criar as pastas Puxada e PuxadaTSP no servidor e publicar (janela de silêncio de 15 s)</li>
+            <li>Release 2026.11.16-1: criar as pastas Puxada e PuxadaTSP no servidor e publicar (janela de silêncio de 20 s)</li>
           </ul>
         </div>
       </div>
-      <p class="foot-note">A conta de integração em produção está sendo provisionada com os mesmos dados já usados; o 401 intermitente observado durante o teste é compatível com a conta ainda em provisionamento e deve estabilizar. As correções de TLS 1.2 e GetToken resiliente já tornam o cliente robusto a 401 transitório, independentemente disso. Servidor: Windows Server 2012 R2 — o .NET 8 roda em regime de atualizações estendidas; vale planejar a atualização do SO.</p>
+      <p class="foot-note">O 401 intermitente no GetToken ocorreu em janelas de cerca de 10 min (15/11), sem falha de credencial do nosso lado; a causa mais provável está no WMS/Assist e depende do fornecedor. A release 2026.11.16-1 evita perda de notas e rajada de chamadas durante essas janelas. Servidor: Windows Server 2012 R2 — o .NET 8 roda em regime de atualizações estendidas; vale planejar a atualização do SO.</p>
     </div>
     <div class="ft"><span>Friozem | Integrador Notas Fiscais KIT → WMS</span><span>14 / 14</span></div>
   </section>

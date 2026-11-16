@@ -1,4 +1,4 @@
-# Operação — watcher de pasta, pacote, erros e e-mail (Etapa 7)
+﻿# Operação — watcher de pasta, pacote, erros e e-mail (Etapa 7)
 
 > **Instalação no servidor (Etapa 9):** o serviço é instalado como `Friozem-ImportacaoNotas` sob
 > NSSM, com raiz `C:\Friozem\importacao_notas` e a **pasta de entrada em um share de rede** (fora da
@@ -462,7 +462,7 @@ resultado por chave.
 - Logs não trazem token, senha nem corpo de nota. Roteiro de teste: `ROTEIRO-TESTE-I51-I60.md`.
 
 ## 11. Release 2026.11.13-1 (o que muda na operação)
-Pacote local pronto (`artifacts\2026.11.13-1`), **ainda não publicado**; checklist em `.agents\tasks\checklist-release-2026-11-13.md`.
+Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 12), que inclui tudo isto. Checklist vigente: `.agents\tasks\checklist-release-2026-11-16.md`.
 - **Janela de silêncio (`Pacote:ModoJanela=Silencio`):** a coleta do pacote fecha depois de 15 s sem arquivo novo (`SilencioSegundos`; 20 s a partir da release de 16/11/2026, ver seção 12), com teto de 180 s (`JanelaMaximaSegundos`). Lotes grandes deixam de ser divididos em vários pacotes. Log: "Pacote aberto" e "Fim da coleta por silêncio|teto da janela|janela fixa". `ModoJanela=Fixa` volta à janela fixa de `JanelaColetaSegundos` sem trocar a release.
 - **Placa:** Puxada normal envia a placa do XML (`I50:EnviarPlacaVeiculo=true`); Puxada TSP vai sem placa (`I50:EnviarPlacaVeiculoTsp=false`).
 - **I60:** `QtdeVolumeZero` e `QtdeTotalNotaZero` em `true` (validado no homolog em 13/11/2026: 7 de 7 notas associadas). I51/I60 seguem desligadas até o OK do usuário e dos pré-requisitos do WMS de produção.
@@ -502,3 +502,48 @@ Pacote local pronto (`artifacts\2026.11.13-1`), **ainda não publicado**; checkl
   cabeçalho e em cada item.
 - **Espera de coleta:** `Pacote:SilencioSegundos` = 20 (era 15); `JanelaMaximaSegundos` 180 e
   `EstabilizacaoSegundos` 3 sem mudança. Override sem release: `Pacote__SilencioSegundos`.
+
+### 12.1. Runbook do 401 (GetToken rejeitado)
+
+**Sintomas**
+- E-mail "ALERTA: autenticação do WMS indisponível (GetToken)" e, quando volta, "RECUPERADO: autenticação do WMS (GetToken)".
+- Log `worker.out.log`: "GetToken falhou" com status (401 em geral), "Pacote interrompido: autenticação do WMS
+  indisponível" e "Aguardando autenticação do WMS até HH:mm:ss".
+- Notas paradas na pasta de entrada (`Puxada`/`PuxadaTSP`/raiz) e **nada** novo em `Erro`. Relatório do pacote com a
+  linha "Falhas de autenticação (GetToken): N".
+
+**O que fazer, na ordem**
+1. Não mexer nos arquivos da entrada. O serviço retoma sozinho quando o GetToken voltar (cooldown de 1, 2, 5, 10 e 15 min).
+2. No servidor, teste uma vez (um único GET, sem token no resultado):
+   ```powershell
+   & 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token
+   ```
+   `GetToken: HTTP 200 OK` = a credencial e a rede estão boas; o serviço volta sozinho no fim do cooldown.
+   `FALHA` com 401 = anotar hora e status e seguir para o passo 4. "credenciais ausentes" = conferir `WMS__Usuario`/`WMS__Senha`
+   (ver manual técnico, seção 4).
+3. Não repetir `--testar-token` em sequência (cada uso é uma chamada ao WMS). Um teste a cada alguns minutos basta.
+4. Se o 401 durar mais de 15 min (o cooldown já está no teto) ou voltar a cada dia: acionar a Assist (fornecedor do WMS)
+   com os horários, o IP do servidor e as perguntas abaixo. Não trocar a senha por conta própria antes de saber se o
+   usuário foi bloqueado.
+5. Se algum pacote antigo foi para `Erro` por 401 (releases até 2026.11.13-1): reprocessar só **depois** de o
+   `--testar-token` dar 200 e com OK do responsável. Sempre primeiro com `-WhatIf`:
+   ```powershell
+   cd C:\Friozem\importacao_notas\tools\deploy
+   .\reprocessar-erro-401.ps1 -WhatIf
+   .\reprocessar-erro-401.ps1 -DestinoPadrao Puxada    # use PuxadaTSP para notas da TSP
+   ```
+
+**Perguntas para a Assist** (base: `.agents\tasks\investigacao-401.md`)
+1. O usuário de integração tem bloqueio temporário por tentativas, limite de sessões ou token único por usuário? Qual a
+   janela e como é liberado?
+2. Houve manutenção, deploy, replicação de contas ou reinício do serviço de autenticação nos horários informados
+   (em 15/11/2026: 17:27 a 17:38 e por volta de 18:34; em 06/11/2026: 13:56 a 14:01, 17:01 a 17:08 e 17:57)?
+3. O usuário é compartilhado entre homologação (`:8888`) e produção? Uma operação em um ambiente invalida o outro?
+4. Qual o tempo de vida do token e o GetToken novo revoga o anterior?
+5. Existe limite de requisições ao GetToken por IP ou usuário? Qual código retorna (hoje 401 em 6 a 9 ms)?
+6. Qual o motivo da rejeição nos logs deles para os GetToken do IP do servidor nesses horários?
+7. É possível criar um usuário exclusivo de produção?
+
+**Causa:** a investigação (somente leitura) indica estado de autenticação do lado do WMS/Assist, em janelas de
+cerca de 10 min, sem falha de credencial, codificação, URL, TLS ou concorrência do nosso lado. A release 2026.11.16-1
+não elimina a causa no fornecedor: torna o 401 inofensivo (sem nota em `Erro`, sem rajada de chamadas, com alerta).

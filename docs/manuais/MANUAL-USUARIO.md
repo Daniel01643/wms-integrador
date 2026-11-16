@@ -1,4 +1,4 @@
-# Manual do Usuário — KitWms Integrador
+﻿# Manual do Usuário — KitWms Integrador
 
 <!--CAPA:usuario-->
 
@@ -93,19 +93,26 @@ relatório, para você ligar um ao outro.
 ### Quanto tempo o sistema espera antes de fechar o pacote
 
 O sistema espera a sua cópia terminar. Ele fecha o pacote quando passam
-**15 segundos sem chegar nenhum arquivo novo** (e sem que um arquivo ainda em cópia mude de tamanho).
+**20 segundos sem chegar nenhum arquivo novo** (e sem que um arquivo ainda em cópia mude de tamanho).
 Cada arquivo que chega **reinicia essa contagem**. Na prática:
 
-- **Lote pequeno:** fecha uns 15 segundos depois do último arquivo.
+- **Lote pequeno:** fecha uns 20 segundos depois do último arquivo.
 - **Lote grande, copiado aos poucos:** o pacote continua aberto enquanto os arquivos chegam; o lote
   **não é cortado** em vários pacotes e vários relatórios.
 - **Teto de 3 minutos:** se os arquivos continuarem chegando sem parar, o pacote fecha em 3 minutos
   contados da abertura. O que ainda não estava pronto entra no pacote seguinte.
-- Se você parar de copiar por mais de 15 segundos no meio de um lote, o sistema entende que acabou e
+- Se você parar de copiar por mais de 20 segundos no meio de um lote, o sistema entende que acabou e
   fecha o pacote; o resto vira o pacote seguinte. Por isso, copie o lote de uma vez.
 
 Isso vale para a raiz, a `Puxada` e a `PuxadaTSP`. Se a TI precisar, ela consegue voltar para a janela
 fixa antiga de 10 segundos sem trocar a versão (ver o Manual Técnico).
+
+### Quando o WMS não aceita o login do sistema
+Às vezes o WMS recusa o login do integrador por alguns minutos (erro 401), e isso não depende de você nem do arquivo.
+Nesse caso o sistema **não manda as notas para `Erro`**: ele interrompe o pacote e **deixa os arquivos na pasta de
+entrada**, tenta de novo sozinho (esperando 1, 2, 5, 10 e depois 15 minutos entre as tentativas) e processa tudo quando o
+WMS voltar. A TI recebe um e-mail de alerta e outro quando normaliza. **Não apague nem mova esses arquivos e não
+deposite de novo.** Se o relatório mostrar "Falhas de autenticação (GetToken)", avise a TI.
 
 ### A placa do veículo
 
@@ -225,8 +232,8 @@ da lista, fale com o responsável técnico/TI (a lista é configurada no servido
 - **Não tente apagar** arquivos do compartilhamento. Você tem permissão para **gravar e ler**, mas
   **não para excluir** — o próprio sistema organiza e move os arquivos.
 - **Copie o lote de uma vez.** O sistema junta em um pacote os arquivos que chegam sem ficar mais de
-  15 segundos parados (seção 3). Se parar no meio, o resto vira outro pacote e outro relatório. Entre
-  um lote e o próximo, deixe passar uns 15 segundos para eles não se misturarem.
+  20 segundos parados (seção 3). Se parar no meio, o resto vira outro pacote e outro relatório. Entre
+  um lote e o próximo, deixe passar uns 20 segundos para eles não se misturarem.
 - Deposite **ZIPs** de nota fiscal nas pastas `Puxada` ou `PuxadaTSP`. Não coloque outros tipos de
   arquivo dentro do ZIP e não coloque um ZIP dentro de outro.
 - Use sempre a pasta certa: o tipo (PUXADA ou TSP) é definido pela pasta.
@@ -245,9 +252,10 @@ Não é preciso apagar nada da pasta `Erro`: basta depositar o arquivo corrigido
 ## 9. Perguntas frequentes
 
 **Depositei o arquivo e não aconteceu nada na hora. É normal?**
-Sim. O sistema verifica a pasta a cada poucos segundos e espera 15 segundos sem chegar arquivo novo
+Sim. O sistema verifica a pasta a cada poucos segundos e espera 20 segundos sem chegar arquivo novo
 para fechar o lote (seção 3). Aguarde meio minuto e confira as pastas `Processados`/`Erro` e
-`relatorios`.
+`relatorios`. Se os arquivos continuarem na entrada por bem mais tempo e nada novo aparecer em `Erro`, o WMS pode estar
+recusando o login (ver o quadro "Quando o WMS não aceita o login"): a TI é avisada por e-mail.
 
 **Copiei um ZIP grande e o relatório só saiu depois de uns minutos. Por quê?**
 O pacote fica aberto enquanto os arquivos chegam. Se a cópia é demorada, o sistema espera ela
@@ -264,7 +272,7 @@ O ZIP não pôde ser aberto (corrompido, protegido por senha, vazio de XML ou ma
 aceito). O motivo está no `.motivo.txt` ao lado. Gere o ZIP de novo e deposite outra vez.
 
 **Soltei vários XMLs de uma vez. Eles vão para o mesmo pacote?**
-Os que chegarem sem ficar mais de 15 segundos parados (e dentro do teto de 3 minutos) entram no
+Os que chegarem sem ficar mais de 20 segundos parados (e dentro do teto de 3 minutos) entram no
 mesmo pacote. Os que chegam depois formam o próximo pacote.
 
 **Uma nota apareceu como "Pendente". Deu erro?**

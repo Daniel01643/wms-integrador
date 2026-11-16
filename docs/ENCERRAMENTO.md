@@ -1,11 +1,13 @@
-# Pausa do projeto — KitWms Integrador
+﻿# Pausa do projeto — KitWms Integrador
 
 Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa: 10/11/2026.
-**Atualizado em 13/11/2026, fim do dia** (release 2026.11.13-1 empacotada localmente; I51/I60 validadas no homolog; falta publicar no servidor).
+**Atualizado em 16/11/2026** (release 2026.11.16-1 empacotada localmente, substitui a 2026.11.13-1; 401 tratado no código; falta publicar no servidor).
 
-> **Retomar:** publicar a release **2026.11.13-1** no servidor seguindo o checklist
-> `.agents\tasks\checklist-release-2026-11-13.md` (pacote em `artifacts\2026.11.13-1`, gerado localmente,
-> **não enviado ao servidor**). Ligar I51 e I60 (e a tela de devolução) só depois do OK do usuário.
+> **Retomar:** publicar a release **2026.11.16-1** no servidor seguindo o checklist
+> `.agents\tasks\checklist-release-2026-11-16.md` (pacote em `artifacts\2026.11.16-1`, gerado localmente,
+> **não enviado ao servidor**; a 2026.11.13-1 nunca foi publicada e está incluída nesta). Antes e depois do deploy,
+> rodar `--testar-token`; reprocessar as 383 notas de 15/11 só com o teste OK e com OK do usuário. Ligar I51 e I60
+> (e a tela de devolução) só depois do OK do usuário.
 > Escopo da I51/I60 em `docs\ESCOPO-I51-I60.md`; resultado do homolog em `docs\ROTEIRO-TESTE-I51-I60.md`.
 > Notas TSP do homolog de 12/11 ficaram pendentes por proprietária BRF não encontrada (aguarda o fornecedor).
 
@@ -14,13 +16,17 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 - Integra NF-e (XML) da pasta de entrada para o WMS Friozem via webservice (I50), **em produção**
   no servidor SRVAPPALC02 (Windows Server 2012 R2), serviço NSSM `Friozem-ImportacaoNotas`.
 - Versão em produção: a última documentada é a série **2026.11.06-1 a -5** (diário de 06/11).
-  **Conferir no servidor** qual está em `app\current`. **Release 2026.11.13-1 pronta e empacotada
-  localmente (self-contained win-x64), ainda NÃO publicada no servidor.** Ela reúne tudo o que estava só no
+  **Conferir no servidor** qual está em `app\current`. **Release 2026.11.16-1 pronta e empacotada
+  localmente (self-contained win-x64), ainda NÃO publicada no servidor** (a 2026.11.13-1 foi substituída por ela). Reúne tudo o que estava só no
   repositório: Puxada/Puxada TSP, I40 e tela de devolução (desligada), I51/I60 (desligadas), relatório novo
-  e, desta release: janela de silêncio na coleta do pacote (`Pacote:ModoJanela=Silencio`, 15 s de silêncio,
+  e, desta release: janela de silêncio na coleta do pacote (`Pacote:ModoJanela=Silencio`, 20 s de silêncio,
   teto de 180 s; `Fixa` volta ao comportamento antigo), defaults `I60:QtdeVolumeZero` e
   `I60:QtdeTotalNotaZero` em `true`, placa (Puxada normal COM placa, TSP sem), retenção de **30 dias**
   (`Limpeza:DiasRetencao` e `I51:DiasRetencaoEstado`) e alerta imediato da I60 (`I60:AlertaImediato`).
+  Desta release (16/11/2026): falha do GetToken (401) **não manda mais nota para `Erro`** (pacote interrompido, notas
+  ficam na entrada; cooldown de 1, 2, 5, 10 e 15 min; alerta por e-mail; validade máxima do token de 3 min; CLI
+  `--testar-token`; script `deploy\reprocessar-erro-401.ps1`), I50 com `tipoSeparacao` `PIC;FEF;PLL` e
+  `tipoSeparacao2` `AGL;FEF;PLL` (geral e item) e silêncio de coleta de 20 s (teto 180 s, estabilização 3 s).
 - Resumo semanal de telemetria funcionando (verificado e reenviado em 09/11).
 - **Puxada TSP implementada em 12/11/2026** (entra na release 2026.11.13-1, ainda não publicada no servidor):
   pastas `Puxada` e `PuxadaTSP` (e a raiz, aceita como puxada), leitura segura de ZIP, uma onda por ZIP
@@ -32,7 +38,7 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 - **I51 como gatilho da I60** (13/11): implementada e validada no homolog (7 de 7 notas associadas, com
   `qtdeVolume` e `qtdeTotalNota` em 0 e o evento interno do WMS que gera o retorno da separação). Em
   produção fica **desligada** até o OK do usuário e dos pré-requisitos do WMS de produção.
-- Último build (13/11, cópia temporária): 0 avisos e 0 erros (Release). Testes: **926 aprovados, 9 ignorados (stress), 0 falhas** (detalhes em `.agents\tasks\relatorio-release-1311.md`).
+- Último build (16/11): 0 avisos e 0 erros (Release). Testes: **966 aprovados, 9 ignorados (stress), 0 falhas** (detalhes em `.agents\tasks\relatorio-release-1611.md`; em 13/11: 926 aprovados, `relatorio-release-1311.md`).
 
 ### Frentes pausadas
 
@@ -82,6 +88,9 @@ rollback, segredos).
 - **Placa do veículo** na I50 via `I50:EnviarPlacaVeiculo` (padrão ligado: Puxada normal COM placa) para a Puxada. A **Puxada TSP vai sempre sem placa**
   (13/11/2026): chave própria `I50:EnviarPlacaVeiculoTsp`, padrão `false`.
 - **TLS 1.2/1.3 forçado** no cliente HTTP e **GetToken com retry** (causa dos 401 em massa no 2012 R2).
+- **401 do GetToken (16/11/2026):** a causa dos 401 de 15/11 (janelas de cerca de 10 min) está do lado do WMS/Assist;
+  o integrador não a elimina, mas não perde nota nem martela o WMS (`docs\OPERACAO.md` §12.1, `.agents\tasks\investigacao-401.md`).
+- **Tipos de separação da I50:** `PIC;FEF;PLL` (geral) e `AGL;FEF;PLL` (item, `tipoSeparacao2`); coleta com 20 s de silêncio.
 - **Resumo semanal**: segunda 12:00 (hora local do servidor).
 
 ## 5. Pendências e riscos
@@ -92,7 +101,9 @@ rollback, segredos).
 | **Puxada TSP:** criar `Puxada` e `PuxadaTSP` em `C:\Friozem\kitbrf` e publicar a release com a Puxada TSP (`INSTALACAO-SERVIDOR.md`, §3.4c) | Usuário / TI |
 | Enviar ao fornecedor as perguntas da I60 (`HISTORICO-PLANO-A.md`) | Usuário |
 | Testar a tela de devolução no homolog (`ROTEIRO-TESTE-I40.md`, seção 9) | Usuário |
-| Publicar a release 2026.11.13-1 (retenção de 30 dias, janela de silêncio, alerta I60, I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |
+| Publicar a release 2026.11.16-1 (inclui a 13/11: retenção de 30 dias, janela de silêncio, alerta I60, I40 com a tela desligada), criar a regra de firewall da rede interna e só então ligar a tela | Usuário / TI |
+| **Reprocessar as 383 notas de 15/11** em `Erro\pacote_20261115_*` (`deploy\reprocessar-erro-401.ps1 -WhatIf` primeiro), só após `--testar-token` OK e com OK do usuário | Usuário / TI |
+| **Perguntas ao fornecedor sobre o 401** (`docs\OPERACAO.md` §12.1) e usuário exclusivo de produção (o homolog usa o mesmo BLUEFOOD) | Usuário |
 | **Texto do ENC:** o texto real do WMS para doccarga encerrado ainda não foi capturado; calibrar `I60:PadroesDocCargaEncerrado` com o e-mail de alerta e `Estado\i51\alertas` quando acontecer em produção | Usuário / IA |
 | Ligar `I51:Habilitada` e `I60:Habilitada` JUNTAS em produção, só depois de EDI WEBAPI-I51 com WEBSERVI e do evento interno do WMS de produção | Usuário / equipe WMS |
 | Homolog: desativar o código customizado de pré-processamento da nota de venda (teste) e voltar "ChecaItensVenda" para SIM | Usuário |
@@ -100,7 +111,7 @@ rollback, segredos).
 | Restaurar o `email.settings.json` local (renomeado para `*.off-teste` no projeto e em `bin` durante os testes) | Usuário / IA |
 | Repositório sem remote: o histórico existe só nesta máquina (push para o GitHub do usuário) | Usuário |
 | Trocar senhas que apareceram em chat (e-mail, admin do servidor, SMTP) | Usuário / TI |
-| Conta WMS de produção em provisionamento (401 intermitente deve estabilizar) | Usuário / equipe WMS |
+| 401 do GetToken em janelas de minutos (15/11: 17:27 a 17:38 e 18:34): causa no WMS/Assist, depende de resposta do fornecedor | Usuário / equipe WMS |
 | Apresentação e treinamento de 1h | Usuário |
 | Atualizar o SO do servidor (2012 R2 fora de suporte) | TI |
 | Arquivo local `~/.srv-cred.xml` (credencial WinRM cifrada por DPAPI): mantido por decisão do usuário | Usuário |

@@ -1,4 +1,4 @@
-# Manual Técnico (Nível 1 / Júnior) — KitWms Integrador
+﻿# Manual Técnico (Nível 1 / Júnior) — KitWms Integrador
 
 <!--CAPA:tecnico-->
 
@@ -41,6 +41,7 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
    - [8.4. Puxada e Puxada TSP: pastas, ZIP e nome da onda](#84-puxada-e-puxada-tsp-pastas-zip-e-nome-da-onda)
    - [8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário](#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário) (inclui pré-requisitos do WMS, alerta imediato e calibração do ENC)
    - [8.6. Última alternativa: tela de devolução pela I40 (seção removível)](#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível) (inclui o login simples)
+   - [8.7. Falha de login do WMS (401), tipos de separação e espera de coleta](#87-falha-de-login-do-wms-401-no-gettoken-tipos-de-separação-e-espera-de-coleta-release-20261116-1)
 9. [Publicar nova versão e rollback](#9-publicar-nova-versão-e-rollback)
 10. [Estado e telemetria (não mexer)](#10-estado-e-telemetria-não-mexer)
 11. [O serviço não sobe — diagnóstico e TLS 1.2](#11-o-serviço-não-sobe--diagnóstico-e-tls-12)
@@ -184,7 +185,7 @@ Linhas comuns e o que significam:
 | `E-mail do pacote enviado.` | O e-mail de fechamento saiu. |
 | `E-mail não configurado; relatório salvo em <Pasta>.` | SMTP não configurado; o relatório ficou em disco (sem erro). |
 | `Falha ao enviar o e-mail do pacote: <Motivo>` | O envio falhou; veja o motivo (host/porta/credencial SMTP). |
-| `HTTP 401 no envio WMS (identificador=...); renovando token e repetindo uma vez.` | **Erro de credencial/token do WMS.** O sistema renova e tenta 1x; se continuar 401, as credenciais `WMS__Usuario`/`WMS__Senha` estão inválidas (ver seção 4). |
+| `HTTP 401 no envio WMS (identificador=...); renovando token e repetindo uma vez.` | **Erro de credencial/token do WMS.** O sistema renova e tenta 1x; se continuar 401, as credenciais `WMS__Usuario`/`WMS__Senha` estão inválidas (ver seção 4) **ou** o WMS está recusando o login por alguns minutos: ver a seção 8.7 (`--testar-token`, cooldown, nota não vai para `Erro`). |
 | `Serviço não iniciado: corrija a seção 'Pastas' do appsettings.` | Configuração de `Pastas` inválida; o serviço **não sobe** até corrigir. |
 | `Resumo semanal enviado para ...` | O resumo semanal saiu. |
 
@@ -321,7 +322,7 @@ Todas na config não-secreta (`appsettings.Production.json`), reinicie o serviç
 | Dia do resumo semanal | `Monitoramento:DiaDaSemana` | `Monday` |
 | Hora do resumo semanal | `Monitoramento:Hora` | `"12:00"` |
 | Modo da janela de coleta | `Pacote:ModoJanela` | `Silencio` (ou `Fixa`) |
-| Silêncio para fechar a coleta (modo `Silencio`) | `Pacote:SilencioSegundos` | `15` |
+| Silêncio para fechar a coleta (modo `Silencio`) | `Pacote:SilencioSegundos` | `20` |
 | Teto da coleta desde a abertura (modo `Silencio`) | `Pacote:JanelaMaximaSegundos` | `180` |
 | Janela fixa de coleta (só no modo `Fixa`) | `Pacote:JanelaColetaSegundos` | `10` |
 | Limpeza ligada/desligada | `Limpeza:Habilitada` | `true` |
@@ -336,10 +337,10 @@ Desde a release **2026.11.13-1** a coleta do pacote usa a **janela de silêncio*
 `Silencio`). Motivo: lotes grandes copiados aos poucos (de 06 a 13/11) eram divididos em 2 a 4 pacotes e
 relatórios pela janela fixa de 10 s.
 
-- **Como fecha:** a coleta termina quando passam `SilencioSegundos` (15 s) sem chegar arquivo novo nem
+- **Como fecha:** a coleta termina quando passam `SilencioSegundos` (20 s, era 15 s até a 2026.11.13) sem chegar arquivo novo nem
   mudar o tamanho/data de um arquivo existente, ou quando a coleta chega ao teto `JanelaMaximaSegundos`
   (180 s) contado da abertura do pacote. Cada arquivo novo ou alterado reinicia a contagem do silêncio.
-  Lote pequeno fecha em cerca de 15 s; lote grande não é cortado; nada passa de 3 minutos.
+  Lote pequeno fecha em cerca de 20 s; lote grande não é cortado; nada passa de 3 minutos.
 - **Silêncio efetivo:** nunca é menor que `EstabilizacaoSegundos` (3 s). Se a config pedir menos, o
   serviço registra um aviso na partida e usa o mínimo.
 - **No teto:** um arquivo ainda instável (em cópia) fica para o próximo pacote, como antes.
@@ -729,6 +730,39 @@ digitada nem é enviada pela página nem lida pelo servidor) e o sistema **regis
 Arquitetura e roteiro: `docs\ARQUITETURA-PLANO-B-I40.md` e `docs\ROTEIRO-TESTE-I40.md`. O teste da tela no
 homolog ainda está pendente. Só ligue (`Devolucao:Habilitada=true`) com OK do responsável.
 
+### 8.7. Falha de login do WMS (401 no GetToken), tipos de separação e espera de coleta (release 2026.11.16-1)
+
+**401 no GetToken.** Desde a release 2026.11.16-1, se o `GET Integracao/GetToken` falhar (401, 403, 5xx, timeout, rede), a nota
+**não vai mais para `Erro`**: o pacote é interrompido, as notas já integradas vão para `Processados` e as demais **ficam na
+pasta de entrada** e entram no próximo pacote. Enquanto durar o cooldown o serviço não chama o WMS (espera 1, 2, 5, 10 e
+15 min, `Wms:CooldownTokenSegundos` = `60;120;300;600;900`) e registra "Aguardando autenticação do WMS até HH:mm:ss".
+
+| Sintoma | O que significa | O que fazer |
+|---|---|---|
+| E-mail `ALERTA: autenticação do WMS indisponível (GetToken)` | O WMS recusou o login; nada foi perdido | Não mexer nos arquivos da entrada. Rodar o teste abaixo |
+| Log `Pacote interrompido: autenticação do WMS indisponível` | Pacote parou; notas aguardam na entrada | Aguardar o cooldown |
+| E-mail `RECUPERADO: autenticação do WMS (GetToken)` | Login voltou | Conferir o relatório do próximo pacote |
+| Relatório com "Falhas de autenticação (GetToken): N" | Houve falha durante o pacote | Anotar a hora e avisar a IA de apoio/Assist se repetir |
+
+- **Teste de token** (um único GET; imprime só o status, nunca o token nem a senha):
+  ```powershell
+  & 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token
+  ```
+  `GetToken: HTTP 200 OK` = credencial e rede boas. `FALHA` = anotar o código. `credenciais ausentes` = conferir `WMS__Usuario` e
+  `WMS__Senha` (seção 4). Não repetir em sequência.
+- **Quando acionar a Assist:** 401 que passa de 15 min (cooldown no teto) ou que volta em vários dias. Levar os horários do log, o IP do
+  servidor e as perguntas de `docs\OPERACAO.md` §12.1. O diagnóstico no log traz status, `WWW-Authenticate`, id da requisição e até 200
+  caracteres do corpo, nunca token, usuário ou senha.
+- **Reprocesso das notas que já foram para `Erro` por 401** (ex.: 383 de 15/11): `deploy\reprocessar-erro-401.ps1`, sempre com
+  `-WhatIf` primeiro, só depois de o teste de token dar 200 e com OK do responsável (`docs\OPERACAO.md` §12.1).
+- **Validade do token:** `Wms:ValidadeMaximaTokenMinutos` = 3 (renova a cada 3 min; `0` desliga). Alerta: `Wms:AlertaAutenticacao` = `true`.
+
+**Tipos de separação da I50.** `I50:TipoSeparacao` = `PIC;FEF;PLL` (cabeçalho do pedido) e `I50:TipoSeparacao2` = `AGL;FEF;PLL`, enviados no
+cabeçalho e em cada item. Antes eram `RES;FEF;PLI`. Confira que o `appsettings.Production.json` do servidor não define esses valores
+antigos, pois ele sobrepõe o do pacote.
+
+**Espera de coleta.** `Pacote:SilencioSegundos` = 20 (era 15), `Pacote:JanelaMaximaSegundos` = 180 e `Pacote:EstabilizacaoSegundos` = 3. Se um
+lote ainda for dividido, aumente `SilencioSegundos` no `appsettings.Production.json` (ou `Pacote__SilencioSegundos`) e reinicie o serviço.
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -878,7 +912,7 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Destinatários do fechamento | editar o TXT `config\destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
 | Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
-| Janela de coleta (silêncio 15 s, teto 180 s) ou voltar à janela fixa | `config\appsettings.Production.json`: `Pacote:ModoJanela` (`Silencio`/`Fixa`), `Pacote:SilencioSegundos`, `Pacote:JanelaMaximaSegundos`, `Pacote:JanelaColetaSegundos` (só no modo `Fixa`) | **Sim** |
+| Janela de coleta (silêncio 20 s, teto 180 s) ou voltar à janela fixa | `config\appsettings.Production.json`: `Pacote:ModoJanela` (`Silencio`/`Fixa`), `Pacote:SilencioSegundos`, `Pacote:JanelaMaximaSegundos`, `Pacote:JanelaColetaSegundos` (só no modo `Fixa`) | **Sim** |
 | Retenção/limpeza (30 dias) | `config\appsettings.Production.json`: `Limpeza:DiasRetencao` e `I51:DiasRetencaoEstado` | **Sim** |
 | Ligar/desligar o alerta imediato da I60 | `I60:AlertaImediato` (padrão `true`; destinatários no TXT `destinatarios-i60.txt`) (seção 8.5) | **Sim** |
 | Calibrar o texto do ENC | acrescentar um trecho do texto do WMS (e-mail do alerta ou `Estado\i51\alertas`) a `I60:PadroesDocCargaEncerrado` (seção 8.5) | **Sim** |
