@@ -16,6 +16,10 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > `AppEnvironmentExtra` do NSSM (serviço reiniciado sem reboot do servidor): numa próxima troca de senha,
 > atualizar as duas fontes. As 383 notas de 15/11 em `Erro` **não** foram reprocessadas (a operação
 > reimportou do jeito antigo). Detalhes em `.agents\tasks\investigacao-401.md`.
+> **16/11/2026, 15:58:** hotfix **2026.11.16-2 publicado** (carregador de configuração único para o serviço e as
+> CLIs; `--testar-token` mostra host e porta; `configurar-segredos.ps1` atualiza também o NSSM). Teste pós-deploy:
+> `GetToken: HTTP 200 OK (friozem.assistsoftware.com.br, porta 443)`. A senha do BRF **não** será trocada agora
+> (depende da Assist).
 
 ## 1. Estado na pausa
 
