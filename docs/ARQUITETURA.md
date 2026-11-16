@@ -243,6 +243,20 @@ sequenceDiagram
 
 Expiração de token, falha numa nota e reprocesso só do que faltou (idempotência).
 
+**Token por envio (release de 16/11/2026, `Wms:TokenPorEnvio=true`, padrão).** A Assist confirmou que a API roda em
+3 servidores atrás de um balanceador, que o token não expira e que se deve pedir **um token novo a cada envio**. Cada
+POST (I50, I60, I40, I51) faz primeiro o próprio `GetToken` e usa aquele token só nele. O cookie de afinidade devolvido
+pelo `GetToken` é repetido apenas no POST do mesmo envio (o handler HTTP fica com `UseCookies=false`), então o par
+`GetToken + POST` fica no mesmo servidor e envios diferentes não são presos a um nó. Se o `GetToken` dá 401 (rejeição
+rápida de um nó ruim), o cliente repete até `Wms:TokenTentativasImediatas` (3) vezes em **conexão nova e sem cookie**, para o
+balanceador escolher outro servidor; esgotadas, entra o cooldown global e as notas ficam na entrada (nunca em `Erro`).
+`Wms:MaxGetTokenPorMinuto` (300) limita as chamadas ao `GetToken` por janela deslizante de 60 s: acima do teto a chamada
+espera e o log avisa. Cada `GetToken` que falha é contado por servidor (nome e hash curto do cookie de afinidade, ou o
+cabeçalho `Server`) e aparece em "Falhas de autenticação (GetToken)" no relatório do pacote. Custo: cerca de +120 ms por
+nota (um `GetToken` a mais por POST). Com `Wms:TokenPorEnvio=false` vale o cache de token anterior
+(`Wms:ValidadeMaximaTokenMinutos`). Limite conhecido: se o balanceador distribuir por conexão (sem cookie), o par
+`GetToken + POST` pode cair em nós diferentes; nesse caso o 401 do POST é tratado com um novo `GetToken` (uma vez).
+
 ```mermaid
 sequenceDiagram
     participant A as Agente
@@ -250,12 +264,14 @@ sequenceDiagram
     participant S as Store estado
     participant M as E-mail
 
-    A->>W: POST I60 (nota X)
-    W-->>A: 401 token expirado
-    A->>W: GET GetToken (renova)
-    W-->>A: novo JWT
-    A->>W: POST I60 (nota X) de novo
+    A->>W: GET GetToken (token só deste envio)
+    W-->>A: 401 (nó ruim)
+    A->>W: GET GetToken (conexão nova, sem cookie)
+    W-->>A: JWT + cookie de afinidade
+    A->>W: POST I60 (nota X) com o cookie
     W-->>A: ok
+    A->>W: GET GetToken (token novo para a nota Y)
+    W-->>A: JWT
 
     A->>W: POST I60 (nota Y)
     W-->>A: erro negocio (qtd nao bate)

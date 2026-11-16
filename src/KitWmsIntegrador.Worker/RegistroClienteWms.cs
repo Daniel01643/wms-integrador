@@ -40,10 +40,27 @@ public static class RegistroClienteWms
         services.AddSingleton<IEstadoAutenticacaoWms>(sp => sp.GetRequiredService<GuardaAutenticacaoWms>());
         services.TryAddSingleton<IAlertaAutenticacaoWms, AlertaAutenticacaoWmsEmail>();
         services.AddSingleton(sp => ActivatorUtilities.CreateInstance<ClienteWmsHttp>(
-            sp, sp.GetRequiredService<IHttpClientFactory>().CreateClient(NomeHttpClient)));
+            sp,
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(NomeHttpClient),
+            CriarFabricaConexaoNova(sp.GetRequiredService<IOptions<OpcoesWms>>().Value)));
         services.AddSingleton<IClienteWms>(sp => sp.GetRequiredService<ClienteWmsHttp>());
         services.AddSingleton<IClienteWmsBruto>(sp => sp.GetRequiredService<ClienteWmsHttp>());
         return services;
+    }
+
+    /// <summary>
+    /// Fábrica de HttpClient com handler próprio (conexão nova, fora do pool) para as novas tentativas do GetToken:
+    /// o balanceador pode escolher outro servidor. Quem recebe descarta o cliente (e o handler) em seguida.
+    /// </summary>
+    public static Func<HttpClient> CriarFabricaConexaoNova(OpcoesWms opcoes)
+    {
+        var baseUrl = opcoes.BaseUrl.EndsWith('/') ? opcoes.BaseUrl : opcoes.BaseUrl + "/";
+        Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri);
+        return () => new HttpClient(CriarHandler(), disposeHandler: true)
+        {
+            BaseAddress = baseUri,
+            Timeout = TimeSpan.FromSeconds(Math.Max(1, opcoes.TimeoutSegundos)),
+        };
     }
 
     /// <summary>
@@ -54,6 +71,9 @@ public static class RegistroClienteWms
     public static HttpMessageHandler CriarHandler() =>
         new SocketsHttpHandler
         {
+            // Cookies são tratados pelo ClienteWmsHttp: o cookie de afinidade do balanceador vale só para o par
+            // GetToken + POST de um envio e não pode vazar para o GetToken seguinte (nem para uma nova tentativa).
+            UseCookies = false,
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             SslOptions = new System.Net.Security.SslClientAuthenticationOptions
             {

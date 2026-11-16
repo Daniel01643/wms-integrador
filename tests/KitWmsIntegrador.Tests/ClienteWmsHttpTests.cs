@@ -308,6 +308,13 @@ public class ClienteWmsHttpTests
 
     // ---- Cache de token com relógio fake ----
 
+    private static OpcoesWms OpcoesCache()
+    {
+        var o = OpcoesPadrao();
+        o.TokenPorEnvio = false;
+        return o;
+    }
+
     [Fact]
     public async Task Enviar_TokenValido_NaoBuscaTokenNovamente()
     {
@@ -325,7 +332,7 @@ public class ClienteWmsHttpTests
             }
 
             return FakeHttpMessageHandler.Json(HttpStatusCode.OK, JsonSucesso);
-        }, clock: clock);
+        }, opcoes: OpcoesCache(), clock: clock);
 
         await cliente.EnviarAsync(InterfaceWms.I50, "{}");
         await cliente.EnviarAsync(InterfaceWms.I60, "{}");

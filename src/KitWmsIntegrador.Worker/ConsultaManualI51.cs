@@ -67,7 +67,7 @@ public static class ConsultaManualI51
         try
         {
             var baseUrl = wms.BaseUrl.EndsWith('/') ? wms.BaseUrl : wms.BaseUrl + "/";
-            using var http = new HttpClient { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(wms.TimeoutSegundos) };
+            using var http = new HttpClient(RegistroClienteWms.CriarHandler()) { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(wms.TimeoutSegundos) };
             var cliente = new ClienteWmsHttp(http, Options.Create(wms), loggerFactory.CreateLogger<ClienteWmsHttp>(), new SystemClock());
             var consulta = new ClienteI51(cliente, Options.Create(i51), Options.Create(operacional));
 

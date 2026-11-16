@@ -135,14 +135,31 @@ internal static class IdentidadeVisual
             itens.Add(("Coleta:", Horario(periodo.PrimeiraGravacao) + " a " + Horario(periodo.UltimaGravacao)));
         }
 
-        if (pacote is { } p && (p.FalhasGetToken > 0 || p.PacoteInterrompido))
+        if (pacote is { } p && (p.FalhasGetToken > 0 || p.PacoteInterrompido || p.FalhasPorBackend is { Count: > 0 }))
         {
             itens.Add(("Falhas de autenticação (GetToken):",
                 p.FalhasGetToken.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                + (p.PacoteInterrompido ? " · pacote interrompido, notas aguardam na entrada" : string.Empty)));
+                + (p.PacoteInterrompido ? " · pacote interrompido, notas aguardam na entrada" : string.Empty)
+                + TextoFalhasPorBackend(p)));
         }
 
         return itens;
+    }
+
+    /// <summary>
+    /// Complemento da linha de falhas de autenticação: tentativas rejeitadas por servidor (hash do cookie de afinidade),
+    /// para mostrar ao fornecedor qual nó falha. Vazio quando não há detalhe por servidor.
+    /// </summary>
+    public static string TextoFalhasPorBackend(DadosPacote pacote)
+    {
+        if (pacote.FalhasPorBackend is not { Count: > 0 } porBackend)
+        {
+            return string.Empty;
+        }
+
+        return " · tentativas rejeitadas por servidor: " + string.Join("; ",
+            porBackend.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal)
+                .Select(kv => kv.Key + "=" + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
     }
 
     /// <summary>Plural simples: "1 nota" / "3 notas".</summary>

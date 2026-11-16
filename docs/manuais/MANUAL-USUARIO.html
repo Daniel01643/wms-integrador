@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-16</span>
-    <span>Vers&atilde;o: 2026.11.16-19346e3</span>
+    <span>Vers&atilde;o: 2026.11.16-fbc0246</span>
   </div>
 </section>
   <header class="hd">
@@ -487,6 +487,13 @@
 <p><strong>Até quando a nota é encontrada?</strong> A busca só acha notas dos <strong>últimos 30 dias</strong> (é o tempo que o sistema guarda os XMLs processados). Uma nota mais antiga aparece como "Nota não encontrada na retenção de 30 dias"; nesse caso fale com a TI.</p>
 <h3>Login simples da tela</h3>
 <p>Ao usar a tela, primeiro informe o <strong>usuário do WMS</strong> (e a senha, se quiser) no cartão "Quem está enviando" e confirme. O botão "Enviar devolução" só libera depois disso, e a tela mostra "Enviando como: seu usuário" (use "Trocar usuário" se outra pessoa for enviar). O login é usado só para registrar quem enviou; a senha não é verificada nem guardada. O link fica aberto na rede interna: quem tem o link consegue enviar, por isso informe sempre o seu próprio usuário.</p>
+<h3>Onde fica o link da tela (rede interna)</h3>
+<blockquote><p><strong>Endereço da tela de devolução: <code>http://SRVAPPALC02:8085/</code></strong> Se o nome não abrir no seu computador, use o endereço numérico: <strong><code>http://200.200.200.213:8085/</code></strong></p></blockquote>
+<ul>
+<li><strong>Como abrir:</strong> digite o endereço na barra do navegador (Edge ou Chrome) de qualquer computador da rede interna da Friozem. Não precisa instalar nada.</li>
+<li><strong>Login:</strong> informe o seu <strong>usuário do WMS</strong> (a senha é opcional). O usuário fica registrado na auditoria de quem enviou; a senha <strong>não é verificada nem guardada</strong>.</li>
+<li><strong>Atenção, a tela pode estar desligada:</strong> ela só abre quando a TI liga a opção <code>Devolucao:Habilitada=true</code> <strong>e</strong> libera a porta 8085 no firewall do servidor. <strong>Hoje (16/11/2026) a tela está DESLIGADA em produção</strong>: se o endereço não abrir, é esperado. Não tente contornar; fale com a TI, que combina a liberação com o responsável pela operação.</li>
+</ul>
 
   </main>
   <footer class="ft">

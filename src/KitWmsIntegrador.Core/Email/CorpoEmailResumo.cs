@@ -104,14 +104,15 @@ public static class CorpoEmailResumo
     // Só aparece quando houve falha de GetToken no pacote (contador > 0) ou o pacote foi interrompido.
     private static void AppendAutenticacao(StringBuilder sb, DadosPacote? pacote)
     {
-        if (pacote is null || (pacote.FalhasGetToken <= 0 && !pacote.PacoteInterrompido))
+        if (pacote is null || (pacote.FalhasGetToken <= 0 && !pacote.PacoteInterrompido && pacote.FalhasPorBackend is not { Count: > 0 }))
         {
             return;
         }
 
         sb.Append("<tr><td style=\"padding:8px 24px 0;\"><p style=\"margin:0;color:").Append(IdentidadeVisual.Vermelho)
           .Append(";font-size:13px;\"><b>Falhas de autenticação (GetToken):</b> ")
-          .Append(pacote.FalhasGetToken.ToString(CultureInfo.InvariantCulture));
+          .Append(pacote.FalhasGetToken.ToString(CultureInfo.InvariantCulture))
+          .Append(System.Net.WebUtility.HtmlEncode(IdentidadeVisual.TextoFalhasPorBackend(pacote)));
         if (pacote.PacoteInterrompido)
         {
             sb.Append("<br />Pacote interrompido: as notas restantes aguardam na entrada para nova tentativa automática.");

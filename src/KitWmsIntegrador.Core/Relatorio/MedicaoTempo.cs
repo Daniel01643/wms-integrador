@@ -78,6 +78,8 @@ public sealed record MedicaoTempo(
 /// <param name="Identificador">Id do pacote (ex.: pacote_20261112_083015).</param>
 /// <param name="Medicao">Medição de tempo, ou <c>null</c> (o bloco é omitido).</param>
 /// <param name="FalhasGetToken">Falhas definitivas do GetToken durante o pacote (0 = nada é mostrado).</param>
+/// <param name="FalhasPorBackend">Tentativas de GetToken que falharam, por servidor (para mostrar ao fornecedor qual nó falha).</param>
 /// <param name="PacoteInterrompido">Pacote interrompido por falha de autenticação (notas aguardam na entrada).</param>
 public sealed record DadosPacote(
-    string? Identificador, MedicaoTempo? Medicao, int FalhasGetToken = 0, bool PacoteInterrompido = false);
+    string? Identificador, MedicaoTempo? Medicao, int FalhasGetToken = 0, bool PacoteInterrompido = false,
+    IReadOnlyDictionary<string, long>? FalhasPorBackend = null);

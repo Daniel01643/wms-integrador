@@ -163,3 +163,12 @@ usuário ocorreu em 15/11 por volta de 17:27 ou 18:34. Isso precisa ser conferid
   "com URL forçada" foi coincidência. Isso reforça que o problema era a conta BLUEFOOD no WMS. O hotfix unificou o
   carregador de configuração do serviço e das CLIs (divergência real em `--reenfileirar-i60`, `--consultar-i51`,
   `--relatorio-i60`, `--enviar-i40/i60` e smoke test) e o `--testar-token` passou a mostrar host e porta.
+
+## Confirmação do fornecedor (16/11/2026, fim da tarde)
+
+- A Assist confirmou: a API do WMS roda em **3 servidores com balanceamento de carga**; o token **não tem tempo
+  de expiração**; a orientação é pedir **um token novo a cada envio**.
+- Isso confirma a hipótese de um nó com problema e explica as janelas: o cookie de sessão prendia o pacote ao
+  mesmo servidor. Correção em andamento (workflow `wf_e3005f1a688b440f`): token por envio, nova tentativa em
+  conexão nova (sem o cookie de afinidade) quando o GetToken der 401, e registro do servidor que falhou.
+- I51 configurada no WMS de produção (EDI WEBSERVI), confirmado pelo usuário em 16/11.

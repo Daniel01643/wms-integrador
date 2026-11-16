@@ -135,7 +135,9 @@ public class ConfiguracaoReleaseI50PacoteTests
         var o = new OpcoesWms();
         Config().GetSection(OpcoesWms.Secao).Bind(o);
 
-        Assert.Equal(2, o.TokenTentativasImediatas);
+        Assert.Equal(3, o.TokenTentativasImediatas);
+        Assert.True(o.TokenPorEnvio);
+        Assert.Equal(300, o.MaxGetTokenPorMinuto);
         Assert.Equal(3, o.ValidadeMaximaTokenMinutos);
         Assert.True(o.AlertaAutenticacao);
         Assert.Equal(new[] { 60, 120, 300, 600, 900 }, o.ListaCooldown.Select(t => (int)t.TotalSeconds).ToArray());

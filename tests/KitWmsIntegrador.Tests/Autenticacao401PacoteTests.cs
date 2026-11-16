@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using KitWmsIntegrador.Core.Agrupamento;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
@@ -31,6 +31,7 @@ public sealed class Autenticacao401PacoteTests : IDisposable
         Destino = "14.605.065/0001-75",
         Usuario = "USUARIO-TESTE",
         Senha = "senha-secreta-de-teste",
+        TokenPorEnvio = false, // estes cenários exercitam o cache de token (TokenPorEnvio=false)
         TokenTentativasImediatas = 1,
         CooldownTokenSegundos = "60;120;300;600;900",
     };

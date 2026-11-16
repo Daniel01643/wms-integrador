@@ -35,7 +35,10 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
     private readonly GuardaAutenticacaoWms _guarda;
     private readonly IAlertaAutenticacaoWms? _alerta;
 
+    private readonly Func<HttpClient>? _fabricaConexaoNova;
+
     private string? _token;
+    private string? _cookieToken;
     private DateTimeOffset? _tokenExpiraEm;
     private int? _ultimoStatusToken;
     private DateTimeOffset _tokenObtidoEm;
@@ -50,8 +53,10 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
         ILogger<ClienteWmsHttp> logger,
         IClock clock,
         GuardaAutenticacaoWms? guarda = null,
-        IAlertaAutenticacaoWms? alerta = null)
+        IAlertaAutenticacaoWms? alerta = null,
+        Func<HttpClient>? fabricaConexaoNova = null)
     {
+        _fabricaConexaoNova = fabricaConexaoNova;
         _http = http;
         _opcoes = opcoes.Value;
         _logger = logger;
@@ -102,13 +107,17 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
 
         var tentativa = 0;
         var jaRenovouPorToken = false;
+        SessaoToken? sessaoEnvio = null; // TokenPorEnvio: vale só para este envio
 
         while (true)
         {
             tentativa++;
             cancellationToken.ThrowIfCancellationRequested();
 
-            var token = await GarantirTokenAsync(cancellationToken).ConfigureAwait(false);
+            // Token por envio: GetToken próprio, usado só neste POST (e nas repetições dele). Senão, token em cache.
+            var sessao = _opcoes.TokenPorEnvio
+                ? sessaoEnvio ??= await ObterTokenPorEnvioAsync(cancellationToken).ConfigureAwait(false)
+                : await GarantirTokenAsync(cancellationToken).ConfigureAwait(false);
 
             HttpResponseMessage resposta;
             try
@@ -117,7 +126,12 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                 {
                     Content = new StringContent(jsonBruto, Encoding.UTF8, "application/json"),
                 };
-                requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", sessao.Token);
+                if (sessao.Cookie is not null)
+                {
+                    // Afinidade: o POST volta ao mesmo servidor que emitiu o token (o handler não gerencia cookies).
+                    requisicao.Headers.TryAddWithoutValidation("Cookie", sessao.Cookie);
+                }
 
                 resposta = await _http.SendAsync(requisicao, cancellationToken).ConfigureAwait(false);
             }
@@ -147,6 +161,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                     jaRenovouPorToken = true;
                     tentativa--; // não consome tentativa de backoff
                     InvalidarToken();
+                    sessaoEnvio = null;
                     _logger.LogWarning(
                         "HTTP 401 no envio WMS (identificador={Identificador}); renovando token e repetindo uma vez.",
                         identificador);
@@ -207,11 +222,11 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
             string.IsNullOrEmpty(valor) ? string.Empty : "=" + Uri.EscapeDataString(valor);
     }
 
-    private async Task<string> GarantirTokenAsync(CancellationToken cancellationToken)
+    private async Task<SessaoToken> GarantirTokenAsync(CancellationToken cancellationToken)
     {
         if (TokenValido())
         {
-            return _token!;
+            return new SessaoToken(_token!, _cookieToken);
         }
 
         // Alertas ficam FORA do _tokenLock: um SMTP lento não pode travar quem espera o token.
@@ -228,7 +243,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                 // Dupla verificação: outra thread pode ter renovado enquanto aguardávamos.
                 if (TokenValido())
                 {
-                    return _token!;
+                    return new SessaoToken(_token!, _cookieToken);
                 }
 
                 // Cooldown global: zero chamadas ao WMS. Token ainda dentro do exp continua utilizável.
@@ -236,7 +251,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                 {
                     if (TokenUtilizavel())
                     {
-                        return _token!;
+                        return new SessaoToken(_token!, _cookieToken);
                     }
 
                     throw new AutenticacaoWmsIndisponivelException(
@@ -244,13 +259,15 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                         _ultimoStatusToken, true, _guarda.ProximaTentativaUtc);
                 }
 
-                var novoToken = await ObterTokenAsync(cancellationToken).ConfigureAwait(false);
+                var nova = await ObterTokenAsync(cancellationToken).ConfigureAwait(false);
+                var novoToken = nova.Token;
                 _token = novoToken;
+                _cookieToken = nova.Cookie;
                 _tokenExpiraEm = JwtHelper.ObterExpiracao(novoToken);
                 _tokenObtidoEm = _clock.UtcNow;
                 _ultimoStatusToken = null;
                 alertarRecuperacao = _guarda.RegistrarSucesso();
-                return novoToken;
+                return nova;
             }
             catch (AutenticacaoWmsIndisponivelException ex) when (!ex.EmCooldown)
             {
@@ -265,7 +282,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                 // Renovação proativa que falhou: o token atual ainda vale até o exp, segue com ele.
                 if (TokenUtilizavel())
                 {
-                    return _token!;
+                    return new SessaoToken(_token!, _cookieToken);
                 }
 
                 throw new AutenticacaoWmsIndisponivelException(ex.Message, ex.Status, false, proxima);
@@ -335,6 +352,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
     private void InvalidarToken()
     {
         _token = null;
+        _cookieToken = null;
         _tokenExpiraEm = null;
     }
 
@@ -344,27 +362,103 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
     /// </summary>
     public async Task<(int? Status, bool Ok)> TestarTokenAsync(CancellationToken cancellationToken = default)
     {
-        var r = await TentarGetTokenAsync(1, 1, cancellationToken).ConfigureAwait(false);
-        return (r.Status, r.Token is not null);
+        var r = await TestarTokenDetalhadoAsync(false, cancellationToken).ConfigureAwait(false);
+        return (r.Status, r.Ok);
     }
 
-    private sealed record ResultadoGetToken(int? Status, string? Token);
+    /// <summary>
+    /// Diagnóstico (<c>--testar-token</c>): UM GetToken sem cache, cooldown, teto nem contagem, com o identificador do
+    /// servidor e a latência. <paramref name="conexaoNova"/> evita reaproveitar conexão do pool (amostra outro servidor).
+    /// </summary>
+    public async Task<ResultadoTesteToken> TestarTokenDetalhadoAsync(bool conexaoNova, CancellationToken cancellationToken = default)
+    {
+        var r = await TentarGetTokenAsync(1, 1, conexaoNova, cancellationToken).ConfigureAwait(false);
+        return new ResultadoTesteToken(r.Status, r.Token is not null, r.Backend.Chave, (long)r.Latencia.TotalMilliseconds);
+    }
 
-    // Obtém o token com as tentativas imediatas; esgotadas, lança AutenticacaoWmsIndisponivelException
-    // (a guarda global aplica o cooldown). Qualquer falha de GetToken é falha de autenticação, nunca da nota.
-    private async Task<string> ObterTokenAsync(CancellationToken cancellationToken)
+    /// <summary>Resultado do diagnóstico de um GetToken (sem o token).</summary>
+    /// <param name="Status">Status HTTP (null em timeout/rede).</param>
+    /// <param name="Ok">Veio um token válido.</param>
+    /// <param name="Servidor">Chave do servidor (nome e hash curto do cookie de afinidade, ou Server); sem segredos.</param>
+    /// <param name="LatenciaMs">Latência da chamada em milissegundos.</param>
+    public sealed record ResultadoTesteToken(int? Status, bool Ok, string Servidor, long LatenciaMs);
+
+    private sealed record SessaoToken(string Token, string? Cookie);
+
+    private sealed record ResultadoGetToken(int? Status, string? Token, BackendWms Backend, TimeSpan Latencia);
+
+    // Token por envio: um GetToken novo para este POST. Falha de autenticação segue a mesma regra do cache
+    // (cooldown global, exceção, alerta): nunca vira erro de nota.
+    private async Task<SessaoToken> ObterTokenPorEnvioAsync(CancellationToken cancellationToken)
+    {
+        var alertarIndisponivel = false;
+        var alertarRecuperacao = false;
+        int? statusAlerta = null;
+        DateTimeOffset proximaAlerta = default;
+        try
+        {
+            if (_guarda.Bloqueada)
+            {
+                throw new AutenticacaoWmsIndisponivelException(
+                    "GetToken do WMS em cooldown até " + _guarda.ProximaTentativaUtc?.ToString("O") + ".",
+                    _ultimoStatusToken, true, _guarda.ProximaTentativaUtc);
+            }
+
+            var sessao = await ObterTokenAsync(cancellationToken).ConfigureAwait(false);
+            alertarRecuperacao = _guarda.RegistrarSucesso();
+            return sessao;
+        }
+        catch (AutenticacaoWmsIndisponivelException ex) when (!ex.EmCooldown)
+        {
+            _ultimoStatusToken = ex.Status;
+
+            // Envios em paralelo: se outro já abriu o cooldown enquanto este tentava, não escala a escada de novo.
+            if (_guarda.Bloqueada)
+            {
+                throw new AutenticacaoWmsIndisponivelException(ex.Message, ex.Status, true, _guarda.ProximaTentativaUtc);
+            }
+
+            alertarIndisponivel = _guarda.RegistrarFalha(out var proxima);
+            statusAlerta = ex.Status;
+            proximaAlerta = proxima;
+            _logger.LogError(
+                "GetToken do WMS indisponível (status={Status}); novas tentativas em cooldown até {Proxima:O}. Nenhuma nota será enviada para Erro.",
+                ex.Status, proxima);
+            throw new AutenticacaoWmsIndisponivelException(ex.Message, ex.Status, false, proxima);
+        }
+        finally
+        {
+            if (alertarIndisponivel)
+            {
+                await DispararAlertaAsync(a => a.IndisponivelAsync(statusAlerta, proximaAlerta, CancellationToken.None)).ConfigureAwait(false);
+            }
+
+            if (alertarRecuperacao)
+            {
+                _logger.LogInformation("GetToken do WMS voltou a funcionar.");
+                await DispararAlertaAsync(a => a.RecuperadoAsync(CancellationToken.None)).ConfigureAwait(false);
+            }
+        }
+    }
+
+    // Obtém o token com as tentativas imediatas; da 2ª em diante, em conexão nova e sem o cookie de afinidade (o balanceador
+    // pode escolher outro servidor). Esgotadas, lança AutenticacaoWmsIndisponivelException (a guarda global aplica o
+    // cooldown). Qualquer falha de GetToken é falha de autenticação, nunca da nota.
+    private async Task<SessaoToken> ObterTokenAsync(CancellationToken cancellationToken)
     {
         var max = Math.Max(1, _opcoes.TokenTentativasImediatas);
         ResultadoGetToken? ultimo = null;
         for (var tentativa = 1; tentativa <= max; tentativa++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ultimo = await TentarGetTokenAsync(tentativa, max, cancellationToken).ConfigureAwait(false);
+            await EsperarTetoGetTokenAsync(cancellationToken).ConfigureAwait(false);
+            ultimo = await TentarGetTokenAsync(tentativa, max, tentativa > 1, cancellationToken).ConfigureAwait(false);
             if (ultimo.Token is not null)
             {
-                return ultimo.Token;
+                return new SessaoToken(ultimo.Token, ultimo.Backend.CookieHeader);
             }
 
+            _guarda.RegistrarFalhaBackend(ultimo.Backend.Chave);
             if (tentativa < max)
             {
                 await EsperarBackoffAsync(tentativa, cancellationToken).ConfigureAwait(false);
@@ -376,21 +470,62 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
             ultimo?.Status, false, null);
     }
 
-    private async Task<ResultadoGetToken> TentarGetTokenAsync(int tentativa, int max, CancellationToken cancellationToken)
+    // Teto de GetToken por minuto: espera a janela liberar (sem falhar a nota) e avisa no log uma vez por espera.
+    private async Task EsperarTetoGetTokenAsync(CancellationToken cancellationToken)
+    {
+        var avisou = false;
+        while (true)
+        {
+            var espera = _guarda.ReservarGetToken();
+            if (espera <= TimeSpan.Zero)
+            {
+                return;
+            }
+
+            if (!avisou)
+            {
+                avisou = true;
+                _logger.LogWarning(
+                    "GetToken do WMS limitado: teto de {Max} chamadas por minuto atingido (Wms:MaxGetTokenPorMinuto); aguardando {EsperaMs:F0} ms.",
+                    _opcoes.MaxGetTokenPorMinuto, espera.TotalMilliseconds);
+            }
+
+            await Task.Delay(espera < TimeSpan.FromSeconds(1) ? espera : TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<ResultadoGetToken> TentarGetTokenAsync(int tentativa, int max, bool conexaoNova, CancellationToken cancellationToken)
     {
         var credenciais = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_opcoes.Usuario}:{_opcoes.Senha}"));
+        var cliente = _http;
+        HttpClient? temporario = null;
+        if (conexaoNova && _fabricaConexaoNova is not null)
+        {
+            temporario = _fabricaConexaoNova();
+            cliente = temporario;
+        }
+
+        var cronometro = Stopwatch.StartNew();
         try
         {
+            // Sem cookie: o GetToken nunca leva o cookie de afinidade anterior (o handler não gerencia cookies).
             using var requisicao = new HttpRequestMessage(HttpMethod.Get, "Integracao/GetToken");
             requisicao.Headers.Authorization = new AuthenticationHeaderValue("Basic", credenciais);
-            using var resposta = await _http.SendAsync(requisicao, cancellationToken).ConfigureAwait(false);
+            if (conexaoNova)
+            {
+                requisicao.Headers.ConnectionClose = true;
+            }
+
+            using var resposta = await cliente.SendAsync(requisicao, cancellationToken).ConfigureAwait(false);
             var status = (int)resposta.StatusCode;
             var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var backend = IdentificadorBackendWms.De(resposta);
+            var latencia = cronometro.Elapsed;
 
             if (!resposta.IsSuccessStatusCode)
             {
-                LogarFalhaGetToken(resposta, corpo, tentativa, max);
-                return new ResultadoGetToken(status, null);
+                LogarFalhaGetToken(resposta, corpo, tentativa, max, backend, latencia, conexaoNova);
+                return new ResultadoGetToken(status, null, backend, latencia);
             }
 
             string? token = null;
@@ -406,35 +541,50 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
             if (string.IsNullOrWhiteSpace(token))
             {
                 _logger.LogWarning(
-                    "GetToken do WMS respondeu HTTP {Status} sem token válido (tentativa={Tentativa}/{Max}, corpo de {Bytes} bytes).",
-                    status, tentativa, max, corpo.Length);
-                return new ResultadoGetToken(status, null);
+                    "GetToken do WMS respondeu HTTP {Status} sem token válido (tentativa={Tentativa}/{Max}, corpo de {Bytes} bytes) " +
+                    "servidor={Servidor} detalhe={Detalhe} latenciaMs={LatenciaMs:F0}",
+                    status, tentativa, max, corpo.Length, backend.Chave, backend.Detalhe, latencia.TotalMilliseconds);
+                return new ResultadoGetToken(status, null, backend, latencia);
             }
 
-            return new ResultadoGetToken(status, token);
+            _logger.LogDebug(
+                "GetToken do WMS ok: status={Status} servidor={Servidor} detalhe={Detalhe} latenciaMs={LatenciaMs:F0} tentativa={Tentativa}/{Max}",
+                status, backend.Chave, backend.Detalhe, latencia.TotalMilliseconds, tentativa, max);
+            return new ResultadoGetToken(status, token, backend, latencia);
         }
         catch (HttpRequestException ex)
         {
             _logger.LogWarning(
-                "Falha de rede no GetToken (tentativa={Tentativa}/{Max}): {Tipo}.", tentativa, max, ex.GetType().Name);
-            return new ResultadoGetToken(null, null);
+                "Falha de rede no GetToken (tentativa={Tentativa}/{Max}): {Tipo}. servidor={Servidor} latenciaMs={LatenciaMs:F0}",
+                tentativa, max, ex.GetType().Name, BackendWms.Desconhecido.Chave, cronometro.Elapsed.TotalMilliseconds);
+            return new ResultadoGetToken(null, null, BackendWms.Desconhecido, cronometro.Elapsed);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning("Timeout no GetToken (tentativa={Tentativa}/{Max}).", tentativa, max);
-            return new ResultadoGetToken(null, null);
+            _logger.LogWarning(
+                "Timeout no GetToken (tentativa={Tentativa}/{Max}). servidor={Servidor} latenciaMs={LatenciaMs:F0}",
+                tentativa, max, BackendWms.Desconhecido.Chave, cronometro.Elapsed.TotalMilliseconds);
+            return new ResultadoGetToken(null, null, BackendWms.Desconhecido, cronometro.Elapsed);
+        }
+        finally
+        {
+            temporario?.Dispose();
         }
     }
 
-    // Diagnóstico do 401/403/5xx: status, WWW-Authenticate, corpo truncado e request id. Sem token,
-    // Authorization, usuário nem senha (o corpo de erro do WMS não os contém e é truncado a 200 caracteres).
-    private void LogarFalhaGetToken(HttpResponseMessage resposta, string corpo, int tentativa, int max)
+    // Diagnóstico do 401/403/5xx: status, WWW-Authenticate, corpo truncado, request id, servidor (cookie de afinidade
+    // por nome e hash, Server, X-*), latência e host. Sem token, Authorization, usuário nem senha (o corpo de erro do WMS
+    // não os contém e é truncado a 200 caracteres).
+    private void LogarFalhaGetToken(
+        HttpResponseMessage resposta, string corpo, int tentativa, int max, BackendWms backend, TimeSpan latencia, bool conexaoNova)
     {
         var wwwAuth = string.Join(" | ", resposta.Headers.WwwAuthenticate.Select(h => h.ToString()));
         _logger.LogWarning(
             "GetToken do WMS falhou: status={Status} wwwAuthenticate={WwwAuthenticate} requestId={RequestId} " +
-            "corpo={Corpo} tentativa={Tentativa}/{Max}",
-            (int)resposta.StatusCode, Truncar(wwwAuth), IdRequisicao(resposta), Truncar(corpo), tentativa, max);
+            "corpo={Corpo} tentativa={Tentativa}/{Max} servidor={Servidor} detalhe={Detalhe} latenciaMs={LatenciaMs:F0} " +
+            "host={Host} conexaoNova={ConexaoNova}",
+            (int)resposta.StatusCode, Truncar(wwwAuth), IdRequisicao(resposta), Truncar(corpo), tentativa, max,
+            backend.Chave, backend.Detalhe, latencia.TotalMilliseconds, _http.BaseAddress?.Authority, conexaoNova);
     }
 
     private static string IdRequisicao(HttpResponseMessage resposta)

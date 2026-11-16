@@ -65,7 +65,8 @@ public sealed class FechadorPacote
         // O tempo da própria geração (abaixo) não cabe dentro dele: vai só para a telemetria.
         var medicao = MedicaoTempo.De(registros, inicio, fim, etapas?.EsperaJanelaMs, etapas?.LeituraMs);
         var dados = new DadosPacote(
-            identificadorPacote, medicao, etapas?.FalhasGetToken ?? 0, etapas?.AbortadoPorAutenticacao ?? false);
+            identificadorPacote, medicao, etapas?.FalhasGetToken ?? 0, etapas?.AbortadoPorAutenticacao ?? false,
+            etapas?.FalhasPorBackend);
         var cronometro = System.Diagnostics.Stopwatch.StartNew();
         long tempoRelatorioMs;
 

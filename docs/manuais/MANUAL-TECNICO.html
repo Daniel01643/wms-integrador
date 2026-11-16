@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-16</span>
-    <span>Vers&atilde;o: 2026.11.16-9811a5b</span>
+    <span>Vers&atilde;o: 2026.11.16-fbc0246</span>
   </div>
 </section>
   <header class="hd">
@@ -922,8 +922,21 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <li>A auditoria <code>devolucao_yyyyMMdd.log</code> (em <code>PastaAuditoria</code>, padrão <code>&lt;Estado&gt;\devolucao</code>) passou a <code>data;ip;usuario;chave;nota;status;transacao;mensagem</code> (linhas antigas têm 7 campos) e o log traz <code>usuario=</code>.</li>
 <li><strong>Risco aceito (decisão do usuário, 13/11/2026):</strong> sem restrição de firewall na rede interna; quem tem o link consegue enviar e a identificação é <strong>autodeclarada</strong>, não autenticada. Serve para saber quem enviou, não para impedir. Se isso mudar, a regra de firewall da porta <code>Devolucao:Porta</code> é o controle disponível.</li>
 </ul>
+<h4>Link da tela na rede interna</h4>
+<blockquote><p><strong>Endereço:</strong> <code>http://SRVAPPALC02:8085/</code>. Se o nome não resolver: <code>http://200.200.200.213:8085/</code> (a porta vem de <code>Devolucao:Porta</code>, padrão 8085).</p></blockquote>
+<ul>
+<li><strong>Como abrir:</strong> em qualquer navegador de um computador da rede interna; não há nada a instalar.</li>
+<li><strong>Login simples:</strong> o operador informa o usuário do WMS, que vai para a auditoria (<code>devolucao_yyyyMMdd.log</code>); a senha não é verificada nem guardada.</li>
+<li><strong>Só funciona se as duas condições forem verdadeiras:</strong> <code>Devolucao:Habilitada=true</code> <strong>e</strong> a regra de firewall da porta 8085 criada no servidor. <strong>Hoje (16/11/2026) a tela está DESLIGADA em produção</strong> (<code>Habilitada=false</code>, sem regra de firewall). Nada foi ligado nesta entrega.</li>
+<li><strong>Teste de saúde</strong> (de um computador da rede interna, com a tela ligada): abrir <code>http://SRVAPPALC02:8085/api/saude</code>; esperado <code>{"status":"ok"}</code>.</li>
+<li><strong>Regra de firewall</strong> (<code>docs\INSTALACAO-SERVIDOR.md</code> §3.12; PowerShell como administrador no servidor, só com OK do responsável; por decisão do usuário o link fica aberto na rede interna, então <code>&lt;REDE_INTERNA&gt;</code> é a sub-rede interna da Friozem, nunca <code>Any</code>):</li>
+</ul>
+<pre><code>  New-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)' -Direction Inbound -Protocol TCP `
+      -LocalPort 8085 -RemoteAddress '&lt;REDE_INTERNA&gt;' -Action Allow -Profile Domain</code></pre>
+<p>Para remover: <code>Remove-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)'</code>.</p>
 <p>Arquitetura e roteiro: <code>docs\ARQUITETURA-PLANO-B-I40.md</code> e <code>docs\ROTEIRO-TESTE-I40.md</code>. O teste da tela no homolog ainda está pendente. Só ligue (<code>Devolucao:Habilitada=true</code>) com OK do responsável.</p>
 <h3>8.7. Falha de login do WMS (401 no GetToken), tipos de separação e espera de coleta (release 2026.11.16-1)</h3>
+<p><strong>Token por envio (release de 16/11/2026).</strong> A Assist confirmou que a API do WMS roda em <strong>3 servidores atrás de um balanceador</strong>, que o <strong>token não expira</strong> e que se deve pedir <strong>um token novo a cada envio</strong>. Por isso <code>Wms:TokenPorEnvio=true</code> (padrão): cada POST (I50, I60, I40 e I51) faz o próprio <code>GetToken</code> e usa o token só nele; o cookie de afinidade do balanceador vale só para o par <code>GetToken + POST</code> do mesmo envio. Se o <code>GetToken</code> der 401 (um nó ruim responde em 6 a 9 ms), o cliente repete até <code>Wms:TokenTentativasImediatas</code> (3) vezes em <strong>conexão nova e sem o cookie</strong>, para o balanceador escolher outro servidor; só então entra o cooldown abaixo. <code>Wms:MaxGetTokenPorMinuto</code> (300) é o teto de chamadas ao <code>GetToken</code> por minuto (acima dele a chamada espera e o log avisa; <code>0</code> = sem teto). Custo: cerca de <strong>+120 ms por nota</strong> e o dobro de chamadas ao WMS. Para voltar ao cache de token sem release: <code>Wms__TokenPorEnvio=false</code> (variável de máquina e <code>AppEnvironmentExtra</code> do NSSM) e reiniciar o serviço; só nesse modo vale <code>Wms:ValidadeMaximaTokenMinutos</code>. Cada <code>GetToken</code> que falha é registrado com <code>status</code>, <code>latenciaMs</code> e o <strong>servidor</strong> (nome e hash curto do cookie de afinidade, ou o cabeçalho <code>Server</code>); o relatório do pacote lista as falhas por servidor na linha "Falhas de autenticação (GetToken)", para mostrar à Assist qual nó falha. Detalhes: <code>docs\OPERACAO.md</code> §12.1.</p>
 <p><strong>401 no GetToken.</strong> Desde a release 2026.11.16-1, se o <code>GET Integracao/GetToken</code> falhar (401, 403, 5xx, timeout, rede), a nota <strong>não vai mais para <code>Erro</code></strong>: o pacote é interrompido, as notas já integradas vão para <code>Processados</code> e as demais **ficam na pasta de entrada** e entram no próximo pacote. Enquanto durar o cooldown o serviço não chama o WMS (espera 1, 2, 5, 10 e 15 min, <code>Wms:CooldownTokenSegundos</code> = <code>60;120;300;600;900</code>) e registra "Aguardando autenticação do WMS até HH:mm:ss".</p>
 <table>
 <thead><tr>
@@ -961,7 +974,8 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <ul>
 <li><strong>Quando acionar a Assist:</strong> 401 que passa de 15 min (cooldown no teto) ou que volta em vários dias. Levar os horários do log, o IP do servidor e as perguntas de <code>docs\OPERACAO.md</code> §12.1. O diagnóstico no log traz status, <code>WWW-Authenticate</code>, id da requisição e até 200 caracteres do corpo, nunca token, usuário ou senha.</li>
 <li><strong>Reprocesso das notas que já foram para <code>Erro</code> por 401</strong> (ex.: 383 de 15/11): <code>deploy\reprocessar-erro-401.ps1</code>, sempre com <code>-WhatIf</code> primeiro, só depois de o teste de token dar 200 e com OK do responsável (<code>docs\OPERACAO.md</code> §12.1).</li>
-<li><strong>Validade do token:</strong> <code>Wms:ValidadeMaximaTokenMinutos</code> = 3 (renova a cada 3 min; <code>0</code> desliga). Alerta: <code>Wms:AlertaAutenticacao</code> = <code>true</code>.</li>
+<li><strong>Amostra de servidores para a Assist:</strong> <code>--testar-token --vezes N</code> (N de 1 a 20, padrão 1, 2 s entre as tentativas, conexão nova em cada uma) imprime uma linha por tentativa com status, host e porta, <code>servidor=</code> (hash do cookie de afinidade) e <code>latenciaMs</code>, sem segredos.</li>
+<li><strong>Validade do token (só com <code>Wms:TokenPorEnvio=false</code>):</strong> <code>Wms:ValidadeMaximaTokenMinutos</code> = 3 (renova a cada 3 min; <code>0</code> desliga). Alerta: <code>Wms:AlertaAutenticacao</code> = <code>true</code>.</li>
 </ul>
 <p><strong>Tipos de separação da I50.</strong> <code>I50:TipoSeparacao</code> = <code>PIC;FEF;PLL</code> (cabeçalho do pedido) e <code>I50:TipoSeparacao2</code> = <code>AGL;FEF;PLL</code>, enviados no cabeçalho e em cada item. Antes eram <code>RES;FEF;PLI</code>. Confira que o <code>appsettings.Production.json</code> do servidor não define esses valores antigos, pois ele sobrepõe o do pacote.</p>
 <p><strong>Espera de coleta.</strong> <code>Pacote:SilencioSegundos</code> = 20 (era 15), <code>Pacote:JanelaMaximaSegundos</code> = 180 e <code>Pacote:EstabilizacaoSegundos</code> = 3. Se um lote ainda for dividido, aumente <code>SilencioSegundos</code> no <code>appsettings.Production.json</code> (ou <code>Pacote__SilencioSegundos</code>) e reinicie o serviço.</p>

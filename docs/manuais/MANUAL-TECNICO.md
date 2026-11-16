@@ -1,4 +1,4 @@
-﻿# Manual Técnico (Nível 1 / Júnior) — KitWms Integrador
+# Manual Técnico (Nível 1 / Júnior) — KitWms Integrador
 
 <!--CAPA:tecnico-->
 
@@ -730,10 +730,43 @@ digitada nem é enviada pela página nem lida pelo servidor) e o sistema **regis
   link consegue enviar e a identificação é **autodeclarada**, não autenticada. Serve para saber quem enviou,
   não para impedir. Se isso mudar, a regra de firewall da porta `Devolucao:Porta` é o controle disponível.
 
+#### Link da tela na rede interna
+
+> **Endereço:** `http://SRVAPPALC02:8085/`. Se o nome não resolver: `http://200.200.200.213:8085/`
+> (a porta vem de `Devolucao:Porta`, padrão 8085).
+
+- **Como abrir:** em qualquer navegador de um computador da rede interna; não há nada a instalar.
+- **Login simples:** o operador informa o usuário do WMS, que vai para a auditoria (`devolucao_yyyyMMdd.log`); a senha não é
+  verificada nem guardada.
+- **Só funciona se as duas condições forem verdadeiras:** `Devolucao:Habilitada=true` **e** a regra de firewall da porta 8085 criada
+  no servidor. **Hoje (16/11/2026) a tela está DESLIGADA em produção** (`Habilitada=false`, sem regra de firewall). Nada foi ligado
+  nesta entrega.
+- **Teste de saúde** (de um computador da rede interna, com a tela ligada): abrir `http://SRVAPPALC02:8085/api/saude`; esperado
+  `{"status":"ok"}`.
+- **Regra de firewall** (`docs\INSTALACAO-SERVIDOR.md` §3.12; PowerShell como administrador no servidor, só com OK do responsável;
+  por decisão do usuário o link fica aberto na rede interna, então `<REDE_INTERNA>` é a sub-rede interna da Friozem, nunca `Any`):
+  ```powershell
+  New-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)' -Direction Inbound -Protocol TCP `
+      -LocalPort 8085 -RemoteAddress '<REDE_INTERNA>' -Action Allow -Profile Domain
+  ```
+  Para remover: `Remove-NetFirewallRule -DisplayName 'Friozem Devolucao I40 (8085)'`.
+
 Arquitetura e roteiro: `docs\ARQUITETURA-PLANO-B-I40.md` e `docs\ROTEIRO-TESTE-I40.md`. O teste da tela no
 homolog ainda está pendente. Só ligue (`Devolucao:Habilitada=true`) com OK do responsável.
 
 ### 8.7. Falha de login do WMS (401 no GetToken), tipos de separação e espera de coleta (release 2026.11.16-1)
+
+**Token por envio (release de 16/11/2026).** A Assist confirmou que a API do WMS roda em **3 servidores atrás de um balanceador**,
+que o **token não expira** e que se deve pedir **um token novo a cada envio**. Por isso `Wms:TokenPorEnvio=true` (padrão): cada POST
+(I50, I60, I40 e I51) faz o próprio `GetToken` e usa o token só nele; o cookie de afinidade do balanceador vale só para o par
+`GetToken + POST` do mesmo envio. Se o `GetToken` der 401 (um nó ruim responde em 6 a 9 ms), o cliente repete até
+`Wms:TokenTentativasImediatas` (3) vezes em **conexão nova e sem o cookie**, para o balanceador escolher outro servidor; só então entra o
+cooldown abaixo. `Wms:MaxGetTokenPorMinuto` (300) é o teto de chamadas ao `GetToken` por minuto (acima dele a chamada espera e o log
+avisa; `0` = sem teto). Custo: cerca de **+120 ms por nota** e o dobro de chamadas ao WMS. Para voltar ao cache de token sem release:
+`Wms__TokenPorEnvio=false` (variável de máquina e `AppEnvironmentExtra` do NSSM) e reiniciar o serviço; só nesse modo vale
+`Wms:ValidadeMaximaTokenMinutos`. Cada `GetToken` que falha é registrado com `status`, `latenciaMs` e o **servidor** (nome e hash curto do
+cookie de afinidade, ou o cabeçalho `Server`); o relatório do pacote lista as falhas por servidor na linha "Falhas de autenticação
+(GetToken)", para mostrar à Assist qual nó falha. Detalhes: `docs\OPERACAO.md` §12.1.
 
 **401 no GetToken.** Desde a release 2026.11.16-1, se o `GET Integracao/GetToken` falhar (401, 403, 5xx, timeout, rede), a nota
 **não vai mais para `Erro`**: o pacote é interrompido, as notas já integradas vão para `Processados` e as demais **ficam na
@@ -761,7 +794,9 @@ pasta de entrada** e entram no próximo pacote. Enquanto durar o cooldown o serv
   caracteres do corpo, nunca token, usuário ou senha.
 - **Reprocesso das notas que já foram para `Erro` por 401** (ex.: 383 de 15/11): `deploy\reprocessar-erro-401.ps1`, sempre com
   `-WhatIf` primeiro, só depois de o teste de token dar 200 e com OK do responsável (`docs\OPERACAO.md` §12.1).
-- **Validade do token:** `Wms:ValidadeMaximaTokenMinutos` = 3 (renova a cada 3 min; `0` desliga). Alerta: `Wms:AlertaAutenticacao` = `true`.
+- **Amostra de servidores para a Assist:** `--testar-token --vezes N` (N de 1 a 20, padrão 1, 2 s entre as tentativas, conexão nova em cada uma) imprime
+  uma linha por tentativa com status, host e porta, `servidor=` (hash do cookie de afinidade) e `latenciaMs`, sem segredos.
+- **Validade do token (só com `Wms:TokenPorEnvio=false`):** `Wms:ValidadeMaximaTokenMinutos` = 3 (renova a cada 3 min; `0` desliga). Alerta: `Wms:AlertaAutenticacao` = `true`.
 
 **Tipos de separação da I50.** `I50:TipoSeparacao` = `PIC;FEF;PLL` (cabeçalho do pedido) e `I50:TipoSeparacao2` = `AGL;FEF;PLL`, enviados no
 cabeçalho e em cada item. Antes eram `RES;FEF;PLI`. Confira que o `appsettings.Production.json` do servidor não define esses valores

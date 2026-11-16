@@ -68,6 +68,7 @@ public sealed class AutenticacaoWmsTests
         TimeoutSegundos = 30,
         MaxTentativas = 3,
         MargemRenovacaoTokenSegundos = 60,
+        TokenPorEnvio = false, // estes cenários exercitam o cache de token (TokenPorEnvio=false)
         TokenTentativasImediatas = tentativasImediatas,
         CooldownTokenSegundos = "60;120;300;600;900",
     };

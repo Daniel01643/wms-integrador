@@ -1,4 +1,4 @@
-﻿# Manual do Usuário — KitWms Integrador
+# Manual do Usuário — KitWms Integrador
 
 <!--CAPA:usuario-->
 
@@ -377,3 +377,16 @@ e confirme. O botão "Enviar devolução" só libera depois disso, e a tela most
 (use "Trocar usuário" se outra pessoa for enviar). O login é usado só para registrar quem enviou; a senha
 não é verificada nem guardada. O link fica aberto na rede interna: quem tem o link consegue enviar, por
 isso informe sempre o seu próprio usuário.
+
+### Onde fica o link da tela (rede interna)
+
+> **Endereço da tela de devolução: `http://SRVAPPALC02:8085/`**
+> Se o nome não abrir no seu computador, use o endereço numérico: **`http://200.200.200.213:8085/`**
+
+- **Como abrir:** digite o endereço na barra do navegador (Edge ou Chrome) de qualquer computador da rede interna da Friozem.
+  Não precisa instalar nada.
+- **Login:** informe o seu **usuário do WMS** (a senha é opcional). O usuário fica registrado na auditoria de quem enviou;
+  a senha **não é verificada nem guardada**.
+- **Atenção, a tela pode estar desligada:** ela só abre quando a TI liga a opção `Devolucao:Habilitada=true` **e** libera a
+  porta 8085 no firewall do servidor. **Hoje (16/11/2026) a tela está DESLIGADA em produção**: se o endereço não abrir, é esperado.
+  Não tente contornar; fale com a TI, que combina a liberação com o responsável pela operação.

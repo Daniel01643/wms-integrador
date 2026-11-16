@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Tempo;
@@ -51,6 +51,29 @@ public sealed class GerenciadorPacote
     private readonly IEstadoAutenticacaoWms? _autenticacao;
     private bool _aguardandoLogado;
     private long _falhasBase;
+    private IReadOnlyDictionary<string, long>? _backendsBase;
+
+    // Falhas de GetToken por servidor ocorridas desde a abertura do pacote (null quando não houve nenhuma).
+    private static IReadOnlyDictionary<string, long>? DiferencaBackends(
+        IReadOnlyDictionary<string, long>? atual, IReadOnlyDictionary<string, long>? basePacote)
+    {
+        if (atual is null || atual.Count == 0)
+        {
+            return null;
+        }
+
+        var dif = new Dictionary<string, long>();
+        foreach (var (chave, total) in atual)
+        {
+            var n = total - (basePacote is not null && basePacote.TryGetValue(chave, out var b) ? b : 0);
+            if (n > 0)
+            {
+                dif[chave] = n;
+            }
+        }
+
+        return dif.Count > 0 ? dif : null;
+    }
     private bool _abortadoPorAutenticacao;
 
     private readonly List<RegistroDiario> _registros = new();
@@ -172,6 +195,8 @@ public sealed class GerenciadorPacote
             AguardandoAutenticacao = false;
             _aguardandoLogado = false;
             _falhasBase = _autenticacao?.TotalFalhasGetToken ?? 0;
+        _backendsBase = _autenticacao?.FalhasPorBackend;
+            _backendsBase = _autenticacao?.FalhasPorBackend;
             _inicio = agora;
             _ultimaAtividade = agora;
             _idPacote = IdDe(agora);
@@ -324,7 +349,8 @@ public sealed class GerenciadorPacote
                 new EtapasPacote(
                     _esperaJanelaMs, _leituraMs,
                     (int)Math.Max(0L, (_autenticacao?.TotalFalhasGetToken ?? 0) - _falhasBase),
-                    _abortadoPorAutenticacao)).ConfigureAwait(false);
+                    _abortadoPorAutenticacao,
+                    DiferencaBackends(_autenticacao?.FalhasPorBackend, _backendsBase))).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -367,6 +393,7 @@ public sealed class GerenciadorPacote
         // Pacote retomado: espera da janela e leitura não são conhecidas (as linhas somem do relatório).
         _pacoteRetomado = true;
         _falhasBase = _autenticacao?.TotalFalhasGetToken ?? 0;
+        _backendsBase = _autenticacao?.FalhasPorBackend;
         _esperaJanelaMs = null;
         _leituraMs = null;
         var registros = ConsolidadorRegistros.Consolidar(lidos);

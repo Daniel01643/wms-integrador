@@ -35,7 +35,7 @@ public static class SmokeTestWms
         }
 
         var baseUrl = opcoes.BaseUrl.EndsWith('/') ? opcoes.BaseUrl : opcoes.BaseUrl + "/";
-        using var http = new HttpClient
+        using var http = new HttpClient(RegistroClienteWms.CriarHandler())
         {
             BaseAddress = new Uri(baseUrl),
             Timeout = TimeSpan.FromSeconds(opcoes.TimeoutSegundos),

@@ -62,16 +62,31 @@ public sealed class OpcoesWms
     public int MargemRenovacaoTokenSegundos { get; set; } = 60;
 
     /// <summary>
+    /// Um GetToken novo para CADA envio (POST), usado só naquele envio (default true; orientação da Assist, 16/11/2026:
+    /// o token não expira e o WMS roda em 3 servidores atrás de balanceador). <c>false</c> volta ao cache de token
+    /// (<see cref="ValidadeMaximaTokenMinutos"/>, <see cref="MargemRenovacaoTokenSegundos"/>), sem precisar de release.
+    /// </summary>
+    public bool TokenPorEnvio { get; set; } = true;
+
+    /// <summary>
     /// Validade máxima do token em minutos, contada da obtenção (default 3). O token é renovado ao atingi-la mesmo
     /// que o <c>exp</c> do JWT seja maior; 0 desliga o limite (vale só o <c>exp</c>).
+    /// SÓ vale com <see cref="TokenPorEnvio"/> = <c>false</c> (com token por envio não há token em cache).
     /// </summary>
     public int ValidadeMaximaTokenMinutos { get; set; } = 3;
 
     /// <summary>
-    /// Tentativas imediatas do GetToken por episódio de falha (default 2, backoff de 0,5 s). Esgotadas,
+    /// Tentativas imediatas do GetToken por episódio de falha (default 3, backoff de 0,5 s). A partir da 2ª, o GetToken
+    /// usa conexão nova e sem o cookie de afinidade, para o balanceador poder escolher outro servidor. Esgotadas,
     /// entra o cooldown global (<see cref="CooldownTokenSegundos"/>) e nenhuma nota dispara outro GetToken.
     /// </summary>
-    public int TokenTentativasImediatas { get; set; } = 2;
+    public int TokenTentativasImediatas { get; set; } = 3;
+
+    /// <summary>
+    /// Teto de chamadas ao GetToken por minuto (janela deslizante de 60 s; default 300; 0 = sem teto). Acima do teto a
+    /// chamada ESPERA a janela liberar (nunca falha a nota) e o log avisa. Protege o WMS contra tempestade de requisições.
+    /// </summary>
+    public int MaxGetTokenPorMinuto { get; set; } = 300;
 
     /// <summary>
     /// Escada do cooldown global após falha do GetToken, em segundos, separada por ';'

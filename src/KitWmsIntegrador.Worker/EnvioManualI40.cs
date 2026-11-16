@@ -167,7 +167,7 @@ public static class EnvioManualI40
                 nf.CnpjEmitente, nf.CnpjDestinatario, nf.QtdeVolume, nf.ItemNotaFiscal.Count, wms.BaseUrl);
 
             var baseUrl = wms.BaseUrl.EndsWith('/') ? wms.BaseUrl : wms.BaseUrl + "/";
-            using var http = new HttpClient
+            using var http = new HttpClient(RegistroClienteWms.CriarHandler())
             {
                 BaseAddress = new Uri(baseUrl),
                 Timeout = TimeSpan.FromSeconds(wms.TimeoutSegundos),

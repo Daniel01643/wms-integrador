@@ -1,4 +1,4 @@
-﻿# Operação — watcher de pasta, pacote, erros e e-mail (Etapa 7)
+# Operação — watcher de pasta, pacote, erros e e-mail (Etapa 7)
 
 > **Instalação no servidor (Etapa 9):** o serviço é instalado como `Friozem-ImportacaoNotas` sob
 > NSSM, com raiz `C:\Friozem\importacao_notas` e a **pasta de entrada em um share de rede** (fora da
@@ -508,6 +508,30 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
   `EstabilizacaoSegundos` 3 sem mudança. Override sem release: `Pacote__SilencioSegundos`.
 
 ### 12.1. Runbook do 401 (GetToken rejeitado)
+**Confirmação da Assist (16/11/2026) e o que o integrador faz hoje**
+- A API do WMS roda em **3 servidores atrás de um balanceador**, o token **não tem tempo de expiração** e a orientação é
+  **pedir um token novo a cada envio**. Isso explica o 401 em janelas: um dos nós rejeita o `GetToken` (resposta de 6 a 9 ms)
+  e o cookie de sessão mantinha o pacote inteiro nesse nó.
+- `Wms:TokenPorEnvio=true` (padrão): cada POST (I50, I60, I40 e I51) faz o próprio `GetToken` e usa o token só nele. O cookie de
+  afinidade do balanceador vale apenas para o par `GetToken + POST` do mesmo envio; envios diferentes não ficam presos a um nó.
+- `GetToken` com 401: repete na hora, até `Wms:TokenTentativasImediatas` (3) vezes, em **conexão nova e sem o cookie** anterior, para
+  o balanceador escolher outro servidor. Se as 3 falharem: cooldown global (1, 2, 5, 10 e 15 min), alerta por e-mail e as
+  notas ficam na entrada (nunca em `Erro`), como antes.
+- `Wms:MaxGetTokenPorMinuto` (300) é o teto de chamadas ao `GetToken` por minuto. Acima dele a chamada espera a janela liberar
+  e o log mostra "GetToken do WMS limitado". `0` desliga o teto.
+- **Impacto:** cada nota passa a custar um `GetToken` a mais, cerca de **+120 ms por nota** (um pacote de 188 notas ganha
+  cerca de 23 s). O número de chamadas ao WMS dobra (GetToken + POST por nota).
+- **Diagnóstico por servidor:** cada `GetToken` que falha é logado (`worker.out.log`) com `status`, `latenciaMs`, `servidor`
+  (nome do cookie de afinidade e hash curto do valor, ou o cabeçalho `Server`) e `detalhe` (cabeçalhos `Server`/`X-*`); nunca
+  token, usuário nem senha. Em Debug o sucesso também é logado. O relatório do pacote, na linha "Falhas de autenticação
+  (GetToken)", lista as tentativas rejeitadas por servidor (`nome#hash=N`): é isso que se mostra à Assist para apontar o nó
+  com problema. Se o balanceador não expõe cookie nem `Server`, o servidor aparece como "(sem identificador)".
+- **Como voltar ao comportamento antigo (cache de token), sem release:** definir `Wms__TokenPorEnvio=false` (variável de ambiente
+  de máquina e, se for o caso, no `AppEnvironmentExtra` do NSSM, como nas credenciais) e reiniciar o serviço em janela
+  combinada. Só nesse modo valem `Wms:ValidadeMaximaTokenMinutos` (3) e `Wms:MargemRenovacaoTokenSegundos`.
+- Para amostrar os servidores e levar à Assist: `KitWmsIntegrador.Worker.exe --testar-token --vezes 10` (máximo 20, 2 s entre
+  as tentativas, conexão nova em cada uma). Imprime uma linha por tentativa com status, host e porta, `servidor=` (hash do cookie
+  de afinidade) e `latenciaMs`; o código de saída segue a última tentativa.
 
 **Sintomas**
 - E-mail "ALERTA: autenticação do WMS indisponível (GetToken)" e, quando volta, "RECUPERADO: autenticação do WMS (GetToken)".
@@ -517,7 +541,7 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
   linha "Falhas de autenticação (GetToken): N".
 
 **O que fazer, na ordem**
-1. Não mexer nos arquivos da entrada. O serviço retoma sozinho quando o GetToken voltar (cooldown de 1, 2, 5, 10 e 15 min).
+1. Não mexer nos arquivos da entrada. O serviço retoma sozinho quando o GetToken voltar (antes disso tenta 3 vezes em conexões novas; depois cooldown de 1, 2, 5, 10 e 15 min).
 2. No servidor, teste uma vez (um único GET, sem token no resultado):
    ```powershell
    & 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --testar-token
@@ -526,7 +550,7 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
    sozinho no fim do cooldown. Confira o host impresso: `porta 8888` significaria URL de homologação.
    `FALHA` com 401 = anotar hora e status e seguir para o passo 4. "credenciais ausentes" = conferir `WMS__Usuario`/`WMS__Senha`
    (ver manual técnico, seção 4).
-3. Não repetir `--testar-token` em sequência (cada uso é uma chamada ao WMS). Um teste a cada alguns minutos basta.
+3. Não repetir `--testar-token` em sequência sem necessidade (cada uso é uma chamada ao WMS). Para colher evidência para a Assist, use uma vez `--testar-token --vezes 10` (2 s entre as chamadas) e envie as linhas (sem segredos).
 4. Se o 401 durar mais de 15 min (o cooldown já está no teto) ou voltar a cada dia: acionar a Assist (fornecedor do WMS)
    com os horários, o IP do servidor e as perguntas abaixo. Não trocar a senha por conta própria antes de saber se o
    usuário foi bloqueado.
@@ -554,12 +578,14 @@ abra uma sessão nova antes de testar.
    janela e como é liberado?
 2. Houve manutenção, deploy, replicação de contas ou reinício do serviço de autenticação nos horários informados
    (em 15/11/2026: 17:27 a 17:38 e por volta de 18:34; em 06/11/2026: 13:56 a 14:01, 17:01 a 17:08 e 17:57)?
-3. O usuário é compartilhado entre homologação (`:8888`) e produção? Uma operação em um ambiente invalida o outro?
-4. Qual o tempo de vida do token e o GetToken novo revoga o anterior?
+3. Qual dos 3 servidores rejeita o GetToken (mostrar os hashes do relatório/`--vezes`) e por quê? O usuário é compartilhado entre homologação (`:8888`) e produção? Uma operação em um ambiente invalida o outro?
+4. ~~Qual o tempo de vida do token?~~ Respondido em 16/11/2026: sem expiração; pedir um token novo a cada envio. Resta saber se o GetToken novo revoga o anterior.
 5. Existe limite de requisições ao GetToken por IP ou usuário? Qual código retorna (hoje 401 em 6 a 9 ms)?
 6. Qual o motivo da rejeição nos logs deles para os GetToken do IP do servidor nesses horários?
 7. É possível criar um usuário exclusivo de produção?
 
-**Causa:** a investigação (somente leitura) indica estado de autenticação do lado do WMS/Assist, em janelas de
-cerca de 10 min, sem falha de credencial, codificação, URL, TLS ou concorrência do nosso lado. A release 2026.11.16-1
-não elimina a causa no fornecedor: torna o 401 inofensivo (sem nota em `Erro`, sem rajada de chamadas, com alerta).
+**Causa:** a investigação (somente leitura) indicava estado de autenticação do lado do WMS/Assist, em janelas de
+cerca de 10 min, sem falha de credencial, codificação, URL, TLS ou concorrência do nosso lado. A confirmação da Assist
+(3 servidores com balanceador, token sem expiração) aponta um nó com problema. O token por envio com nova tentativa em
+outra conexão contorna o nó ruim; a correção do nó é do fornecedor. A release 2026.11.16-1 já tornava o 401 inofensivo
+(sem nota em `Erro`, sem rajada de chamadas, com alerta).
