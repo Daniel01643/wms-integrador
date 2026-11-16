@@ -132,3 +132,15 @@ usuário ocorreu em 15/11 por volta de 17:27 ou 18:34. Isso precisa ser conferid
 2. Confirmar internamente se houve uso de BLUEFOOD (homologação ou testes) em 15/11 por volta de 17:27 e 18:34.
 3. Decidir com o usuário o circuit breaker (item 1) antes de implementar.
 4. Só então reprocessar as 383 notas de `Erro\pacote_20261115_*`.
+
+## Complemento do orquestrador (16/11/2026)
+
+- Confirmado no servidor (leitura): o integrador de produção usa `WMS__Usuario = BLUEFOOD` e a URL de produção.
+- **O usuário confirmou que hoje ninguém além do integrador usa o BLUEFOOD em produção.** Fica descartado o
+  conflito de sessão dentro da produção causado por outra pessoa ou sistema.
+- Os testes locais com BLUEFOOD no homolog (`:8888`) foram em 12/11 e 13/11, não em 15/11 (domingo). Uso no
+  homolog em 15/11 por outra pessoa não foi confirmado nem descartado.
+- Conclusão mantida: causa do lado do WMS/Assist (janela de ~10 min em 15/11, 17:27–17:38, e outra curta às
+  18:34). Perguntar ao fornecedor o que houve nesses horários. Continua recomendado um usuário separado para o
+  homolog. A correção no integrador (sem `Erro` em falha de login, single-flight com espera crescente, validade
+  máxima do token de 3 min, alerta e reprocessamento) independe da causa.
