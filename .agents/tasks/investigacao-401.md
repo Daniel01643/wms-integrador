@@ -144,3 +144,19 @@ usuário ocorreu em 15/11 por volta de 17:27 ou 18:34. Isso precisa ser conferid
   18:34). Perguntar ao fornecedor o que houve nesses horários. Continua recomendado um usuário separado para o
   homolog. A correção no integrador (sem `Erro` em falha de login, single-flight com espera crescente, validade
   máxima do token de 3 min, alerta e reprocessamento) independe da causa.
+
+## Deploy e troca de usuário (16/11/2026, tarde)
+
+- Release 2026.11.16-1 publicada às 14:26 (serviço Running, ambiente Production, limpeza de 30 dias removeu 0).
+- Testes de GetToken com **BLUEFOOD** depois do deploy: 14:18 401, 14:19 200, 14:22 401, 14:24 200, 14:27 401
+  (`WWW-Authenticate: Bearer`, corpo vazio). Ou seja, a conta BLUEFOOD alternava 401/200 em minutos.
+- Usuário trocado para **BRF** (decisão do usuário): `--testar-token` 200 às 14:39:40, 14:39:49 e 14:40:05.
+- Para o serviço enxergar a credencial nova **sem reiniciar o servidor** (o SCM não relê variáveis de máquina),
+  as credenciais foram gravadas também no NSSM: `HKLM\SYSTEM\CurrentControlSet\Services\Friozem-ImportacaoNotas\Parameters\AppEnvironmentExtra`
+  (`WMS__Usuario`, `WMS__Senha`; acesso só de administradores/SYSTEM). Serviço reiniciado às 14:42:51.
+- **Atenção na próxima troca de senha:** atualizar as DUAS fontes (variáveis de máquina via `configurar-segredos.ps1`
+  e o `AppEnvironmentExtra` do NSSM), ou remover o `AppEnvironmentExtra` e reiniciar o servidor.
+- A senha do BRF ficou visível no chat em 16/11: trocar quando estável.
+- `--testar-token` sem `Wms__BaseUrl` no ambiente devolveu 401 de forma consistente; com a URL forçada, o resultado
+  bateu com a sonda direta. Suspeita: a CLI não está pegando o `Wms:BaseUrl` do `appsettings.Production.json`
+  (usaria o `:8888` do `appsettings.json`). A corrigir.

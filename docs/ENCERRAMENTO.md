@@ -11,6 +11,12 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > Escopo da I51/I60 em `docs\ESCOPO-I51-I60.md`; resultado do homolog em `docs\ROTEIRO-TESTE-I51-I60.md`.
 > Notas TSP do homolog de 12/11 ficaram pendentes por proprietária BRF não encontrada (aguarda o fornecedor).
 
+> **16/11/2026:** release **2026.11.16-1 publicada** no servidor (14:26). Usuário do WMS trocado de BLUEFOOD
+> para **BRF** (BLUEFOOD alternava 401/200 no GetToken). Credencial gravada nas variáveis de máquina **e** no
+> `AppEnvironmentExtra` do NSSM (serviço reiniciado sem reboot do servidor): numa próxima troca de senha,
+> atualizar as duas fontes. As 383 notas de 15/11 em `Erro` **não** foram reprocessadas (a operação
+> reimportou do jeito antigo). Detalhes em `.agents\tasks\investigacao-401.md`.
+
 ## 1. Estado na pausa
 
 - Integra NF-e (XML) da pasta de entrada para o WMS Friozem via webservice (I50), **em produção**
