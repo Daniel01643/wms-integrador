@@ -22,7 +22,7 @@ public static class RelatorioManualI60
     /// <summary>Executa a CLI.</summary>
     public static async Task<int> ExecutarAsync(string[] args)
     {
-        var config = ConfiguracaoManual.Criar();
+        var config = ConfiguracaoManual.Criar(args);
         var services = new ServiceCollection();
         services.AddLogging(b => b.AddSimpleConsole());
         services.AddSingleton<IClock, SystemClock>();

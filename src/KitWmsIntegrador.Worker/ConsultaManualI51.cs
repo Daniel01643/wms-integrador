@@ -40,7 +40,7 @@ public static class ConsultaManualI51
             return 2;
         }
 
-        var config = ConfiguracaoManual.Criar();
+        var config = ConfiguracaoManual.Criar(args);
         var wms = new OpcoesWms();
         config.GetSection(OpcoesWms.Secao).Bind(wms);
         var i51 = new OpcoesI51();

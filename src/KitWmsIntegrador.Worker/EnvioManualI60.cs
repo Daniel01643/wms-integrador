@@ -36,11 +36,7 @@ public static class EnvioManualI60
         }
 
         // Base no diretório do executável: funciona de qualquer pasta em que o comando for chamado.
-        var config = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+        var config = ConfiguracaoAplicacao.Criar(args);
 
         var wms = new OpcoesWms();
         config.GetSection(OpcoesWms.Secao).Bind(wms);

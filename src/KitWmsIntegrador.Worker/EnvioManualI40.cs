@@ -58,11 +58,7 @@ public static class EnvioManualI40
             }
         }
 
-        var config = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+        var config = ConfiguracaoAplicacao.Criar(args);
 
         var wms = new OpcoesWms();
         config.GetSection(OpcoesWms.Secao).Bind(wms);

@@ -23,11 +23,7 @@ public static class SmokeTestWms
         using var loggerFactory = LoggerFactory.Create(b => b.AddSimpleConsole());
         var logger = loggerFactory.CreateLogger("SmokeTestWms");
 
-        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddEnvironmentVariables()
-            .AddCommandLine(args)
-            .Build();
+        var config = ConfiguracaoAplicacao.Criar(args);
 
         var opcoes = new OpcoesWms();
         config.GetSection(OpcoesWms.Secao).Bind(opcoes);

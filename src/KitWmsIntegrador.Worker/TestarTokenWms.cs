@@ -16,7 +16,7 @@ public static class TestarTokenWms
     /// <summary>Argumento que aciona o teste.</summary>
     public const string Argumento = "--testar-token";
 
-    /// <summary>Executa o teste usando a configuração do serviço (appsettings, config\ e variáveis de ambiente).</summary>
+    /// <summary>Executa o teste usando a mesma configuração do serviço (<see cref="ConfiguracaoAplicacao"/>).</summary>
     public static Task<int> ExecutarAsync(string[] args) =>
         ExecutarAsync(args, Console.Out, null, null);
 
@@ -28,13 +28,17 @@ public static class TestarTokenWms
         var opcoes = new OpcoesWms();
         config.GetSection(OpcoesWms.Secao).Bind(opcoes);
 
+        var temUri = Uri.TryCreate(opcoes.BaseUrl.EndsWith('/') ? opcoes.BaseUrl : opcoes.BaseUrl + "/", UriKind.Absolute, out var baseUri);
+        // Só host e porta efetivos (nunca caminho, usuário, senha nem token): mostra para onde o teste realmente chama.
+        var destino = temUri ? $" ({baseUri!.Host}, porta {baseUri.Port})" : string.Empty;
+
         if (string.IsNullOrWhiteSpace(opcoes.Usuario) || string.IsNullOrWhiteSpace(opcoes.Senha))
         {
-            saida.WriteLine("GetToken: FALHA (credenciais ausentes; defina WMS__Usuario e WMS__Senha)");
+            saida.WriteLine("GetToken: FALHA (credenciais ausentes; defina WMS__Usuario e WMS__Senha)" + destino);
             return 1;
         }
 
-        if (!Uri.TryCreate(opcoes.BaseUrl.EndsWith('/') ? opcoes.BaseUrl : opcoes.BaseUrl + "/", UriKind.Absolute, out var baseUri))
+        if (!temUri)
         {
             saida.WriteLine("GetToken: FALHA (Wms:BaseUrl ausente ou inválida)");
             return 1;
@@ -42,7 +46,7 @@ public static class TestarTokenWms
 
         using var http = new HttpClient(handler ?? RegistroClienteWms.CriarHandler(), disposeHandler: handler is null)
         {
-            BaseAddress = baseUri,
+            BaseAddress = baseUri!,
             Timeout = TimeSpan.FromSeconds(Math.Max(1, opcoes.TimeoutSegundos)),
         };
         var cliente = new ClienteWmsHttp(
@@ -52,27 +56,16 @@ public static class TestarTokenWms
         {
             var (status, ok) = await cliente.TestarTokenAsync().ConfigureAwait(false);
             var texto = status is { } s ? "HTTP " + s : "sem resposta (timeout/rede)";
-            saida.WriteLine(ok ? $"GetToken: {texto} OK" : $"GetToken: {texto} FALHA");
+            saida.WriteLine((ok ? $"GetToken: {texto} OK" : $"GetToken: {texto} FALHA") + destino);
             return ok ? 0 : 1;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            saida.WriteLine("GetToken: FALHA (" + ex.GetType().Name + ")");
+            saida.WriteLine("GetToken: FALHA (" + ex.GetType().Name + ")" + destino);
             return 1;
         }
     }
 
-    // Mesma ordem do serviço: appsettings.json, appsettings.Production.json, config\ ao lado do exe, ambiente.
-    private static IConfiguration CarregarConfiguracao(string[] args)
-    {
-        var baseDir = AppContext.BaseDirectory;
-        return new ConfigurationBuilder()
-            .SetBasePath(baseDir)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile("appsettings.Production.json", optional: true)
-            .AddJsonFile(Path.Combine("config", "appsettings.Production.json"), optional: true)
-            .AddEnvironmentVariables()
-            .AddCommandLine(args)
-            .Build();
-    }
+    // Mesma configuração do serviço (appsettings.json, appsettings.Production.json, ambiente, linha de comando, email.settings.json).
+    private static IConfiguration CarregarConfiguracao(string[] args) => ConfiguracaoAplicacao.Criar(args);
 }

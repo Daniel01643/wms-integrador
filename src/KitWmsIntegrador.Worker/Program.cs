@@ -59,10 +59,11 @@ if (args.Contains(EnvioManualI40.Argumento))
     return await EnvioManualI40.ExecutarAsync(args);
 }
 
-var builder = Host.CreateApplicationBuilder(args);
+// Mesma configuração das CLIs manuais (ConfiguracaoAplicacao): raiz de conteúdo = pasta do exe, ambiente Production por padrão.
+var builder = Host.CreateApplicationBuilder(ConfiguracaoAplicacao.CriarSettings(args));
 
 // Config de e-mail dedicada (opcional, ignorada pelo git): email.settings.json ao lado do exe.
-builder.Configuration.AddJsonFile("email.settings.json", optional: true, reloadOnChange: true);
+ConfiguracaoAplicacao.AdicionarFontesExtras(builder.Configuration, recarregar: true);
 
 // Configuração: seção "Entrada" do appsettings + variáveis de ambiente.
 // O host genérico já adiciona env vars; o override segue o padrão

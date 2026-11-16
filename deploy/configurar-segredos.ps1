@@ -7,6 +7,11 @@
     "gravado" por nome de chave. Grava:
       - Credenciais do WMS: por padrao como variaveis de ambiente de MAQUINA (WMS__Usuario /
         WMS__Senha); alternativamente (-Escopo Arquivo) em config\appsettings.Production.json.
+        Com -Escopo Maquina grava TAMBEM o parametro do servico NSSM
+        HKLM\SYSTEM\CurrentControlSet\Services\<servico>\Parameters\AppEnvironmentExtra
+        (REG_MULTI_SZ): o SCM nao enxerga variavel de maquina nova sem reiniciar o servidor, entao
+        o servico le WMS__Usuario/WMS__Senha tambem dali. So essas duas entradas sao
+        criadas/atualizadas; as demais sao preservadas. Use -SemNssm para pular esse passo.
       - SMTP: sempre em config\email.settings.json (Host=smtp.friozem.com.br, Porta=587,
         UsarTls=false, Usuario/Senha/Remetente/Destinatarios, Habilitado=true).
     Aplica ACL para que apenas Administrators/SYSTEM e a conta do servico leiam config\.
@@ -29,6 +34,8 @@
 .PARAMETER Escopo
     Maquina (default) grava WMS como env de maquina; Arquivo grava no appsettings.Production.json.
 
+.PARAMETER SemNssm
+    Nao toca em AppEnvironmentExtra do servico NSSM (so a env de Maquina). Sem efeito com -Escopo Arquivo.
 .PARAMETER WmsUsuario / WmsSenha
     Credenciais do WMS (SecureString). Se omitidos, sao pedidos via Read-Host -AsSecureString.
 
@@ -53,6 +60,7 @@ param(
     [string] $NomeServico = 'Friozem-ImportacaoNotas',
     [string] $ContaServico = 'NT AUTHORITY\SYSTEM',
     [ValidateSet('Maquina', 'Arquivo')] [string] $Escopo = 'Maquina',
+    [switch] $SemNssm,
     [securestring] $WmsUsuario,
     [securestring] $WmsSenha,
     [securestring] $SmtpUsuario,
@@ -79,6 +87,12 @@ function ConvertFrom-Secure([securestring] $s) {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 }
 
+# Funde WMS__Usuario/WMS__Senha numa lista REG_MULTI_SZ preservando as demais entradas (comparacao do nome sem
+# diferenciar maiusculas). Sem efeitos colaterais: so devolve a nova lista.
+function Merge-EntradasWms([string[]] $Atuais, [string] $Usuario, [string] $Senha) {
+    $resto = @($Atuais | Where-Object { $_ -and $_ -notmatch '^(?i)WMS__(Usuario|Senha)=' })
+    return @($resto + @("WMS__Usuario=$Usuario", "WMS__Senha=$Senha"))
+}
 # --- Coleta segura (sem eco) ---
 if (-not $WmsUsuario) { $WmsUsuario = Read-Host -AsSecureString -Prompt 'WMS Usuario (vazio = pular)' }
 if (-not $WmsSenha)   { $WmsSenha   = Read-Host -AsSecureString -Prompt 'WMS Senha   (vazio = pular)' }
@@ -101,6 +115,20 @@ if ($wmsUserTxt -and $wmsSenhaTxt) {
             [Environment]::SetEnvironmentVariable('WMS__Senha', $wmsSenhaTxt, 'Machine')
             Write-Passo 'Credenciais do WMS gravadas como env de MAQUINA (WMS__Usuario / WMS__Senha).' -Nivel Ok
             Write-Passo 'O servico precisa ser REINICIADO para herdar a env (servico.ps1 -Acao Restart).' -Nivel Info
+        }
+        # NSSM: o SCM nao ve env de maquina nova sem reiniciar o servidor; o servico tambem le do parametro AppEnvironmentExtra.
+        if ($SemNssm) {
+            Write-Passo 'NSSM: -SemNssm informado — AppEnvironmentExtra nao foi tocado.' -Nivel Info
+        } else {
+            $chaveNssm = "HKLM:\SYSTEM\CurrentControlSet\Services\$NomeServico\Parameters"
+            if (-not (Test-Path -LiteralPath $chaveNssm)) {
+                Write-Passo ("NSSM: chave {0} nao existe (servico nao instalado via NSSM?) — AppEnvironmentExtra pulado." -f $chaveNssm) -Nivel Alerta
+            } elseif ($PSCmdlet.ShouldProcess("$chaveNssm\AppEnvironmentExtra", 'Criar/atualizar WMS__Usuario e WMS__Senha (demais entradas preservadas)')) {
+                $atuais = @((Get-ItemProperty -LiteralPath $chaveNssm -Name 'AppEnvironmentExtra' -ErrorAction SilentlyContinue).AppEnvironmentExtra)
+                $novas = Merge-EntradasWms -Atuais $atuais -Usuario $wmsUserTxt -Senha $wmsSenhaTxt
+                Set-ItemProperty -LiteralPath $chaveNssm -Name 'AppEnvironmentExtra' -Value ([string[]]$novas) -Type MultiString
+                Write-Passo ("NSSM: AppEnvironmentExtra atualizado (WMS__Usuario/WMS__Senha; {0} outra(s) entrada(s) preservada(s))." -f ($novas.Count - 2)) -Nivel Ok
+            }
         }
     } else {
         $prodJson = Join-Path $pastaConfig 'appsettings.Production.json'
@@ -160,4 +188,5 @@ $wmsUserTxt = $wmsSenhaTxt = $smtpUserTxt = $smtpSenhaTxt = $null
 
 Write-Host ''
 Write-Passo ("Segredos da fase {0} gravados. Virada para producao: rode de novo com -Fase Producao e reinicie o servico." -f $Fase) -Nivel Ok
-Write-Passo 'Lembre: se WMS ficou em env de MAQUINA, o appsettings.Production.json NAO carrega as credenciais — o servico le da env.' -Nivel Info
+Write-Passo 'Lembre: se WMS ficou em env de MAQUINA, o appsettings.Production.json NAO carrega as credenciais — o servico le da env (e do AppEnvironmentExtra do NSSM).' -Nivel Info
+Write-Passo 'Troca de senha: reinicie o servico (servico.ps1 -Acao Restart) e confirme com KitWmsIntegrador.Worker.exe --testar-token.' -Nivel Info

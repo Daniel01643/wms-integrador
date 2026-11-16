@@ -43,7 +43,7 @@ public sealed class TestarTokenWmsTests
         var (codigo, saida, handler) = await Rodar((_, _) => FakeHttpMessageHandler.Json(HttpStatusCode.OK, $"{{\"token\":\"{Jwt}\"}}"));
 
         Assert.Equal(0, codigo);
-        Assert.Equal("GetToken: HTTP 200 OK", saida.Trim());
+        Assert.Equal("GetToken: HTTP 200 OK (wms.exemplo.test, porta 443)", saida.Trim());
         Assert.Single(handler.Requisicoes);
         SemSegredos(saida);
     }
@@ -54,7 +54,7 @@ public sealed class TestarTokenWmsTests
         var (codigo, saida, handler) = await Rodar((_, _) => FakeHttpMessageHandler.Json(HttpStatusCode.Unauthorized, "{}"));
 
         Assert.Equal(1, codigo);
-        Assert.Equal("GetToken: HTTP 401 FALHA", saida.Trim());
+        Assert.Equal("GetToken: HTTP 401 FALHA (wms.exemplo.test, porta 443)", saida.Trim());
         Assert.Single(handler.Requisicoes); // um único GetToken, sem retry
         SemSegredos(saida);
     }

@@ -19,7 +19,7 @@ public static class ReenfileirarI60
     /// <summary>Executa a CLI com a configuração do Worker.</summary>
     public static Task<int> ExecutarAsync(string[] args)
     {
-        var config = ConfiguracaoManual.Criar();
+        var config = ConfiguracaoManual.Criar(args);
         var caminhos = new CaminhosI51(Options.Create(ConfiguracaoManual.Pastas(config)));
         var comandos = new ComandosI51(caminhos, new SystemClock(), NullLogger<ComandosI51>.Instance);
         return Task.FromResult(Executar(args, comandos, Console.Out));
