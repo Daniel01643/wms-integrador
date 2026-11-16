@@ -20,6 +20,11 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > CLIs; `--testar-token` mostra host e porta; `configurar-segredos.ps1` atualiza também o NSSM). Teste pós-deploy:
 > `GetToken: HTTP 200 OK (friozem.assistsoftware.com.br, porta 443)`. A senha do BRF **não** será trocada agora
 > (depende da Assist).
+> **16/11/2026, ~16:05:** **I51 e I60 ligadas em produção** (`I51:Habilitada=true`, `I60:Habilitada=true` em
+> `config\appsettings.Production.json`, copiado também para `app\current`; serviço reiniciado). Log: "Consulta da
+> I51 iniciada: identificador=WEBAPI-I51 intervalo=5 min". Primeiro ciclo sem notas aguardando (o TODOS só roda
+> quando há nota registrada). Monitorar de 16/11 para 17/11. Para desligar: voltar as duas chaves para `false`,
+> copiar o arquivo para `app\current` e reiniciar o serviço.
 
 ## 1. Estado na pausa
 
