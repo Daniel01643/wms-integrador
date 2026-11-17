@@ -45,6 +45,11 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > do servidor (`I51:Identificador`) e reiniciado às 10:12. A I60 (`WEBAPI-I60-Json`) foi cadastrada no WMS de
 > produção pelo usuário. Às 10:22: **343 I60 associadas** (311 Puxada + 32 TSP), 0 rejeitadas, 2 com ajuste de
 > quantidade; 268 notas aguardam separação. Últimas 24 h: 616 notas em 5 pacotes, 0 em `Erro`, nenhum 401.
+> **17/11, 10:46–11:14:** I60 parada a pedido do usuário: um código interno do WMS duplicava o DocCarga quando a
+> nota de venda (I60) entrava (391 notas associadas até a parada; lista local fora do repositório). Corrigido no WMS,
+> 2 notas testadas por `--enviar-i60` (16835288 e 16835323, "Registrado com sucesso", sem duplicar) e marcadas como
+> `Associada` no estado antes de religar (backup em `backups\i51-notas-manual_*`). I60 religada às 11:14: 50 I60
+> associadas no primeiro ciclo, 443 no total, 0 rejeitadas.
 
 ## 1. Estado na pausa
 
