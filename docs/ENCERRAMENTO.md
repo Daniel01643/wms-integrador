@@ -50,6 +50,11 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > 2 notas testadas por `--enviar-i60` (16835288 e 16835323, "Registrado com sucesso", sem duplicar) e marcadas como
 > `Associada` no estado antes de religar (backup em `backups\i51-notas-manual_*`). I60 religada às 11:14: 50 I60
 > associadas no primeiro ciclo, 443 no total, 0 rejeitadas.
+> **17/11, 14:51:** release **2026.11.17-1 publicada**: a I51 passa a usar a quantidade separada em **embalagens**
+> (`qtdeEmbalagemSep`, opção `I51:CampoQuantidadeSeparada=Embalagem`). Motivo: produto 5006566 tem conversão
+> 1 embalagem = 10 unidades e a I51 devolve `qtdeProdutoSep` em unidades. Antes da correção, 2 notas (16835431 e
+> 16835433) foram associadas com 180 e 110 em vez de 18 e 11; por decisão do usuário ficam como estão no WMS.
+> Situação na publicação: 610 associadas, 1 aguardando separação, 0 rejeitadas.
 
 ## 1. Estado na pausa
 
