@@ -40,6 +40,11 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > "Friozem Devolucao I40 (8085)" no perfil Domínio): `http://SRVAPPALC02:8085/` ou `http://200.200.200.213:8085/`;
 > `/api/saude` = `{"status":"ok"}`. Primeiro pacote na versão nova (18:22, 578 notas, 559 integradas, 19 pendentes por
 > placa "em outra operação" no WMS) entrou na I51 aguardando separação.
+> **17/11/2026 (monitoramento):** a I51 falhava com HTTP 400 desde 16/11 18:48 (188 consultas) porque o identificador
+> de produção é **`WEBAPI-I51-Json`** (o do homolog é `WEBAPI-I51`). Corrigido no `appsettings.Production.json`
+> do servidor (`I51:Identificador`) e reiniciado às 10:12. A I60 (`WEBAPI-I60-Json`) foi cadastrada no WMS de
+> produção pelo usuário. Às 10:22: **343 I60 associadas** (311 Puxada + 32 TSP), 0 rejeitadas, 2 com ajuste de
+> quantidade; 268 notas aguardam separação. Últimas 24 h: 616 notas em 5 pacotes, 0 em `Erro`, nenhum 401.
 
 ## 1. Estado na pausa
 
