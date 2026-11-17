@@ -40,24 +40,26 @@ pelo tempo de execução/sessão do agente.
 | 2026-11-13 | IA      | 10,00 | Aprox.: implementação, testes e docs da I51/I60 (2,0 h); TSP com XML solto/subpastas e sem placa (1,2 h); apoio aos testes no homolog e QtdeTotalNotaZero (1,5 h); comunicado e análise do log do servidor (0,8 h); investigação e login da tela de devolução (1,3 h); release: janela de silêncio, alerta da I60, retenção 30 dias, manuais e deck (3,2 h) — estimado |
 | 2026-11-16 | Humana  | 4,00  | Decisões da release (tipos de separação, janela, token), contato com a Assist (3 servidores, token por envio), troca do usuário para BRF, configuração da I51 no WMS de produção, acompanhamento das implantações |
 | 2026-11-16 | IA      | 10,00 | Aprox.: investigação do 401 no servidor (1,0 h); release 2026.11.16-1 (401 sem Erro, cooldown, PIC;FEF;PLL, silêncio 20 s, manuais e deck) (3,5 h); hotfix 2026.11.16-2 (configuração única das CLIs, configurar-segredos com NSSM) (1,5 h); 2026.11.16-3 (token por envio, conexão nova, diagnóstico por servidor) (2,0 h); implantações, troca de usuário, I51/I60 e tela de devolução em produção (1,0 h); deck final (1,0 h) — estimado |
+| 2026-11-17 | Humana  | 2,00  | Monitoramento pós-implantação: cadastro da I60 no WMS, correção do código interno do WMS que duplicava DocCarga, decisões (I60 parada/religada, notas com conversão) |
+| 2026-11-17 | IA      | 3,00  | Aprox.: monitoramento das 24 h (0,8 h); identificador da I51 em produção (WEBAPI-I51-Json) (0,5 h); parada, teste manual e religação da I60 (0,7 h); hotfix 2026.11.17-1 (quantidade separada em embalagens) e implantação (1,0 h) — estimado |
 
 Subtotal humano (29/10 a 06/11): **25,25 h** + 1,00 h de apresentação/treinamento = **26,25 h**
 (entrega inicial, até a produção). Com 09/11: **31,15 h**. Com 10/11: **35,65 h**. Com 11/11: **37,65 h**.
-Com 12/11: **41,89 h**. Com 13/11: **46,89 h**. Com 16/11 (fechamento): **50,89 h**.
+Com 12/11: **41,89 h**. Com 13/11: **46,89 h**. Com 16/11 (fechamento): **50,89 h**. Com 17/11 (monitoramento): **52,89 h**.
 
 ## Totais
 
-| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-16/11) |
+| Tipo                 | Entrega inicial (até 06/11) | Com retomada (09-17/11) |
 |----------------------|-----------------------------|-------------------------|
-| Humana               | **26,25**                   | **50,89**               |
-| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 56,90**        |
-| **Total de esforço** | **aprox. 40,65**            | **aprox. 107,79**       |
+| Humana               | **26,25**                   | **52,89**               |
+| IA (ferramenta)      | **aprox. 14,40**            | **aprox. 59,90**        |
+| **Total de esforço** | **aprox. 40,65**            | **aprox. 112,79**       |
 
 O comparativo abaixo e a apresentação usam a **entrega inicial** (do desenho à produção).
 09/11 a 11/11 são acabamento, a retomada da I60 (Plano A pausado, aguarda o fornecedor), a
 devolução pela I40 (Plano B: formato validado no homolog e tela implementada, fora do manual
 oficial) e o escopo da Puxada TSP.
-Retomada (09-16/11): **24,64 h humanas** e **aprox. 42,50 h de IA**.
+Retomada (09-17/11): **26,64 h humanas** e **aprox. 45,50 h de IA**.
 
 Em 12/11: **4,24 h humanas** (informadas pelo usuário) e **aprox. 7,50 h de IA** (estimadas pelo tempo
 de sessão). Puxada TSP implementada e testada no homolog (ondas TSP criadas; notas pendentes por
@@ -74,6 +76,11 @@ Em 16/11 (**fechamento do projeto**): **4,00 h humanas** (informadas pelo usuár
 Releases 2026.11.16-1, -2 e -3 publicadas em produção; causa do 401 confirmada pela Assist (3 servidores em
 balanceamento, token por envio); usuário do WMS trocado para BRF; I51/I60 e tela de devolução ligadas em
 produção. **Projeto finalizado e travado em 16/11/2026**; reabre só para novos ajustes.
+
+Em 17/11 (monitoramento e ajustes de produção): **2,00 h humanas** e **aprox. 3,00 h de IA**. Identificador da I51
+corrigido para `WEBAPI-I51-Json`; I60 cadastrada no WMS; I60 parada e religada (duplicação de DocCarga por código
+interno do WMS); release 2026.11.17-1 (quantidade separada em embalagens). 610 notas associadas. Monitoramento pelas
+manhãs até 20/11.
 
 O grosso do esforço humano está em decisões, validação e operação; a IA atua como
 multiplicador de produtividade na escrita de código, testes e documentação.
