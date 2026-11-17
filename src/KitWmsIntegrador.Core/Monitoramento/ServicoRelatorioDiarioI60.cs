@@ -53,7 +53,9 @@ public sealed class ServicoRelatorioDiarioI60
         var entrada = new EntradaRelatorioI60(
             _repositorio.Listar(), _brutos.LerSaude(), _brutos.ContarFalhos(), _orfaos.ContarDesde(inicio),
             agora, inicio, _devolucao.Habilitada);
-        return MontadorRelatorioI60.Montar(entrada, _opcoes, _i60);
+        return MontadorRelatorioI60.Montar(
+            entrada, _opcoes, _i60,
+            _i51.QuantidadeSeparadaEmProduto ? OpcoesI51.CampoQtdeProduto : OpcoesI51.CampoQtdeEmbalagem);
     }
 
     /// <summary>Gera o relatório do estado atual sob demanda (CLI <c>--relatorio-i60</c>).</summary>

@@ -233,3 +233,125 @@ public class ArmazenamentoBrutoI51Tests : IDisposable
         Assert.Equal("nada", _amb.Brutos.LerSaude().UltimaMensagemVazia);
     }
 }
+
+public class QuantidadeEmbalagemI51Tests : IDisposable
+{
+    private readonly AmbienteI51 _amb = new();
+
+    public void Dispose() => _amb.Dispose();
+
+    // Corpo cru da I51 com um item; emb/caixa nulos omitem o campo (o que o WMS pode fazer).
+    private static string Corpo(string numero, string cod, string qtde, string prodSep, string? embSep, string? caixaDetalhes = null)
+    {
+        var emb = embSep is null ? string.Empty : $"\"qtdeEmbalagemSep\":\"{embSep}\",";
+        var det = caixaDetalhes is null ? "[]" : $"[{{\"qtdeCaixaSep\":\"{caixaDetalhes}\",\"qtdeProdutoSep\":\"{prodSep}\"}}]";
+        return "{\"transacao\":\"1\",\"sucesso\":\"S\",\"mensagem\":\"OK\",\"documentos\":[{\"CnpjProprietario\":\"01.838.723/0098-50\"," +
+               "\"CnpjDestinatario\":\"11.111.111/0001-11\",\"Numero\":\"" + numero + "\",\"Tipo\":\"PEDIDO\",\"SubTipo\":\"CN\"," +
+               "\"itens\":[{\"numeroSequencialItem\":\"1\",\"codProduto\":\"" + cod + "\",\"qtdeProduto\":\"" + qtde + "\"," +
+               "\"qtdeProdutoSep\":\"" + prodSep + "\"," + emb + "\"detalhes\":" + det + "}],\"volumes\":[{\"a\":1}]}]}";
+    }
+
+    private ResultadoCasamento Processar(string corpo) =>
+        _amb.Casador.Processar(ParserI51.Ler(corpo), "i51_TODOS_20261117_100000000.json");
+
+    [Fact]
+    public void ProdutoComConversao_UsaEmbalagem_SemFalsoAjuste_EI60ComQuantidadeDaNota()
+    {
+        _amb.RegistrarNota(5001, new[] { ("5006566", 18m) });
+
+        Processar(Corpo("5001", "5006566", "180.0000", "180.0000", "18", "18.0000"));
+
+        var n = _amb.Nota(5001);
+        Assert.Equal(SituacaoNota.Separada, n.Situacao);
+        Assert.Equal(18m, n.Itens[0].QtdeSeparada);
+        Assert.Equal(0m, n.Itens[0].Diferenca);
+        Assert.DoesNotContain("qtdeProdutoSep", n.Observacao);
+
+    }
+
+    [Fact]
+    public void SeparacaoParcialReal_EmEmbalagens_GeraAjuste()
+    {
+        _amb.RegistrarNota(5002, new[] { ("5006566", 11m) });
+
+        Processar(Corpo("5002", "5006566", "110.0000", "90.0000", "9", "9.0000"));
+
+        var i = _amb.Nota(5002).Itens[0];
+        Assert.Equal(11m, i.QtdeOriginal);
+        Assert.Equal(9m, i.QtdeSeparada);
+        Assert.Equal(-2m, i.Diferenca);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("abc")]
+    public void EmbalagemAusenteVaziaOuInvalida_UsaSomaDosDetalhesCaixa(string? emb)
+    {
+        _amb.RegistrarNota(5003, new[] { ("5006566", 18m) });
+
+        var corpo = Corpo("5003", "5006566", "180.0000", "180.0000", emb, "18.0000");
+        if (emb is null)
+        {
+            Assert.DoesNotContain("qtdeEmbalagemSep", corpo);
+        }
+
+        Processar(corpo);
+
+        var n = _amb.Nota(5003);
+        Assert.Equal(18m, n.Itens[0].QtdeSeparada);
+        Assert.Equal(0m, n.Itens[0].Diferenca);
+        Assert.DoesNotContain("qtdeProdutoSep", n.Observacao);
+    }
+
+    [Fact]
+    public void SemEmbalagemNemDetalhes_UsaProdutoERegistraObservacao()
+    {
+        _amb.RegistrarNota(5004, new[] { ("A", 10m) });
+
+        Processar(Corpo("5004", "A", "10.0000", "10.0000", null));
+
+        var n = _amb.Nota(5004);
+        Assert.Equal(10m, n.Itens[0].QtdeSeparada);
+        Assert.Contains("qtdeProdutoSep", n.Observacao);
+        Assert.Contains("A", n.Observacao);
+    }
+
+    [Fact]
+    public void OpcaoProduto_MantemComportamentoAntigo()
+    {
+        _amb.I51.CampoQuantidadeSeparada = "Produto";
+        _amb.RegistrarNota(5005, new[] { ("5006566", 18m) });
+
+        Processar(Corpo("5005", "5006566", "180.0000", "180.0000", "18", "18.0000"));
+
+        var i = _amb.Nota(5005).Itens[0];
+        Assert.Equal(180m, i.QtdeSeparada);
+        Assert.Equal(162m, i.Diferenca);
+    }
+
+    [Fact]
+    public void Orfao_GuardaQuantidadeEscolhida_EAplicaQuandoANotaChega()
+    {
+        Processar(Corpo("5006", "5006566", "180.0000", "180.0000", "18", "18.0000"));
+        Assert.Equal(18m, Assert.Single(_amb.Orfaos.Listar()).Orfao.Itens[0].QtdeSeparada);
+
+        _amb.RegistrarNota(5006, new[] { ("5006566", 18m) });
+
+        Assert.Equal(18m, _amb.Nota(5006).Itens[0].QtdeSeparada);
+        Assert.Equal(0m, _amb.Nota(5006).Itens[0].Diferenca);
+    }
+
+    [Fact]
+    public void ParserI51_LeEmbalagemEDetalhes()
+    {
+        var item = ParserI51.Ler(Corpo("7", "P", "180.0000", "180.0000", "18", "18.0000")).Documentos[0].Itens[0];
+        Assert.Equal(180m, item.QtdeProdutoSep);
+        Assert.Equal(18m, item.QtdeEmbalagemSep);
+        Assert.Equal(18m, item.QtdeCaixaDetalhes);
+
+        var sem = ParserI51.Ler(Corpo("7", "P", "10", "10", null)).Documentos[0].Itens[0];
+        Assert.Null(sem.QtdeEmbalagemSep);
+        Assert.Null(sem.QtdeCaixaDetalhes);
+    }
+}

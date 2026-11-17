@@ -236,5 +236,9 @@ public sealed record OrfaoI51
     public IReadOnlyList<ItemOrfaoI51> Itens { get; init; } = Array.Empty<ItemOrfaoI51>();
 }
 
-/// <summary>Item de um documento órfão.</summary>
+/// <summary>
+/// Item de um documento órfão. <c>QtdeSeparada</c> é a quantidade já escolhida na gravação, conforme
+/// <c>I51:CampoQuantidadeSeparada</c> (embalagens por padrão). Arquivos antigos guardam <c>qtdeProdutoSep</c>
+/// (unidades) e são lidos como estão; para produto com conversão o órfão antigo pode divergir da nota.
+/// </summary>
 public sealed record ItemOrfaoI51(int NumeroSequencialItem, string CodProduto, decimal QtdeSeparada);

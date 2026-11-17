@@ -114,6 +114,9 @@ public sealed class ModeloRelatorioI60
     /// <summary>I60 enviadas aguardando confirmação.</summary>
     public SecaoI60<LinhaNotaI60> AguardandoConfirmacao { get; init; } = SecaoI60<LinhaNotaI60>.Vazia;
 
+    /// <summary>Campo da I51 usado como quantidade separada (<c>Embalagem</c> ou <c>Produto</c>); vazio = não informado.</summary>
+    public string CampoQuantidadeSeparada { get; init; } = string.Empty;
+
     /// <summary>Ajustes de quantidade item a item.</summary>
     public SecaoI60<LinhaAjusteI60> Ajustes { get; init; } = SecaoI60<LinhaAjusteI60>.Vazia;
 

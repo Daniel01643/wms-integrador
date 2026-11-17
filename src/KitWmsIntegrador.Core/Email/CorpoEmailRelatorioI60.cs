@@ -224,6 +224,11 @@ public static class CorpoEmailRelatorioI60
             return;
         }
 
+        if (m.CampoQuantidadeSeparada.Length > 0)
+        {
+            Aviso(sb, "Quantidade separada vinda de: " + NomeCampoQuantidade(m.CampoQuantidadeSeparada), "#f5f9fd", IdentidadeVisual.Cinza, IdentidadeVisual.Texto);
+        }
+
         InicioTabela(sb, new[] { "Nota", "Item", "Produto", "Original", "Separada", "Diferença" });
         var i = 0;
         foreach (var a in m.Ajustes.Linhas)
@@ -233,6 +238,11 @@ public static class CorpoEmailRelatorioI60
 
         FimTabela(sb, m.Ajustes.NaoExibidas);
     }
+
+    internal static string NomeCampoQuantidade(string campo) =>
+        string.Equals(campo, "Produto", StringComparison.OrdinalIgnoreCase)
+            ? "qtdeProdutoSep (unidades)"
+            : "qtdeEmbalagemSep (embalagens)";
 
     private static void TabelaPacotes(StringBuilder sb, ModeloRelatorioI60 m, CultureInfo ci)
     {

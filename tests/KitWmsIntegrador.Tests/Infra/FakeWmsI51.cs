@@ -12,7 +12,8 @@ namespace KitWmsIntegrador.Tests.Infra;
 /// </summary>
 public sealed class FakeWmsI51 : IClienteWms, IClienteWmsBruto
 {
-    public sealed record ItemDoc(int Seq, string Cod, decimal Qtde, decimal Sep);
+    /// <summary>Item do WMS falso. <c>Sep</c> = qtdeProdutoSep (unidades); <c>EmbSep</c> = qtdeEmbalagemSep (embalagens; null = igual a Sep, produto sem conversão).</summary>
+    public sealed record ItemDoc(int Seq, string Cod, decimal Qtde, decimal Sep, decimal? EmbSep = null);
 
     public sealed record Doc(string Numero, string CnpjProp, string CnpjDest, string Tipo, string SubTipo, int Volumes, IReadOnlyList<ItemDoc> Itens);
 
@@ -115,6 +116,7 @@ public sealed class FakeWmsI51 : IClienteWms, IClienteWmsBruto
                     codProduto = i.Cod,
                     qtdeProduto = i.Qtde.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture),
                     qtdeProdutoSep = i.Sep.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture),
+                    qtdeEmbalagemSep = (i.EmbSep ?? i.Sep).ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture),
                     detalhes = Array.Empty<object>(),
                 }).ToArray(),
                 volumes = Enumerable.Range(1, d.Volumes).Select(v => new { codVolume = "V" + v }).ToArray(),

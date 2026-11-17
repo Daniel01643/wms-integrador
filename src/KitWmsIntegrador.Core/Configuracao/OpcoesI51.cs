@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace KitWmsIntegrador.Core.Configuracao;
 
@@ -33,6 +33,12 @@ public sealed class OpcoesI51
 
     /// <summary>Campo da CONSULTA que recebe o número da nota no UNICO: nroDocumento.</summary>
     public const string CampoUnicoNroDocumento = "NroDocumento";
+
+    /// <summary>Quantidade separada em embalagens (<c>qtdeEmbalagemSep</c>).</summary>
+    public const string CampoQtdeEmbalagem = "Embalagem";
+
+    /// <summary>Quantidade separada em unidades (<c>qtdeProdutoSep</c>).</summary>
+    public const string CampoQtdeProduto = "Produto";
 
     private static readonly Regex IdentificadorValido =
         new(@"^[A-Za-z0-9_-]{1,64}$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
@@ -85,6 +91,13 @@ public sealed class OpcoesI51
     /// </summary>
     public int DiasMaxTodos { get; set; } = 14;
 
+    /// <summary>
+    /// Campo da I51 usado como quantidade separada: <c>Embalagem</c> (padrão; <c>qtdeEmbalagemSep</c>, a unidade da NF-e/I50)
+    /// ou <c>Produto</c> (<c>qtdeProdutoSep</c>, em unidades; comportamento anterior a 17/11/2026).
+    /// Produto com conversão no WMS (ex.: 5006566, 1 embalagem = 10 unidades) devolve 18 embalagens e 180 unidades.
+    /// </summary>
+    public string CampoQuantidadeSeparada { get; set; } = CampoQtdeEmbalagem;
+
     /// <summary>Valores dos campos da CONSULTA que não usamos.</summary>
     public ValoresNeutrosI51 ValoresNeutros { get; set; } = new();
 
@@ -95,6 +108,10 @@ public sealed class OpcoesI51
     /// <summary>Verdadeiro se o UNICO usa o campo <c>nroDocumento</c>.</summary>
     public bool UnicoUsaNroDocumento =>
         string.Equals(CampoUnico?.Trim(), CampoUnicoNroDocumento, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Verdadeiro se a quantidade separada vem de <c>qtdeProdutoSep</c> (unidades).</summary>
+    public bool QuantidadeSeparadaEmProduto =>
+        string.Equals(CampoQuantidadeSeparada?.Trim(), CampoQtdeProduto, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Devolve a lista de problemas da configuração (vazia = válida).</summary>
     public IReadOnlyList<string> Validar()
@@ -126,6 +143,13 @@ public sealed class OpcoesI51
             && !item.Equals("Omitir", StringComparison.OrdinalIgnoreCase))
         {
             p.Add("I51:ItemSemRetorno deve ser Zerar ou Omitir.");
+        }
+
+        var qtde = CampoQuantidadeSeparada?.Trim() ?? string.Empty;
+        if (!qtde.Equals(CampoQtdeEmbalagem, StringComparison.OrdinalIgnoreCase)
+            && !qtde.Equals(CampoQtdeProduto, StringComparison.OrdinalIgnoreCase))
+        {
+            p.Add("I51:CampoQuantidadeSeparada deve ser Embalagem ou Produto.");
         }
 
         if (!string.IsNullOrWhiteSpace(CnpjConsulta))

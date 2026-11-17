@@ -1,10 +1,17 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 
 namespace KitWmsIntegrador.Core.Separacao;
 
 /// <summary>Item de um documento da I51 (só o que o integrador usa).</summary>
-public sealed record ItemI51(int? Sequencia, string CodProduto, decimal QtdeProduto, decimal QtdeProdutoSep);
+/// <remarks>
+/// <c>QtdeProduto</c>/<c>QtdeProdutoSep</c> estão em UNIDADES; <c>QtdeEmbalagemSep</c> (<c>qtdeEmbalagemSep</c>) e
+/// <c>QtdeCaixaDetalhes</c> (soma de <c>detalhes[].qtdeCaixaSep</c>) estão em EMBALAGENS, a unidade da NF-e/I50.
+/// Os dois últimos são <c>null</c> quando ausentes, vazios ou não numéricos.
+/// </remarks>
+public sealed record ItemI51(
+    int? Sequencia, string CodProduto, decimal QtdeProduto, decimal QtdeProdutoSep,
+    decimal? QtdeEmbalagemSep = null, decimal? QtdeCaixaDetalhes = null);
 
 /// <summary>Documento (pedido/doccarga separado) da I51.</summary>
 public sealed record DocumentoI51(
@@ -141,7 +148,7 @@ public static class ParserI51
 
                 int? seq = int.TryParse(Texto(i, "numeroSequencialItem"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var s)
                     ? s : null;
-                itens.Add(new ItemI51(seq, Texto(i, "codProduto"), qtde, sep));
+                itens.Add(new ItemI51(seq, Texto(i, "codProduto"), qtde, sep, QtdeOpcional(Texto(i, "qtdeEmbalagemSep")), SomaCaixaDetalhes(i)));
             }
         }
 
@@ -149,6 +156,31 @@ public static class ParserI51
         return new DocumentoI51(
             numero, Digitos(Texto(d, "CnpjProprietario")), Digitos(Texto(d, "CnpjDestinatario")),
             Texto(d, "Tipo"), Texto(d, "SubTipo"), volumes, itens);
+    }
+
+    // Ausente, vazio ou não numérico = null (o chamador cai no fallback); nunca invalida o documento.
+    private static decimal? QtdeOpcional(string texto) =>
+        !string.IsNullOrWhiteSpace(texto)
+        && decimal.TryParse(texto.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var v) ? v : null;
+
+    // Soma de detalhes[].qtdeCaixaSep (embalagens); null se não houver nenhum valor numérico.
+    private static decimal? SomaCaixaDetalhes(JsonElement item)
+    {
+        if (!Propriedade(item, "detalhes", out var det) || det.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        decimal? soma = null;
+        foreach (var d in det.EnumerateArray())
+        {
+            if (d.ValueKind == JsonValueKind.Object && QtdeOpcional(Texto(d, "qtdeCaixaSep")) is { } v)
+            {
+                soma = (soma ?? 0m) + v;
+            }
+        }
+
+        return soma;
     }
 
     // Vazio vale 0 (item sem quantidade separada); texto não numérico invalida o documento.

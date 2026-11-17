@@ -15,6 +15,8 @@ public class OpcoesI51Tests
         Assert.Equal(24, o.HorasParaAtraso);
         Assert.Equal("Numero", o.CampoUnico);
         Assert.Equal(14, o.DiasMaxTodos);
+        Assert.Equal("Embalagem", o.CampoQuantidadeSeparada);
+        Assert.False(o.QuantidadeSeparadaEmProduto);
         Assert.Empty(o.Validar());
         Assert.False(new OpcoesI60().Habilitada);
     }
@@ -33,6 +35,8 @@ public class OpcoesI51Tests
     [InlineData("DiasMaxTodos", "366")]
     [InlineData("CampoUnico", "Serie")]
     [InlineData("ItemSemRetorno", "Apagar")]
+    [InlineData("CampoQuantidadeSeparada", "Caixa")]
+    [InlineData("CampoQuantidadeSeparada", "")]
     [InlineData("CnpjConsulta", "123")]
     public void Validar_RejeitaValoresForaDaFaixa(string campo, string valor)
     {
@@ -40,6 +44,18 @@ public class OpcoesI51Tests
         var prop = typeof(OpcoesI51).GetProperty(campo)!;
         prop.SetValue(o, prop.PropertyType == typeof(int) ? int.Parse(valor) : valor);
         Assert.NotEmpty(o.Validar());
+    }
+
+    [Theory]
+    [InlineData("Embalagem", false)]
+    [InlineData("embalagem", false)]
+    [InlineData("Produto", true)]
+    [InlineData(" produto ", true)]
+    public void CampoQuantidadeSeparada_AceitaEmbalagemOuProduto(string valor, bool produto)
+    {
+        var o = new OpcoesI51 { CampoQuantidadeSeparada = valor };
+        Assert.Empty(o.Validar());
+        Assert.Equal(produto, o.QuantidadeSeparadaEmProduto);
     }
 
     [Fact]

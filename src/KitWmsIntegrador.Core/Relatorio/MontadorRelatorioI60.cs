@@ -13,7 +13,7 @@ public sealed record EntradaRelatorioI60(
 public static class MontadorRelatorioI60
 {
     /// <summary>Monta o modelo.</summary>
-    public static ModeloRelatorioI60 Montar(EntradaRelatorioI60 e, OpcoesRelatorioI60 opcoes, OpcoesI60 i60)
+    public static ModeloRelatorioI60 Montar(EntradaRelatorioI60 e, OpcoesRelatorioI60 opcoes, OpcoesI60 i60, string campoQuantidadeSeparada = "")
     {
         ArgumentNullException.ThrowIfNull(e);
         ArgumentNullException.ThrowIfNull(opcoes);
@@ -79,6 +79,7 @@ public static class MontadorRelatorioI60
             JanelaInicio = e.JanelaInicio,
             JanelaFim = e.Agora,
             SemAtividade = semAtividade,
+            CampoQuantidadeSeparada = campoQuantidadeSeparada ?? string.Empty,
             UltimaConsultaOkEm = e.Saude.UltimaConsultaOkEm,
             FalhasConsulta = e.Saude.FalhasConsecutivas,
             BrutosFalhos = e.BrutosFalhos,

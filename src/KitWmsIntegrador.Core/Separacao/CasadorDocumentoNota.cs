@@ -1,4 +1,4 @@
-using KitWmsIntegrador.Core.Configuracao;
+﻿using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -202,7 +202,28 @@ public sealed class CasadorDocumentoNota
             return false;
         }
 
-        var ajuste = CalculadorAjuste.Calcular(nota.Itens, docs.SelectMany(d => d.Itens), _opcoes.OmitirItemSemRetorno);
+        // A quantidade separada (embalagens por padrão) substitui QtdeProdutoSep antes do ajuste.
+        var fallback = new List<string>();
+        var itensWms = docs.SelectMany(d => d.Itens).Select(i =>
+        {
+            var q = SelecionadorQuantidadeI51.Escolher(i, _opcoes);
+            if (q.FallbackProduto)
+            {
+                fallback.Add(string.IsNullOrWhiteSpace(i.CodProduto) ? "?" : i.CodProduto.Trim());
+            }
+
+            return i with { QtdeProdutoSep = q.Quantidade };
+        }).ToList();
+        var ajuste = CalculadorAjuste.Calcular(nota.Itens, itensWms, _opcoes.OmitirItemSemRetorno);
+        var avisoFallback = fallback.Count == 0
+            ? string.Empty
+            : "I51 sem qtdeEmbalagemSep/qtdeCaixaSep; usada qtdeProdutoSep (unidades) em: "
+              + string.Join(", ", fallback.Distinct(StringComparer.OrdinalIgnoreCase));
+        if (avisoFallback.Length > 0)
+        {
+            _logger.LogWarning("Nota {Numero}: {Aviso}", nota.Numero, avisoFallback);
+        }
+
         var volumes = docs.Sum(d => d.QtdeVolumes);
         if (docs.Count > 1)
         {
@@ -218,7 +239,9 @@ public sealed class CasadorDocumentoNota
             QtdeVolumesI51 = volumes,
             Itens = ajuste.Itens,
             ProximaTentativaI60Em = null,
-            Observacao = ambigua ? Juntar(n.Observacao, "ambígua: casada com a mais antiga") : n.Observacao,
+            Observacao = Juntar(
+                ambigua ? Juntar(n.Observacao, "ambígua: casada com a mais antiga") : n.Observacao,
+                avisoFallback),
         });
     }
 
@@ -232,15 +255,17 @@ public sealed class CasadorDocumentoNota
         BrutoOrigem = brutoOrigem,
         RecebidoEm = _clock.UtcNow,
         QtdeVolumesI51 = d.QtdeVolumes,
-        Itens = d.Itens.Select(i => new ItemOrfaoI51(i.Sequencia ?? 0, i.CodProduto, i.QtdeProdutoSep)).ToList(),
+        // Guarda a quantidade já escolhida (embalagens por padrão); o órfão tem um único campo.
+        Itens = d.Itens.Select(i => new ItemOrfaoI51(i.Sequencia ?? 0, i.CodProduto, SelecionadorQuantidadeI51.Escolher(i, _opcoes).Quantidade)).ToList(),
     };
 
     private static DocumentoI51 Converter(OrfaoI51 o) => new(
         o.Numero, o.CnpjProprietario, o.CnpjDestinatario, o.Tipo, o.SubTipo, o.QtdeVolumesI51,
-        o.Itens.Select(i => new ItemI51(i.NumeroSequencialItem == 0 ? null : i.NumeroSequencialItem, i.CodProduto, i.QtdeSeparada, i.QtdeSeparada)).ToList());
+        o.Itens.Select(i => new ItemI51(i.NumeroSequencialItem == 0 ? null : i.NumeroSequencialItem, i.CodProduto, i.QtdeSeparada, i.QtdeSeparada, i.QtdeSeparada)).ToList());
 
     private static bool Igual(string notaNumero, string docNumero) =>
         notaNumero.Trim().TrimStart('0') == docNumero.Trim().TrimStart('0');
 
-    private static string Juntar(string a, string b) => string.IsNullOrEmpty(a) ? b : a + "; " + b;
+    private static string Juntar(string a, string b) =>
+        string.IsNullOrEmpty(b) ? a : string.IsNullOrEmpty(a) ? b : a + "; " + b;
 }

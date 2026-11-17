@@ -233,6 +233,11 @@ internal static class RenderizadorPdfRelatorioI60
         }
         else
         {
+            if (m.CampoQuantidadeSeparada.Length > 0)
+            {
+                blocos.Add(LinhaTexto("Quantidade separada vinda de: " + KitWmsIntegrador.Core.Email.CorpoEmailRelatorioI60.NomeCampoQuantidade(m.CampoQuantidadeSeparada), medidor, larguraUtil));
+            }
+
             var larAj = new[] { 0.14, 0.08, 0.28, 0.16, 0.16, 0.18 };
             AdicionarLinhas(blocos, medidor, larguraUtil, new[] { "Nota", "Item", "Produto", "Original", "Separada", "Diferença" }, larAj,
                 m.Ajustes.Linhas.Select(a => new[] { a.Nota, a.Item.ToString(ci), a.Produto, Q(a.Original, ci), Q(a.Separada, ci), Q(a.Diferenca, ci) }).ToList(),

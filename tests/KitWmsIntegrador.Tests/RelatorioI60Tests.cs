@@ -188,6 +188,25 @@ public class RelatorioI60RenderTests
         Assert.Contains("e mais 100", PdfTextoHelper.Texto(pdf));
     }
 
+    [Theory]
+    [InlineData("Embalagem", "qtdeEmbalagemSep (embalagens)")]
+    [InlineData("Produto", "qtdeProdutoSep (unidades)")]
+    public void SecaoAjustes_MostraOCampoDeQuantidadeUsado(string campo, string esperado)
+    {
+        var nota = new NotaSeparacao
+        {
+            Chave = "K", Numero = "1", Situacao = SituacaoNota.Separada, RegistradaEm = ExemplosRelatorioI60.Agora,
+            SeparadaEm = ExemplosRelatorioI60.Agora.AddHours(-1),
+            Itens = new[] { new ItemSeparacao { Sequencia = 1, CodProduto = "A", QtdeOriginal = 11m, QtdeSeparada = 9m, Diferenca = -2m } },
+        };
+        var modelo = MontadorRelatorioI60.Montar(
+            new EntradaRelatorioI60(new[] { nota }, new SaudeConsultaI51(), 0, 0, ExemplosRelatorioI60.Agora, ExemplosRelatorioI60.Agora.AddHours(-24), false),
+            new OpcoesRelatorioI60(), new OpcoesI60(), campo);
+
+        Assert.Contains("Quantidade separada vinda de: " + esperado, _gerador.GerarHtml(modelo, ModoLogoRelatorio.Cid).Html);
+        Assert.NotEmpty(_gerador.GerarPdf(modelo));
+    }
+
     [Fact]
     public void SemAtividade_GeraAviso()
     {

@@ -34,6 +34,23 @@ public class ProcessadorI60SeparacaoTests : IDisposable
     private static string Op(Core.Construtores.Dtos.PayloadI60 p) => p.NotasVenda[0].TipoOperacaoNota;
 
     [Fact]
+    public async Task ProdutoComConversao_EnviaI60ComQuantidadeEmEmbalagens_SemAjuste()
+    {
+        // 5006566: 1 embalagem = 10 unidades. Nota 18; I51 devolve 180 unidades e 18 embalagens.
+        await SepararSemI60(new[] { ("5006566", 18m) }, new[] { new FakeWmsI51.ItemDoc(1, "5006566", 180, 180, 18) });
+
+        await Processar();
+
+        var nv = Assert.Single(_amb.Wms.EnviosI60).NotasVenda[0];
+        Assert.Equal(18m, nv.ItemNotaVenda[0].QtdeProduto);
+        Assert.Equal(18m, nv.ItemNotaVenda[0].QtdeProdutoConfirmada);
+        Assert.Equal(18m, nv.ItemNotaVenda[0].QtdeEmbalagem);
+        Assert.Equal(18m, nv.QtdeTotalNota);
+        var item = _amb.Nota(100).Itens[0];
+        Assert.Equal(0m, item.Diferenca);
+    }
+
+    [Fact]
     public async Task AjustaAQuantidadeParaASeparada_NosTresCampos_ERecalculaTotalEVolume()
     {
         await SepararSemI60(new[] { ("A", 10m), ("B", 5m) }, new[] { It(1, "A", 10, 8), It(2, "B", 5, 5) });
