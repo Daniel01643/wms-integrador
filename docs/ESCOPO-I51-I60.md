@@ -100,4 +100,11 @@ Horas humanas são estimativa; o registro usa somente as horas informadas pelo u
 - Relatório diário às 12:00 (HTML, PDF, e-mail) com visão por pacote (decisão: seção no diário) e candidatas à I40.
 - CLIs: `--consultar-i51` (só UNICO), `--reenfileirar-i60` (grava pedido que o Worker aplica), `--relatorio-i60 [--enviar]`.
 - Cliente WMS em instância única; I40 intacta e coberta por testes de regressão.
+## Correção de 17/11/2026: quantidade separada em embalagens
+- A I51 traz `qtdeProduto`/`qtdeProdutoSep` em **unidades** e `qtdeEmbalagem`/`qtdeEmbalagemSep` em **embalagens**; a NF-e/I50 está em embalagens. Em produto com conversão no WMS (5006566: 1 embalagem = 10 unidades) a I51 devolveu 180 unidades e 18 embalagens para nota de 18; o integrador usava `qtdeProdutoSep`, registrou ajuste 18→180 e enviou a I60 com 180 (também 11→110). Na homologação os dois campos eram iguais (produtos sem conversão).
+- Agora a quantidade separada vem de `I51:CampoQuantidadeSeparada`: `Embalagem` (padrão, `qtdeEmbalagemSep`) ou `Produto` (comportamento antigo). Fallback por item: soma de `detalhes[].qtdeCaixaSep`; se também ausente, `qtdeProdutoSep` com Observacao na nota.
+- A comparação original × separada e a quantidade da I60 usam embalagens; produto com conversão não gera mais falso ajuste. Separação parcial real (nota 11, separadas 9 embalagens) segue gerando ajuste 11→9.
+- Órfãos guardam uma única `QtdeSeparada`: a quantidade já escolhida na gravação. Arquivos antigos guardam `qtdeProdutoSep` (unidades) e são lidos como estão.
+- Relatório diário da I60: a seção "Ajustes de quantidade" informa o campo usado.
+
 - Pendente no homolog: texto real do ENC, TpAcao do IMP, sinal de "associada", campo do UNICO, mensagem do `sucesso=N`.

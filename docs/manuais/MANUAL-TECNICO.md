@@ -598,6 +598,7 @@ existe com a separação concluída (não há separação parcial).
 | `I51:IntervaloMinutos` | `5` | De quantos em quantos minutos consulta o WMS. |
 | `I51:HorasParaAtraso` | `24` | Sem retorno nesse prazo, a nota vira **Atrasada** e entra no relatório. |
 | `I51:CampoUnico` | `Numero` | Campo usado na consulta UNICO: `Numero` (nota, 9 dígitos) ou `NroDocumento`. |
+| `I51:CampoQuantidadeSeparada` | `Embalagem` | Campo da I51 usado como quantidade separada: `Embalagem` (`qtdeEmbalagemSep`, a unidade da NF-e/I50) ou `Produto` (`qtdeProdutoSep`, em unidades; comportamento anterior a 17/11/2026). Ver abaixo. |
 | `I51:DiasRetencaoEstado` | `30` | Retenção do estado terminal, XML copiado, brutos e logs de `alertas` (era 60 até 13/11/2026). |
 | `I60:AlertaImediato` | `true` | Alerta imediato por e-mail, arquivo e log (ver abaixo). Só age com a I51 ligada. |
 | `I60:QtdeVolumeZero` / `I60:QtdeTotalNotaZero` | `true` (arquivo) | `qtdeVolume = 0` e `qtdeTotalNota = 0` na I60 (validado no homolog). |
@@ -606,6 +607,18 @@ existe com a separação concluída (não há separação parcial).
 | `I60:TipoOperacaoEncerrado` | `IMP` | Operação do reenvio quando o DocCarga está encerrado (ENC). |
 | `I60:TpAcaoReenvioImp` | `UPD` | `TpAcao` do reenvio como IMP (`UPD` ou `I`); confirmar no homolog. |
 | `RelatorioI60:Hora` | `12:00` | Hora do relatório diário (horário local). |
+
+**Quantidade separada (embalagens × unidades).** O item da I51 traz `qtdeProduto`/`qtdeProdutoSep` em
+**unidades** e `qtdeEmbalagem`/`qtdeEmbalagemSep` em **embalagens**; a quantidade da NF-e/I50 está em
+embalagens. Produto com conversão no WMS (ex.: 5006566, 1 embalagem = 10 unidades) voltou com
+`qtdeProdutoSep=180` para uma nota de 18 e gerou um falso ajuste 18→180 na I60 (o WMS aceitou a
+quantidade errada). Por isso o padrão é `I51:CampoQuantidadeSeparada=Embalagem`. Ordem de escolha por
+item: `qtdeEmbalagemSep`; se ausente, vazio ou não numérico, a soma de `detalhes[].qtdeCaixaSep`; se também
+ausente, `qtdeProdutoSep` e uma **Observacao** na nota (e um aviso no log) com os produtos afetados.
+`Produto` restaura o comportamento antigo (só serve se o WMS não tiver conversões). Órfãos guardam um
+único valor, a quantidade **já escolhida** na gravação; arquivos de órfão antigos guardam
+`qtdeProdutoSep` (unidades) e são lidos como estão, então um órfão antigo de produto com conversão pode
+divergir da nota. O relatório diário da I60, seção "Ajustes de quantidade", informa o campo usado.
 
 As listas `I60:Padroes*` (textos de recusa do WMS, separados por `;`, sem diferenciar acento nem
 maiúsculas) são configuráveis, porque o texto real do WMS ainda será confirmado no homolog.

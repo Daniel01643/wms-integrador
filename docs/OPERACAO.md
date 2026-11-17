@@ -452,6 +452,7 @@ resultado por chave.
 ## 10. Retorno de separação (I51) e relatório diário da I60
 
 - Chaves (todas `false` por padrão): `I51__Habilitada`, `I60__Habilitada`. Demais chaves em `appsettings.json`, seções `I51`, `I60` (padrões e `TpAcaoReenvioImp`) e `RelatorioI60`.
+- Quantidade separada: `I51__CampoQuantidadeSeparada` = `Embalagem` (padrão, usa `qtdeEmbalagemSep`, a unidade da NF-e) ou `Produto` (`qtdeProdutoSep`, em unidades, comportamento antigo). Caso 5006566 (1 embalagem = 10 unidades): a I51 devolveu 180 unidades e 18 embalagens para nota de 18; com `Produto` a I60 saía com 180. Sem `qtdeEmbalagemSep` usa a soma de `detalhes[].qtdeCaixaSep`; sem ela, `qtdeProdutoSep` com Observacao na nota. Órfãos antigos guardam unidades. O relatório diário mostra o campo usado em "Ajustes de quantidade".
 - Estado em `Estado\i51\` (`notas`, `xml`, `orfaos`, `brutos\pendentes|processados|falhos`, `comandos`, `consulta.json`). Retenção: `I51__DiasRetencaoEstado` (30).
 - Comandos: `--consultar-i51 --tipo UNICO --cnpj <cnpj> --numero <n>`; `--reenfileirar-i60 --chave <c>|--motivo <MotivoI60>` (o Worker em execução aplica no ciclo seguinte); `--relatorio-i60 [--enviar]`.
 - Relatório diário às 12:00 em `Relatorio:PastaSaida\i60`; destinatários em `destinatarios-i60.txt` (telemetria), com fallback na lista do resumo semanal.
