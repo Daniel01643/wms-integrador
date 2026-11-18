@@ -1,5 +1,6 @@
 using System.Text.Json;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -50,6 +51,7 @@ public sealed class ServicoSeparacaoI51
     private readonly AlertaI60 _alerta;
     private readonly OpcoesI51 _opcoes;
     private readonly IClock _clock;
+    private readonly IRegistroDiagnostico _diagnostico;
     private readonly ILogger<ServicoSeparacaoI51> _logger;
     private readonly Dictionary<string, int> _tentativasBruto = new(StringComparer.OrdinalIgnoreCase);
     private DateTimeOffset _ultimaLimpeza = DateTimeOffset.MinValue;
@@ -58,8 +60,9 @@ public sealed class ServicoSeparacaoI51
     public ServicoSeparacaoI51(
         IRepositorioSeparacao repositorio, ArmazenamentoBrutoI51 brutos, ClienteI51 cliente, CasadorDocumentoNota casador,
         RepositorioOrfaosI51 orfaos, ProcessadorI60Separacao i60, ComandosI51 comandos, AlertaI60 alerta, IOptions<OpcoesI51> opcoes,
-        IClock clock, ILogger<ServicoSeparacaoI51> logger)
+        IClock clock, ILogger<ServicoSeparacaoI51> logger, IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _repositorio = repositorio ?? throw new ArgumentNullException(nameof(repositorio));
         _brutos = brutos ?? throw new ArgumentNullException(nameof(brutos));
         _cliente = cliente ?? throw new ArgumentNullException(nameof(cliente));
@@ -181,6 +184,11 @@ public sealed class ServicoSeparacaoI51
             I60 = resumoI60,
         };
         LogarResumo(resultado);
+        if (separadas > 0 || atrasadas > 0)
+        {
+            _diagnostico.Registrar(new EventoDiagnostico { Tipo = "i51-ciclo", Quantidade = separadas, Quantidade2 = atrasadas });
+        }
+
         return resultado;
     }
 
@@ -249,6 +257,14 @@ public sealed class ServicoSeparacaoI51
             }
 
             _brutos.GravarSaude(saude with { UltimaTentativaEm = agora, FalhasConsecutivas = falhas });
+            _diagnostico.Registrar(new EventoDiagnostico
+            {
+                Tipo = "i51-consulta",
+                Subtipo = tipo,
+                Ok = false,
+                Status = ex is HttpRequestException { StatusCode: { } codigo } ? (int)codigo : null,
+                Mensagem = ex.GetType().Name,
+            });
             return null;
         }
 
@@ -266,6 +282,7 @@ public sealed class ServicoSeparacaoI51
                     "Consulta {Tipo} da I51 devolveu 'N' sem documentos com mensagem fora da lista esperada: {Mensagem}",
                     tipo, TextoNormalizado.Truncar(mensagem, 200));
                 _brutos.GravarSaude(saude with { UltimaTentativaEm = agora, FalhasConsecutivas = falhas });
+                _diagnostico.Registrar(new EventoDiagnostico { Tipo = "i51-consulta", Subtipo = tipo, Ok = false, Mensagem = "fora-do-padrao" });
                 return null;
             }
 
@@ -280,12 +297,14 @@ public sealed class ServicoSeparacaoI51
             }
 
             _brutos.GravarSaude(saude with { UltimaTentativaEm = agora, UltimaConsultaOkEm = agora, FalhasConsecutivas = 0, UltimaMensagemVazia = curta });
+            _diagnostico.Registrar(new EventoDiagnostico { Tipo = "i51-consulta", Subtipo = tipo, Ok = true, Mensagem = "vazio" });
             return null;
         }
 
         // Grava ANTES de processar. Se não gravar, ainda processa em memória (UNICO recupera depois).
         var caminho = _brutos.GravarPendente(tipo, numero, corpo);
         _brutos.GravarSaude(saude with { UltimaTentativaEm = agora, UltimaConsultaOkEm = agora, FalhasConsecutivas = 0 });
+        _diagnostico.Registrar(new EventoDiagnostico { Tipo = "i51-consulta", Subtipo = tipo, Ok = true });
         if (caminho is not null)
         {
             return ProcessarBruto(caminho);

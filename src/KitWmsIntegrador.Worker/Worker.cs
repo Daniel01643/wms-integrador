@@ -1,5 +1,6 @@
 using System.Reflection;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Pacote;
 using KitWmsIntegrador.Core.Separacao;
@@ -31,6 +32,7 @@ public class Worker : BackgroundService
     private readonly OpcoesMonitoramento _monitoramento;
     private readonly OpcoesZip _zip;
     private readonly ServicoRelatorioDiarioI60? _relatorioDiario;
+    private readonly RegistroDiagnosticoArquivo? _diarioDiagnostico;
     private readonly OpcoesI51 _i51;
     private readonly OpcoesI60 _i60;
     private readonly OpcoesRelatorioI60 _relatorioI60;
@@ -51,8 +53,10 @@ public class Worker : BackgroundService
         IOptions<OpcoesI51>? i51 = null,
         IOptions<OpcoesI60>? i60 = null,
         IOptions<OpcoesRelatorioI60>? relatorioI60 = null,
-        ServicoRelatorioDiarioI60? relatorioDiario = null)
+        ServicoRelatorioDiarioI60? relatorioDiario = null,
+        RegistroDiagnosticoArquivo? diarioDiagnostico = null)
     {
+        _diarioDiagnostico = diarioDiagnostico;
         _relatorioDiario = relatorioDiario;
         _i51 = i51?.Value ?? new OpcoesI51();
         _i60 = i60?.Value ?? new OpcoesI60();
@@ -183,6 +187,20 @@ public class Worker : BackgroundService
                     _logger.LogInformation(
                         "Limpeza: {Arquivos} arquivo(s) e {Pastas} pasta(s) removidos, {Erros} erro(s).",
                         limpeza.ArquivosRemovidos, limpeza.PastasRemovidas, limpeza.Erros.Count);
+                    if (_diarioDiagnostico is not null)
+                    {
+                        _diarioDiagnostico.Registrar(new EventoDiagnostico
+                        {
+                            Tipo = "limpeza",
+                            Quantidade = limpeza.ArquivosRemovidos,
+                            Quantidade2 = limpeza.PastasRemovidas,
+                            Ok = limpeza.Erros.Count == 0,
+                        });
+                        if (_diarioDiagnostico.LimpezaHabilitada)
+                        {
+                            _diarioDiagnostico.Limpar(_diarioDiagnostico.DiasRetencao);
+                        }
+                    }
                 }
 
                 await _gerenciador.CicloAsync(stoppingToken).ConfigureAwait(false);

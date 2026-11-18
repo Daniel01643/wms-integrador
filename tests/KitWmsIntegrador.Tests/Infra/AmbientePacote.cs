@@ -129,6 +129,9 @@ public sealed class AmbientePacote : IDisposable
     /// <summary>Registrador da separação (I51) injetado no ProcessadorLote; null = comportamento anterior.</summary>
     public KitWmsIntegrador.Core.Separacao.IRegistradorSeparacao? RegistradorSeparacao { get; set; }
 
+    /// <summary>Diário de diagnóstico injetado no ProcessadorLote e no GerenciadorPacote; null = sem diário.</summary>
+    public KitWmsIntegrador.Core.Diagnostico.IRegistroDiagnostico? Diagnostico { get; set; }
+
     public string Caminho(string nome) => Path.Combine(Entrada, nome);
 
     /// <summary>Grava um XML de NF-e sintético na entrada e devolve o caminho.</summary>
@@ -265,7 +268,8 @@ public sealed class AmbientePacote : IDisposable
             new LeitorZipSeguro(Options.Create(new OpcoesZip()), Options.Create(Pastas), NullLogger<LeitorZipSeguro>.Instance),
             new RegistroOndasTsp(Clock, Options.Create(Pastas), NullLogger<RegistroOndasTsp>.Instance),
             NullLogger<ProcessadorLote>.Instance,
-            RegistradorSeparacao);
+            RegistradorSeparacao,
+            Diagnostico);
     }
 
     public GerenciadorPacote CriarGerenciador(IOrquestrador orquestrador)
@@ -291,7 +295,7 @@ public sealed class AmbientePacote : IDisposable
             NullLogger<FechadorPacote>.Instance);
         return new GerenciadorPacote(
             Clock, Options.Create(Pastas), Options.Create(Pacote), detector, processador, diario, fechador,
-            NullLogger<GerenciadorPacote>.Instance, Autenticacao);
+            NullLogger<GerenciadorPacote>.Instance, Autenticacao, Diagnostico);
     }
 
     /// <summary>Roda ciclos (avançando o relógio) até o estado voltar a Ocioso. Devolve a quantidade de ciclos.</summary>

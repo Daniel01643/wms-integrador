@@ -2,6 +2,7 @@ using KitWmsIntegrador.Core.Agrupamento;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Modelos;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
@@ -41,6 +42,7 @@ public sealed class Orquestrador : IOrquestrador
     private readonly OpcoesI60 _opcoesI60;
     private readonly OpcoesI51 _opcoesI51;
     private readonly IClock _clock;
+    private readonly IRegistroDiagnostico _diagnostico;
     private readonly ILogger<Orquestrador> _logger;
 
     public Orquestrador(
@@ -53,8 +55,10 @@ public sealed class Orquestrador : IOrquestrador
         IOptions<OpcoesI60> opcoesI60,
         IClock clock,
         ILogger<Orquestrador> logger,
-        IOptions<OpcoesI51>? opcoesI51 = null)
+        IOptions<OpcoesI51>? opcoesI51 = null,
+        IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _opcoesI51 = opcoesI51?.Value ?? new OpcoesI51();
         _cliente = cliente;
         _i50 = i50;
@@ -138,6 +142,64 @@ public sealed class Orquestrador : IOrquestrador
             }
         }
 
+        // Diário de diagnóstico das pré-condições I10/I30: gatilho (mensagem da I50 que as disparou) e chamada.
+        // Falha de autenticação não é erro do cadastro e passa direto, sem evento.
+        async Task<RespostaWms> Cadastro(string subtipo, Func<Task<RespostaWms>> envio)
+        {
+            _diagnostico.Registrar(new EventoDiagnostico
+            {
+                Tipo = "cadastro-gatilho",
+                Subtipo = subtipo,
+                Mensagem = ultimaMensagem,
+                Nota = nota.Numero,
+            });
+            var antes = _clock.UtcNow;
+            RespostaWms resposta;
+            try
+            {
+                resposta = await Chamar(envio).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not AutenticacaoWmsIndisponivelException and not OperationCanceledException)
+            {
+                _diagnostico.Registrar(new EventoDiagnostico
+                {
+                    Tipo = "cadastro-chamada",
+                    Subtipo = subtipo,
+                    Ok = false,
+                    Mensagem = ex.GetType().Name,
+                    Nota = nota.Numero,
+                    DuracaoMs = Math.Max(0L, (long)(_clock.UtcNow - antes).TotalMilliseconds),
+                });
+                throw;
+            }
+
+            var ok = _classificador.PreCondicaoOk(resposta);
+            string? mensagem;
+            if (!ok)
+            {
+                mensagem = _classificador.PrimeiraMensagem(resposta);
+            }
+            else if (!_classificador.EhSucesso(resposta))
+            {
+                mensagem = "ja-existe";
+            }
+            else
+            {
+                mensagem = null;
+            }
+
+            _diagnostico.Registrar(new EventoDiagnostico
+            {
+                Tipo = "cadastro-chamada",
+                Subtipo = subtipo,
+                Ok = ok,
+                Mensagem = mensagem,
+                Nota = nota.Numero,
+                DuracaoMs = Math.Max(0L, (long)(_clock.UtcNow - antes).TotalMilliseconds),
+            });
+            return resposta;
+        }
+
         while (tentativas < MaxTentativas)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -184,7 +246,7 @@ public sealed class Orquestrador : IOrquestrador
             // (c) Empresa não localizada: envia I10 e reenvia a I50 (nova tentativa).
             if (_classificador.EhEmpresaNaoLocalizada(respI50))
             {
-                var respI10 = await Chamar(() => _cliente
+                var respI10 = await Cadastro("I10", () => _cliente
                     .EnviarAsync(InterfaceWms.I10, _i10.Construir(nota), cancellationToken))
                     .ConfigureAwait(false);
                 historico.Add($"I10 (empresa): {Descrever(respI10, _classificador.PrimeiraMensagem(respI10))}");
@@ -195,7 +257,7 @@ public sealed class Orquestrador : IOrquestrador
             // de revisão (produto provisório) e reenvia a I50 (nova tentativa).
             if (_classificador.EhProdutoNaoCadastrado(respI50))
             {
-                var respI30 = await Chamar(() => _cliente
+                var respI30 = await Cadastro("I30", () => _cliente
                     .EnviarAsync(InterfaceWms.I30, _i30.Construir(nota), cancellationToken))
                     .ConfigureAwait(false);
                 pendenteRevisaoProduto = true;

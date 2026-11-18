@@ -1,6 +1,7 @@
 using System.Globalization;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -49,6 +50,7 @@ public sealed class GerenciadorPacote
     private readonly FechadorPacote _fechador;
     private readonly ILogger<GerenciadorPacote> _logger;
     private readonly IEstadoAutenticacaoWms? _autenticacao;
+    private readonly IRegistroDiagnostico _diagnostico;
     private bool _aguardandoLogado;
     private long _falhasBase;
     private IReadOnlyDictionary<string, long>? _backendsBase;
@@ -100,8 +102,10 @@ public sealed class GerenciadorPacote
         DiarioPacote diario,
         FechadorPacote fechador,
         ILogger<GerenciadorPacote> logger,
-        IEstadoAutenticacaoWms? autenticacao = null)
+        IEstadoAutenticacaoWms? autenticacao = null,
+        IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _autenticacao = autenticacao;
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _pastas = pastas?.Value ?? throw new ArgumentNullException(nameof(pastas));
@@ -290,6 +294,10 @@ public sealed class GerenciadorPacote
                 {
                     var ignorados = _processador.ProcessarNaoXml(fotoNaoXml, _idPacote);
                     _registros.AddRange(ignorados);
+                    if (ignorados.Count > 0)
+                    {
+                        _diagnostico.Registrar(new EventoDiagnostico { Tipo = "arquivos-ignorados", Quantidade = ignorados.Count });
+                    }
                 }
 
                 var novos = await _processador.ProcessarAsync(fotoXml, _idPacote, ct).ConfigureAwait(false);

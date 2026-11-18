@@ -1,7 +1,7 @@
 using System.Net;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Email;
-using KitWmsIntegrador.Core.Pacote;
+using KitWmsIntegrador.Core.Monitoramento;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,13 +18,13 @@ public interface IAlertaAutenticacaoWms
 }
 
 /// <summary>
-/// Alerta por e-mail (reusa <see cref="IEnviadorEmail"/> e os destinatários do fechamento). Respeita
+/// Alerta por e-mail (reusa <see cref="IEnviadorEmail"/> e os destinatários técnicos do diagnóstico, só a TI). Respeita
 /// <c>Email:Habilitado</c> e <c>Wms:AlertaAutenticacao</c>; nunca lança. O texto não contém credenciais nem notas.
 /// </summary>
 public sealed class AlertaAutenticacaoWmsEmail : IAlertaAutenticacaoWms
 {
     private readonly IEnviadorEmail _email;
-    private readonly FonteDestinatariosFechamento _destinatarios;
+    private readonly FonteDestinatariosDiagnostico _destinatarios;
     private readonly OpcoesEmail _opcoesEmail;
     private readonly OpcoesWms _opcoesWms;
     private readonly ILogger<AlertaAutenticacaoWmsEmail> _logger;
@@ -32,7 +32,7 @@ public sealed class AlertaAutenticacaoWmsEmail : IAlertaAutenticacaoWms
     /// <summary>Cria o alerta.</summary>
     public AlertaAutenticacaoWmsEmail(
         IEnviadorEmail email,
-        FonteDestinatariosFechamento destinatarios,
+        FonteDestinatariosDiagnostico destinatarios,
         IOptions<OpcoesEmail> opcoesEmail,
         IOptions<OpcoesWms> opcoesWms,
         ILogger<AlertaAutenticacaoWmsEmail> logger)

@@ -4,6 +4,7 @@ using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
 using KitWmsIntegrador.Core.Devolucao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Modelos;
 using KitWmsIntegrador.Core.Orquestrador;
@@ -41,14 +42,16 @@ public sealed class ProcessadorI60Separacao
     private readonly OpcoesPasta _pastas;
     private readonly CaminhosI51 _caminhos;
     private readonly IClock _clock;
+    private readonly IRegistroDiagnostico _diagnostico;
     private readonly ILogger<ProcessadorI60Separacao> _logger;
 
     /// <summary>Cria o processador.</summary>
     public ProcessadorI60Separacao(
         IRepositorioSeparacao repositorio, IClienteWms cliente, IConstrutorI60 construtor, LeitorNotaFiscalXml leitor,
         ClassificadorRetorno classificador, IOptions<OpcoesI60> i60, IOptions<OpcoesI51> i51, IOptions<OpcoesPasta> pastas,
-        CaminhosI51 caminhos, IClock clock, ILogger<ProcessadorI60Separacao> logger)
+        CaminhosI51 caminhos, IClock clock, ILogger<ProcessadorI60Separacao> logger, IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _repositorio = repositorio ?? throw new ArgumentNullException(nameof(repositorio));
         _cliente = cliente ?? throw new ArgumentNullException(nameof(cliente));
         _construtor = construtor ?? throw new ArgumentNullException(nameof(construtor));
@@ -89,19 +92,24 @@ public sealed class ProcessadorI60Separacao
                     case Desfecho.Associada:
                         enviadas++;
                         associadas++;
+                        RegistrarDesfecho("associada", nota);
                         break;
                     case Desfecho.Enviada:
                         enviadas++;
+                        RegistrarDesfecho("enviada", nota);
                         break;
                     case Desfecho.Imp:
                         enviadas++;
                         imp++;
+                        RegistrarDesfecho("imp", nota);
                         break;
                     case Desfecho.Rejeitada:
                         rejeitadas++;
+                        RegistrarDesfecho("rejeitada", nota);
                         break;
                     case Desfecho.Comunicacao:
                         falhas++;
+                        RegistrarDesfecho("comunicacao", nota);
                         break;
                 }
             }
@@ -113,6 +121,9 @@ public sealed class ProcessadorI60Separacao
 
         return new ResumoI60(enviadas, associadas, imp, rejeitadas, falhas);
     }
+
+    private void RegistrarDesfecho(string subtipo, NotaSeparacao nota) =>
+        _diagnostico.Registrar(new EventoDiagnostico { Tipo = "i60-desfecho", Subtipo = subtipo, Nota = nota.Numero, Serie = nota.Serie });
 
     private async Task<Desfecho> ProcessarNotaAsync(NotaSeparacao nota, CancellationToken ct)
     {

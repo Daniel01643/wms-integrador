@@ -3,6 +3,7 @@ using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
 using KitWmsIntegrador.Core.Construtores;
 using KitWmsIntegrador.Core.Devolucao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Email;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Monitoramento;
@@ -183,6 +184,15 @@ builder.Services
     .AddOptions<OpcoesMonitoramento>()
     .Bind(builder.Configuration.GetSection(OpcoesMonitoramento.Secao));
 builder.Services.AddSingleton<RegistradorTelemetria>();
+
+// Diagnóstico agente integrador (seção "Diagnostico"): diário JSONL por dia em Estado\diagnostico,
+// alimentado pelos componentes (IRegistroDiagnostico opcional) e destinatários técnicos (só a TI).
+builder.Services
+    .AddOptions<OpcoesDiagnostico>()
+    .Bind(builder.Configuration.GetSection(OpcoesDiagnostico.Secao));
+builder.Services.AddSingleton<RegistroDiagnosticoArquivo>();
+builder.Services.AddSingleton<IRegistroDiagnostico>(sp => sp.GetRequiredService<RegistroDiagnosticoArquivo>());
+builder.Services.AddSingleton<FonteDestinatariosDiagnostico>();
 
 // Resumo semanal (FEAT-003): agendador idempotente dentro do Worker, destinatários lidos de um
 // txt dedicado (fora do git, recarregado a cada envio) e fallback em disco quando o SMTP está

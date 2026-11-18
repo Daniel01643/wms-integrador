@@ -402,11 +402,12 @@ public sealed class AutenticacaoWmsTests
     private static AlertaAutenticacaoWmsEmail CriarAlertaEmail(
         GravadorEmail email, bool emailHabilitado, string destinatarios, bool alertaLigado = true)
     {
-        var opEmail = new OpcoesEmail { Habilitado = emailHabilitado, Destinatarios = destinatarios };
+        var opEmail = new OpcoesEmail { Habilitado = emailHabilitado, Destinatarios = "fechamento@exemplo.com" };
+        var opDiagnostico = new OpcoesDiagnostico { Destinatarios = destinatarios };
         var tmp = new OpcoesPasta { Entrada = Path.Combine(Path.GetTempPath(), "kitwms-alerta-" + Guid.NewGuid().ToString("N")) };
         var telemetria = new RegistradorTelemetria(
             Options.Create(tmp), Options.Create(new OpcoesMonitoramento()), NullLogger<RegistradorTelemetria>.Instance);
-        var fonte = new FonteDestinatariosFechamento(Options.Create(opEmail), telemetria, NullLogger<FonteDestinatariosFechamento>.Instance);
+        var fonte = new FonteDestinatariosDiagnostico(telemetria, Options.Create(opDiagnostico), NullLogger<FonteDestinatariosDiagnostico>.Instance);
         return new AlertaAutenticacaoWmsEmail(
             email, fonte, Options.Create(opEmail), Options.Create(new OpcoesWms { AlertaAutenticacao = alertaLigado }),
             NullLogger<AlertaAutenticacaoWmsEmail>.Instance);
@@ -433,8 +434,10 @@ public sealed class AutenticacaoWmsTests
         await CriarAlertaEmail(semAlerta, true, "ops@exemplo.com", alertaLigado: false).IndisponivelAsync(401, Inicio, CancellationToken.None);
         Assert.Empty(semAlerta.Enviadas);
 
+        // Sem destinatário configurado, o alerta técnico cai na TI (nunca nos destinatários do fechamento).
         var semDestino = new GravadorEmail();
         await CriarAlertaEmail(semDestino, true, string.Empty).IndisponivelAsync(401, Inicio, CancellationToken.None);
-        Assert.Empty(semDestino.Enviadas);
+        Assert.Single(semDestino.Enviadas);
+        Assert.Equal(new[] { FonteDestinatariosDiagnostico.DestinatarioPadrao }, semDestino.Enviadas[0].DestinatariosOverride);
     }
 }

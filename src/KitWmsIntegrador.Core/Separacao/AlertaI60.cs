@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Email;
 using KitWmsIntegrador.Core.Monitoramento;
 using KitWmsIntegrador.Core.Relatorio;
@@ -46,14 +47,16 @@ public sealed class AlertaI60
     private readonly OpcoesRelatorioI60 _opcoesRelatorio;
     private readonly OpcoesRelatorio _relatorio;
     private readonly IClock _clock;
+    private readonly IRegistroDiagnostico _diagnostico;
     private readonly ILogger<AlertaI60> _logger;
 
     /// <summary>Cria o alerta.</summary>
     public AlertaI60(
         IRepositorioSeparacao repositorio, CaminhosI51 caminhos, IEnviadorEmail email, IDestinatariosAlertaI60 destinatarios,
         IOptions<OpcoesI60> i60, IOptions<OpcoesEmail> opcoesEmail, IOptions<OpcoesRelatorioI60> opcoesRelatorio,
-        IOptions<OpcoesRelatorio> relatorio, IClock clock, ILogger<AlertaI60> logger)
+        IOptions<OpcoesRelatorio> relatorio, IClock clock, ILogger<AlertaI60> logger, IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _repositorio = repositorio ?? throw new ArgumentNullException(nameof(repositorio));
         _caminhos = caminhos ?? throw new ArgumentNullException(nameof(caminhos));
         _email = email ?? throw new ArgumentNullException(nameof(email));
@@ -102,6 +105,18 @@ public sealed class AlertaI60
         var linhas = alertadas.Select(a => Linha(a.Nota, a.Evento, MaxTextoEmail)).ToList();
         GravarArquivo(alertadas, agora);
         var status = await EnviarEmailAsync(linhas, agora, ct).ConfigureAwait(false);
+
+        var emailEnviado = string.Equals(status, "enviado", StringComparison.Ordinal);
+        foreach (var grupo in alertadas.GroupBy(a => a.Evento, StringComparer.Ordinal))
+        {
+            _diagnostico.Registrar(new EventoDiagnostico
+            {
+                Tipo = "i60-alerta",
+                Subtipo = grupo.Key,
+                Quantidade = grupo.Count(),
+                Ok = emailEnviado,
+            });
+        }
 
         _logger.LogWarning("I60 precisa de atencao: {Quantidade} nota(s) neste ciclo (e-mail: {StatusEmail}).", alertadas.Count, status);
         foreach (var (nota, evento) in alertadas)

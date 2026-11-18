@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using KitWmsIntegrador.Core.Agrupamento;
 using KitWmsIntegrador.Core.ClienteWms;
 using KitWmsIntegrador.Core.Configuracao;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Leitura;
 using KitWmsIntegrador.Core.Modelos;
 using KitWmsIntegrador.Core.Orquestrador;
@@ -34,6 +35,9 @@ public sealed class ProcessadorLote
     private readonly OpcoesPacote _opcoes;
     private readonly ILogger<ProcessadorLote> _logger;
     private readonly IRegistradorSeparacao? _separacao;
+    private readonly IRegistroDiagnostico _diagnostico;
+    private int _totalNotasLote;
+    private int _notasTratadasLote;
     private static readonly ClassificadorRetorno ClassificadorJaExiste = new();
 
     // Arquivos já enviados ao WMS cujo move falhou: NUNCA reenviar, só repetir o move.
@@ -53,8 +57,10 @@ public sealed class ProcessadorLote
         LeitorZipSeguro leitorZip,
         RegistroOndasTsp ondasTsp,
         ILogger<ProcessadorLote> logger,
-        IRegistradorSeparacao? separacao = null)
+        IRegistradorSeparacao? separacao = null,
+        IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _separacao = separacao;
         _leitorZip = leitorZip ?? throw new ArgumentNullException(nameof(leitorZip));
         _ondasTsp = ondasTsp ?? throw new ArgumentNullException(nameof(ondasTsp));
@@ -340,6 +346,8 @@ public sealed class ProcessadorLote
         }
 
         // 4) Ondas em paralelo limitado; notas de cada onda em sequência.
+        Volatile.Write(ref _totalNotasLote, lidos.Count);
+        Volatile.Write(ref _notasTratadasLote, 0);
         using var semaforo = new SemaphoreSlim(Math.Max(1, _opcoes.MaxTransportesConcorrentes));
         var tarefas = ondas.Select(o => ProcessarOndaAsync(o.Item1, o.Notas, arquivoDe, semaforo, registros, identificadorPacote, ct))
             .ToList();
@@ -479,11 +487,19 @@ public sealed class ProcessadorLote
                         : throw new InvalidOperationException("O Orquestrador não devolveu resultado para a nota.");
                     RegistrarSeparacao(nota, resultado, arquivo, ctx, transporte, identificadorPacote);
                     Concluir(registros, arquivo, resultado, identificadorPacote, ctx, ctx.EhTsp ? exibido : null, inicioNota);
+                    Interlocked.Increment(ref _notasTratadasLote);
                 }
                 catch (AutenticacaoWmsIndisponivelException ex)
                 {
                     // Falha de autenticação NÃO é erro da nota: não registra, não move para Erro e interrompe o pacote.
                     Volatile.Write(ref _abortoAutenticacao, 1);
+                    _diagnostico.Registrar(new EventoDiagnostico
+                    {
+                        Tipo = "auth-pacote-interrompido",
+                        Subtipo = ex.EmCooldown ? "cooldown" : "falha",
+                        Status = ex.Status,
+                        Quantidade = Math.Max(1, Volatile.Read(ref _totalNotasLote) - Volatile.Read(ref _notasTratadasLote)),
+                    });
                     _logger.LogWarning(
                         "Pacote interrompido: autenticação do WMS indisponível (status={Status}, cooldown={Cooldown}). " +
                         "A nota {Nota} e as demais permanecem na entrada para nova tentativa.",
@@ -494,6 +510,7 @@ public sealed class ProcessadorLote
                 {
                     _logger.LogError(ex, "Exceção ao integrar a nota {Nota} ({Arquivo}).", nota.Numero, arquivo);
                     var motivo = "Exceção ao integrar: " + ex.Message;
+                    Interlocked.Increment(ref _notasTratadasLote);
                     Finalizar(registros, Registro(arquivo, false, nota.Numero, exibido, motivo, false, 0,
                             StatusLinhaRelatorio.NaoIntegrada, string.Empty, string.Empty, null,
                             new[] { motivo }, CategoriaErro.Outro, DestinoArquivo.Erro, identificadorPacote, ctx,

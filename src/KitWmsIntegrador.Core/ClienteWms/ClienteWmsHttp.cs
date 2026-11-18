@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using KitWmsIntegrador.Core.Diagnostico;
 using KitWmsIntegrador.Core.Tempo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -34,6 +35,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
 
     private readonly GuardaAutenticacaoWms _guarda;
     private readonly IAlertaAutenticacaoWms? _alerta;
+    private readonly IRegistroDiagnostico _diagnostico;
 
     private readonly Func<HttpClient>? _fabricaConexaoNova;
 
@@ -54,8 +56,10 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
         IClock clock,
         GuardaAutenticacaoWms? guarda = null,
         IAlertaAutenticacaoWms? alerta = null,
-        Func<HttpClient>? fabricaConexaoNova = null)
+        Func<HttpClient>? fabricaConexaoNova = null,
+        IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico ?? RegistroDiagnosticoNulo.Instancia;
         _fabricaConexaoNova = fabricaConexaoNova;
         _http = http;
         _opcoes = opcoes.Value;
@@ -267,12 +271,14 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                 _tokenObtidoEm = _clock.UtcNow;
                 _ultimoStatusToken = null;
                 alertarRecuperacao = _guarda.RegistrarSucesso();
+                RegistrarRecuperada(alertarRecuperacao);
                 return nova;
             }
             catch (AutenticacaoWmsIndisponivelException ex) when (!ex.EmCooldown)
             {
                 _ultimoStatusToken = ex.Status;
                 alertarIndisponivel = _guarda.RegistrarFalha(out var proxima);
+                RegistrarQueda(alertarIndisponivel, ex.Status, proxima);
                 statusAlerta = ex.Status;
                 proximaAlerta = proxima;
                 _logger.LogError(
@@ -385,7 +391,29 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
 
     private sealed record SessaoToken(string Token, string? Cookie);
 
-    private sealed record ResultadoGetToken(int? Status, string? Token, BackendWms Backend, TimeSpan Latencia);
+    private sealed record ResultadoGetToken(int? Status, string? Token, BackendWms Backend, TimeSpan Latencia, string? Motivo = null);
+
+    // Diário de diagnóstico (sem segredo): queda do GetToken (início do episódio ou escalada do cooldown).
+    private void RegistrarQueda(bool inicio, int? status, DateTimeOffset proximaUtc)
+    {
+        _diagnostico.Registrar(new EventoDiagnostico
+        {
+            Tipo = "auth-queda",
+            Subtipo = inicio ? "inicio" : "escalada",
+            Status = status,
+            Segundos = (int)Math.Max(0, Math.Round((proximaUtc - _clock.UtcNow).TotalSeconds)),
+            Quantidade = _guarda.FalhasConsecutivas,
+        });
+    }
+
+    // Diário de diagnóstico: só quando houve de fato uma recuperação de indisponibilidade.
+    private void RegistrarRecuperada(bool recuperou)
+    {
+        if (recuperou)
+        {
+            _diagnostico.Registrar(new EventoDiagnostico { Tipo = "auth-recuperada" });
+        }
+    }
 
     // Token por envio: um GetToken novo para este POST. Falha de autenticação segue a mesma regra do cache
     // (cooldown global, exceção, alerta): nunca vira erro de nota.
@@ -406,6 +434,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
 
             var sessao = await ObterTokenAsync(cancellationToken).ConfigureAwait(false);
             alertarRecuperacao = _guarda.RegistrarSucesso();
+            RegistrarRecuperada(alertarRecuperacao);
             return sessao;
         }
         catch (AutenticacaoWmsIndisponivelException ex) when (!ex.EmCooldown)
@@ -419,6 +448,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
             }
 
             alertarIndisponivel = _guarda.RegistrarFalha(out var proxima);
+            RegistrarQueda(alertarIndisponivel, ex.Status, proxima);
             statusAlerta = ex.Status;
             proximaAlerta = proxima;
             _logger.LogError(
@@ -453,6 +483,16 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
             cancellationToken.ThrowIfCancellationRequested();
             await EsperarTetoGetTokenAsync(cancellationToken).ConfigureAwait(false);
             ultimo = await TentarGetTokenAsync(tentativa, max, tentativa > 1, cancellationToken).ConfigureAwait(false);
+            _diagnostico.Registrar(new EventoDiagnostico
+            {
+                Tipo = "gettoken",
+                Ok = ultimo.Token is not null,
+                Status = ultimo.Status,
+                Backend = ultimo.Backend.Chave,
+                DuracaoMs = (long)ultimo.Latencia.TotalMilliseconds,
+                Quantidade = tentativa,
+                Mensagem = ultimo.Motivo,
+            });
             if (ultimo.Token is not null)
             {
                 return new SessaoToken(ultimo.Token, ultimo.Backend.CookieHeader);
@@ -544,7 +584,7 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
                     "GetToken do WMS respondeu HTTP {Status} sem token válido (tentativa={Tentativa}/{Max}, corpo de {Bytes} bytes) " +
                     "servidor={Servidor} detalhe={Detalhe} latenciaMs={LatenciaMs:F0}",
                     status, tentativa, max, corpo.Length, backend.Chave, backend.Detalhe, latencia.TotalMilliseconds);
-                return new ResultadoGetToken(status, null, backend, latencia);
+                return new ResultadoGetToken(status, null, backend, latencia, "sem-token");
             }
 
             _logger.LogDebug(
@@ -557,14 +597,14 @@ public sealed class ClienteWmsHttp : IClienteWms, IClienteWmsBruto
             _logger.LogWarning(
                 "Falha de rede no GetToken (tentativa={Tentativa}/{Max}): {Tipo}. servidor={Servidor} latenciaMs={LatenciaMs:F0}",
                 tentativa, max, ex.GetType().Name, BackendWms.Desconhecido.Chave, cronometro.Elapsed.TotalMilliseconds);
-            return new ResultadoGetToken(null, null, BackendWms.Desconhecido, cronometro.Elapsed);
+            return new ResultadoGetToken(null, null, BackendWms.Desconhecido, cronometro.Elapsed, "rede");
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning(
                 "Timeout no GetToken (tentativa={Tentativa}/{Max}). servidor={Servidor} latenciaMs={LatenciaMs:F0}",
                 tentativa, max, BackendWms.Desconhecido.Chave, cronometro.Elapsed.TotalMilliseconds);
-            return new ResultadoGetToken(null, null, BackendWms.Desconhecido, cronometro.Elapsed);
+            return new ResultadoGetToken(null, null, BackendWms.Desconhecido, cronometro.Elapsed, "timeout");
         }
         finally
         {

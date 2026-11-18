@@ -62,8 +62,13 @@ public sealed class AmbienteI51 : IDisposable
 
     private readonly ILoggerFactory _logs;
 
-    public AmbienteI51(ILoggerFactory? logs = null, OpcoesPasta? pastas = null)
+    private readonly KitWmsIntegrador.Core.Diagnostico.IRegistroDiagnostico? _diagnostico;
+
+    public AmbienteI51(
+        ILoggerFactory? logs = null, OpcoesPasta? pastas = null,
+        KitWmsIntegrador.Core.Diagnostico.IRegistroDiagnostico? diagnostico = null)
     {
+        _diagnostico = diagnostico;
         _logs = logs ?? NullLoggerFactory.Instance;
         Raiz = Path.Combine(Path.GetTempPath(), "kitwms-i51-" + Guid.NewGuid().ToString("N"));
         Entrada = pastas?.CaminhoEntrada ?? Path.Combine(Raiz, "entrada");
@@ -147,13 +152,13 @@ public sealed class AmbienteI51 : IDisposable
         ProcessadorI60 = new ProcessadorI60Separacao(
             Repositorio, Wms, new ConstrutorI60(Options.Create(Operacional), Options.Create(I60)), new LeitorNotaFiscalXml(),
             new ClassificadorRetorno(), Options.Create(I60), i51, Options.Create(Pastas), Caminhos, Clock,
-            _logs.CreateLogger<ProcessadorI60Separacao>());
+            _logs.CreateLogger<ProcessadorI60Separacao>(), _diagnostico);
         Comandos = new ComandosI51(Caminhos, Clock, _logs.CreateLogger<ComandosI51>());
         Alerta = new AlertaI60(
             Repositorio, Caminhos, Email, Destinatarios, Options.Create(I60), Options.Create(EmailOpcoes), Options.Create(RelatorioOpcoes),
-            Options.Create(new OpcoesRelatorio()), Clock, _logs.CreateLogger<AlertaI60>());
+            Options.Create(new OpcoesRelatorio()), Clock, _logs.CreateLogger<AlertaI60>(), _diagnostico);
         Servico = new ServicoSeparacaoI51(
-            Repositorio, Brutos, Consulta, Casador, Orfaos, ProcessadorI60, Comandos, Alerta, i51, Clock, _logs.CreateLogger<ServicoSeparacaoI51>());
+            Repositorio, Brutos, Consulta, Casador, Orfaos, ProcessadorI60, Comandos, Alerta, i51, Clock, _logs.CreateLogger<ServicoSeparacaoI51>(), _diagnostico);
     }
 
     /// <summary>XML sintético de NF-e (emitente = proprietária, série 6) com os itens dados. Nenhum dado real.</summary>
