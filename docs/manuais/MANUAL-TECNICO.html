@@ -96,7 +96,7 @@
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
     <span>Gerado em: 2026-11-18</span>
-    <span>Vers&atilde;o: 2026.11.18-9268aac</span>
+    <span>Vers&atilde;o: 2026.11.18-20083f8</span>
   </div>
 </section>
   <header class="hd">
@@ -801,7 +801,7 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 <tr>
 <td><code>I51:Identificador</code></td>
 <td><code>WEBAPI-I51</code></td>
-<td>Identificador do EDI no WMS (o número pode mudar).</td>
+<td>Identificador do EDI no WMS (o número pode mudar). <strong>Em produção é <code>WEBAPI-I51-Json</code></strong> (definido no <code>appsettings.Production.json</code> do servidor em 17/11/2026); com o nome do homolog o WMS responde HTTP 400 vazio. A I60 de produção usa <code>WEBAPI-I60-Json</code>.</td>
 </tr>
 <tr>
 <td><code>I51:IntervaloMinutos</code></td>

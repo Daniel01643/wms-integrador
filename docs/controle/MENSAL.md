@@ -34,8 +34,8 @@ Detalhe por semana em `docs/controle/SEMANAL.md`; mestre em `docs/CONTROLE-ESFOR
 |--------|---------|--------|-----|-------|
 | W45 | 03/11–09/11 | 23,15 | 16,0 | 39,15 |
 | W46 | 10/11–16/11 | 19,74 | 38,5 | 58,24 |
-| W47 (parcial, até 17/11) | 17/11 | 2,0 | 3,0 | 5,0 |
-| **Total parcial do mês (até 17/11)** | | **44,89** | **57,5** | **102,39** |
+| W47 (parcial, até 18/11) | 17/11–18/11 | 5,0 | 10,0 | 15,0 |
+| **Total parcial do mês (até 18/11)** | | **47,89** | **64,5** | **112,39** |
 
 > Em 16/11: releases 2026.11.16-1/-2/-3 em produção; 401 resolvido; I51/I60 e tela de devolução ligadas;
 > **projeto finalizado e travado** (reabre só para novos ajustes).

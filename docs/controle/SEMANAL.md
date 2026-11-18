@@ -52,7 +52,8 @@ quantidade da I60 (retomar terça 03/11).
 | Data | Humana | IA | Total | Marcos |
 |------|--------|-----|-------|--------|
 | 2026-11-17 | 2,0 | 3,0 | 5,0 | I51 com identificador `WEBAPI-I51-Json`; I60 cadastrada no WMS; I60 parada e religada (duplicação de DocCarga no WMS); release 2026.11.17-1 (quantidade em embalagens); 610 associadas |
-| **Total parcial (até 17/11)** | **2,0** | **3,0** | **5,0** | |
+| 2026-11-18 | 3,0 | 7,0 | 10,0 | Travamento do servidor por memória de outros sistemas; release 2026.11.18-1 (Diagnóstico agente integrador 14:00 só TI, alertas técnicos, memória, log HTTP, e-mail I60 enxuto) |
+| **Total parcial (até 18/11)** | **5,0** | **10,0** | **15,0** | |
 
 **Estado em 17/11.** Produção na release 2026.11.17-1. Fluxo I50 → separação → I51 → I60 funcionando em produção
 (610 notas associadas, 0 rejeitadas). Monitoramento pelas manhãs até 20/11.

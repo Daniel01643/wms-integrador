@@ -611,7 +611,7 @@ existe com a separação concluída (não há separação parcial).
 |---|---|---|
 | `I51:Habilitada` | `false` | Liga o fluxo. Desligada: nada novo roda, nada é gravado em disco e a I60 sai junto da I50. |
 | `I60:Habilitada` | `false` | Liga o envio da I60. Para o fluxo completo, ligue as duas. |
-| `I51:Identificador` | `WEBAPI-I51` | Identificador do EDI no WMS (o número pode mudar). |
+| `I51:Identificador` | `WEBAPI-I51` | Identificador do EDI no WMS (o número pode mudar). **Em produção é `WEBAPI-I51-Json`** (definido no `appsettings.Production.json` do servidor em 17/11/2026); com o nome do homolog o WMS responde HTTP 400 vazio. A I60 de produção usa `WEBAPI-I60-Json`. |
 | `I51:IntervaloMinutos` | `5` | De quantos em quantos minutos consulta o WMS. |
 | `I51:HorasParaAtraso` | `24` | Sem retorno nesse prazo, a nota vira **Atrasada** e entra no relatório. |
 | `I51:CampoUnico` | `Numero` | Campo usado na consulta UNICO: `Numero` (nota, 9 dígitos) ou `NroDocumento`. |
