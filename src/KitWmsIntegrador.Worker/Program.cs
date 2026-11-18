@@ -54,6 +54,12 @@ if (args.Contains(RelatorioManualI60.Argumento))
     return await RelatorioManualI60.ExecutarAsync(args);
 }
 
+// Diagnóstico agente integrador sob demanda (sem esperar as 14:00): --diagnostico [--enviar].
+if (args.Contains(DiagnosticoManual.Argumento))
+{
+    return await DiagnosticoManual.ExecutarAsync(args);
+}
+
 // Envio manual de teste da I40 (devolução, Plano B fase 1): chave ou número + série (+ --xml opcional).
 if (args.Contains(EnvioManualI40.Argumento))
 {
@@ -223,6 +229,10 @@ builder.Services.AddHostedService<ServidorTelaDevolucao>();
 // Fluxo I51 -> I60 (repositório de estado, consulta, casamento, I60 pós-separação, relatório diário).
 builder.Services.AdicionarSeparacaoI51();
 builder.Services.AddHostedService<ConsultaI51Worker>();
+
+// Diagnóstico agente integrador: e-mail diário às 14:00 (só para a TI), em worker próprio.
+builder.Services.AdicionarDiagnostico();
+builder.Services.AddHostedService<DiagnosticoWorker>();
 
 builder.Services.AddHostedService<Worker>();
 

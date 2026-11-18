@@ -1,0 +1,13 @@
+# Modelo do arquivo de destinatarios do DIAGNOSTICO AGENTE INTEGRADOR (e-mail tecnico diario das 14:00 e alerta de falha/recuperacao do token do WMS).
+#
+# Copie para C:\Friozem\importacao_notas\config\destinatarios-diagnostico.txt no servidor (fora do git).
+# O caminho e apontado por Diagnostico:CaminhoDestinatarios no appsettings.Production.json.
+#
+# Regras:
+#   - um e-mail por linha;
+#   - linhas em branco sao ignoradas;
+#   - linhas iniciadas por '#' sao comentarios;
+#   - o arquivo e relido a cada envio (edite e salve; efeito no proximo envio, sem reiniciar).
+#
+# Se ausente ou vazio, vale Diagnostico:Destinatarios; se tambem vazio, ti@friozem.com.br (e um aviso vai ao log).
+ti@friozem.com.br
