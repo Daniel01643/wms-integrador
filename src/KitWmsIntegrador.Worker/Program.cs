@@ -233,6 +233,7 @@ builder.Services.AddHostedService<ConsultaI51Worker>();
 // Diagnóstico agente integrador: e-mail diário às 14:00 (só para a TI), em worker próprio.
 builder.Services.AdicionarDiagnostico();
 builder.Services.AddHostedService<DiagnosticoWorker>();
+builder.Services.AddHostedService<SaudeProcessoWorker>();
 
 builder.Services.AddHostedService<Worker>();
 

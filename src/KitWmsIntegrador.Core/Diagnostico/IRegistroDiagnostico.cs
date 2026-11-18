@@ -67,4 +67,36 @@ public sealed record EventoDiagnostico
 
     /// <summary>Segundos (ex.: cooldown aplicado).</summary>
     public int? Segundos { get; init; }
+
+    // Amostra de saúde (tipo "saude-amostra"): memória do processo e do servidor. Valores em MB.
+
+    /// <summary>Working set do processo do integrador (MB).</summary>
+    public int? ProcessoWsMb { get; init; }
+
+    /// <summary>Memória privada do processo do integrador (MB).</summary>
+    public int? ProcessoPrivadoMb { get; init; }
+
+    /// <summary>Handles abertos pelo processo.</summary>
+    public int? Handles { get; init; }
+
+    /// <summary>Threads do processo.</summary>
+    public int? Threads { get; init; }
+
+    /// <summary>Memória física livre do servidor (MB).</summary>
+    public int? LivreMb { get; init; }
+
+    /// <summary>Memória física total do servidor (MB).</summary>
+    public int? TotalMb { get; init; }
+
+    /// <summary>Memória virtual (commit) em uso, ligada ao arquivo de paginação (MB).</summary>
+    public int? PaginacaoUsadaMb { get; init; }
+
+    /// <summary>Limite de memória virtual (commit = RAM + arquivo de paginação) (MB).</summary>
+    public int? PaginacaoTotalMb { get; init; }
+
+    /// <summary>Os processos que mais usam memória (nome e MB; nunca linha de comando).</summary>
+    public IReadOnlyList<ConsumidorMemoria>? Consumidores { get; init; }
 }
+
+/// <summary>Processo e a memória que ele usa (working set, MB). Só o nome do processo; sem linha de comando.</summary>
+public sealed record ConsumidorMemoria(string Nome, int Mb);

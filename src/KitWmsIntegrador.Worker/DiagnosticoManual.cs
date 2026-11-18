@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace KitWmsIntegrador.Worker;
 
 /// <summary>
-/// CLI <c>--diagnostico [--enviar]</c>: gera o "Diagnóstico agente integrador" das últimas 24 h (HTML em
+/// CLI <c>--diagnostico [--enviar]</c>: gera o "Diagnóstico agente integrador" das últimas 24 h (HTML e PDF em
 /// <c>Relatorio:PastaSaida\diagnostico</c>) sem esperar as 14:00 e sem tocar a marca do slot. Com <c>--enviar</c> tenta
 /// também o e-mail (só aos destinatários de diagnóstico). Saída: 0 ok, 1 erro de geração/gravação.
 /// </summary>

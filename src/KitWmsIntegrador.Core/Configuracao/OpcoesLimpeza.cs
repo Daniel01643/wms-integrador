@@ -14,4 +14,16 @@ public sealed class OpcoesLimpeza
 
     /// <summary>Padrão 30 dias (o Plano B precisa achar o XML da venda original). Arquivos mais antigos que este número de dias são removidos.</summary>
     public int DiasRetencao { get; set; } = 30;
+
+    /// <summary>
+    /// Retenção, em dias, dos logs rotacionados do NSSM (<c>worker.out-*.log</c>/<c>worker.err-*.log</c>). Vale 1 ou mais;
+    /// o arquivo atual (<c>worker.out.log</c>) nunca é apagado.
+    /// </summary>
+    public int DiasRetencaoLogs { get; set; } = 30;
+
+    /// <summary>
+    /// Pasta dos logs do NSSM. Vazio = <c>&lt;pasta do app&gt;\..\..\logs</c> (resolvido para caminho absoluto). Pasta
+    /// inexistente é ignorada.
+    /// </summary>
+    public string PastaLogs { get; set; } = string.Empty;
 }

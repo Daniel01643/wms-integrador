@@ -10,14 +10,17 @@ using Microsoft.Extensions.Options;
 namespace KitWmsIntegrador.Core.Monitoramento;
 
 /// <summary>
-/// Grava o Diagnóstico agente integrador (HTML) em <c>&lt;Relatorio:PastaSaida&gt;\diagnostico</c> e, se o SMTP estiver
-/// configurado, envia o e-mail SOMENTE aos destinatários de diagnóstico. A gravação em disco falha alto (o slot não é
-/// marcado); falha de e-mail só loga.
+/// Grava o Diagnóstico agente integrador (HTML e PDF completo) em <c>&lt;Relatorio:PastaSaida&gt;\diagnostico</c> e, se o SMTP estiver
+/// configurado, envia o e-mail SOMENTE aos destinatários de diagnóstico, com corpo enxuto (resumo + problemas) e o PDF
+/// completo anexo. A gravação em disco falha alto (o slot não é marcado); falha de e-mail só loga.
 /// </summary>
 public sealed class EnviadorDiagnostico
 {
     /// <summary>Subpasta de saída dentro de <c>Relatorio:PastaSaida</c>.</summary>
     public const string Subpasta = "diagnostico";
+
+    /// <summary>Nome do PDF anexado ao e-mail.</summary>
+    public const string NomeAnexoPdf = "diagnostico.pdf";
 
     private readonly IEnviadorEmail _email;
     private readonly IGeradorDiagnostico _gerador;
@@ -43,30 +46,34 @@ public sealed class EnviadorDiagnostico
     }
 
     /// <summary>
-    /// Grava o HTML (lança <see cref="IOException"/>/<see cref="UnauthorizedAccessException"/> se o disco falhar) e tenta o
-    /// e-mail. Devolve o caminho gravado e se o e-mail foi enviado.
+    /// Grava o HTML e o PDF (lança <see cref="IOException"/>/<see cref="UnauthorizedAccessException"/> se o disco falhar) e
+    /// tenta o e-mail. Devolve o caminho do HTML gravado (o PDF fica ao lado, com o mesmo nome) e se o e-mail foi enviado.
     /// </summary>
     public async Task<(string Html, bool EmailEnviado)> EnviarAsync(ModeloDiagnostico modelo, bool enviarEmail, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(modelo);
         var (htmlDisco, _) = _gerador.GerarHtml(modelo, ModoLogoRelatorio.DataUri);
+        var pdf = _gerador.GerarPdf(modelo);
 
         var pasta = Path.Combine(Path.GetFullPath(_relatorio.PastaSaida), Subpasta);
         Directory.CreateDirectory(pasta);
         var carimbo = modelo.GeradoEm.ToLocalTime().ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture);
         var caminho = Path.Combine(pasta, $"diagnostico_{carimbo}.html");
         File.WriteAllText(caminho, htmlDisco, new UTF8Encoding(true));
-        _logger.LogInformation("Diagnóstico agente integrador gravado em disco: {Html}.", caminho);
+        var caminhoPdf = Path.ChangeExtension(caminho, ".pdf");
+        File.WriteAllBytes(caminhoPdf, pdf);
+        _logger.LogInformation("Diagnóstico agente integrador gravado em disco: {Html} e {Pdf}.", caminho, caminhoPdf);
 
         var enviado = false;
         if (enviarEmail && SmtpConfigurado())
         {
             try
             {
-                var (htmlEmail, imagem) = _gerador.GerarHtml(modelo, ModoLogoRelatorio.Cid);
+                // Corpo enxuto (resumo + problemas); o PDF anexo e as cópias em disco continuam completos.
+                var (htmlEmail, imagem) = _gerador.GerarHtml(modelo, ModoLogoRelatorio.Cid, enxuto: true);
                 var assunto = $"{_opcoes.AssuntoPrefixo} {CorpoEmailDiagnostico.Subtitulo} — {modelo.JanelaFim.ToLocalTime():dd/MM/yyyy}".Trim();
                 var resultado = await _email.EnviarAsync(
-                    new MensagemEmail(assunto, htmlEmail, Array.Empty<AnexoEmail>(), imagem, _destinatarios.Ler()), ct)
+                    new MensagemEmail(assunto, htmlEmail, new[] { new AnexoEmail(NomeAnexoPdf, pdf) }, imagem, _destinatarios.Ler()), ct)
                     .ConfigureAwait(false);
                 enviado = resultado.Status == StatusEnvioEmail.Enviado;
                 if (!enviado)

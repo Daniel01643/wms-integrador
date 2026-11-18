@@ -8,8 +8,11 @@ namespace KitWmsIntegrador.Core.Relatorio;
 /// <summary>Gera o relatório diário da I51/I60 em HTML e PDF.</summary>
 public interface IGeradorRelatorioI60
 {
-    /// <summary>HTML para e-mail (logo por CID) ou para disco (logo em data URI).</summary>
-    (string Html, ImagemInline? Imagem) GerarHtml(ModeloRelatorioI60 modelo, ModoLogoRelatorio modo);
+    /// <summary>
+    /// HTML para e-mail (logo por CID) ou para disco (logo em data URI). <paramref name="enxuto"/> = corpo do e-mail só com
+    /// resumo e problemas (as listas completas ficam no PDF).
+    /// </summary>
+    (string Html, ImagemInline? Imagem) GerarHtml(ModeloRelatorioI60 modelo, ModoLogoRelatorio modo, bool enxuto = false);
 
     /// <summary>PDF A4 paisagem.</summary>
     byte[] GerarPdf(ModeloRelatorioI60 modelo);
@@ -36,9 +39,9 @@ public sealed class GeradorRelatorioI60 : IGeradorRelatorioI60
     }
 
     /// <inheritdoc />
-    public (string Html, ImagemInline? Imagem) GerarHtml(ModeloRelatorioI60 modelo, ModoLogoRelatorio modo)
+    public (string Html, ImagemInline? Imagem) GerarHtml(ModeloRelatorioI60 modelo, ModoLogoRelatorio modo, bool enxuto = false)
     {
-        var corpo = CorpoEmailRelatorioI60.Montar(modelo, IdentidadeVisual.ObterLogo(_opcoes.LogoPath), modo);
+        var corpo = CorpoEmailRelatorioI60.Montar(modelo, IdentidadeVisual.ObterLogo(_opcoes.LogoPath), modo, enxuto);
         return (corpo.Html, corpo.ImagemEmbutida);
     }
 

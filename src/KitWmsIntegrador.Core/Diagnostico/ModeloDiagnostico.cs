@@ -62,8 +62,25 @@ public sealed record SecaoSaude(
     long? TamanhoProcessados, long? TamanhoErro, long? TamanhoEstado,
     LimpezaDiagnostico? Limpeza, string LogWarningError);
 
-/// <summary>Modelo único do "Diagnóstico agente integrador" (HTML/e-mail).</summary>
+/// <summary>
+/// Seção 7: memória do integrador e do servidor (amostras <c>saude-amostra</c> da janela). Valores em MB; <c>null</c> = sem
+/// dado. Pico e média são do integrador; o mínimo de memória livre é do servidor. Os consumidores são os 5 processos que
+/// mais usam memória no instante do pico do integrador (<see cref="ConsumidoresNoPico"/>) e no instante do mínimo de
+/// memória livre (<see cref="ConsumidoresNoMinimoLivre"/>).
+/// </summary>
+public sealed record SecaoMemoria(
+    int Amostras,
+    int? PicoWsMb, DateTimeOffset? QuandoPicoWs, double? MediaWsMb,
+    int? PicoPrivadoMb, double? MediaPrivadoMb,
+    int? PicoHandles, int? PicoThreads,
+    int? MinimoLivreMb, DateTimeOffset? QuandoMinimoLivre, int? TotalMb,
+    int? PicoPaginacaoUsadaMb, int? PaginacaoTotalMb,
+    IReadOnlyList<ConsumidorMemoria> ConsumidoresNoPico, IReadOnlyList<ConsumidorMemoria> ConsumidoresNoMinimoLivre,
+    int AlertasMemoria, int AlertasMemoriaEnviados);
+
+/// <summary>Modelo único do "Diagnóstico agente integrador" (HTML/PDF/e-mail).</summary>
 public sealed record ModeloDiagnostico(
     DateTimeOffset GeradoEm, DateTimeOffset JanelaInicio, DateTimeOffset JanelaFim,
     SecaoLogin Login, SecaoPacotes Pacotes, SecaoCadastros Cadastros,
-    SecaoSeparacao Separacao, SecaoDevolucao Devolucao, SecaoSaude Saude);
+    SecaoSeparacao Separacao, SecaoDevolucao Devolucao, SecaoSaude Saude,
+    SecaoMemoria? Memoria = null);

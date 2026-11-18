@@ -24,8 +24,16 @@ public static class CorpoEmailRelatorioI60
     private const string Subtitulo = "Separação (I51) e associação (I60)";
     private const int LarguraCorpo = 760;
 
-    /// <summary>Gera o HTML e, no modo cid, a imagem inline da logo.</summary>
-    public static CorpoEmailResumo.CorpoEmail Montar(ModeloRelatorioI60 m, byte[]? logoPng, ModoLogoRelatorio modo)
+    /// <summary>Texto da linha que, no corpo enxuto do e-mail, aponta para o PDF anexo.</summary>
+    public const string LinhaDetalhesNoPdf = "Detalhes completos no PDF anexo";
+
+    /// <summary>
+    /// Gera o HTML e, no modo cid, a imagem inline da logo. Com <paramref name="enxuto"/> (corpo do e-mail) só saem o resumo
+    /// (cartões por situação e saúde da consulta) e os PROBLEMAS (atenção, I60 com problema, ajustes de quantidade e
+    /// atrasadas), mais a linha "Detalhes completos no PDF anexo"; as listas do que deu certo ficam só no PDF. Sem
+    /// <paramref name="enxuto"/> o HTML é completo (arquivo em disco).
+    /// </summary>
+    public static CorpoEmailResumo.CorpoEmail Montar(ModeloRelatorioI60 m, byte[]? logoPng, ModoLogoRelatorio modo, bool enxuto = false)
     {
         ArgumentNullException.ThrowIfNull(m);
         var ci = CultureInfo.InvariantCulture;
@@ -45,6 +53,11 @@ public static class CorpoEmailRelatorioI60
 
         Cabecalho(sb, srcLogo);
         Periodo(sb, m);
+        if (enxuto)
+        {
+            Aviso(sb, LinhaDetalhesNoPdf, "#f5f9fd", IdentidadeVisual.AzulClaro, IdentidadeVisual.Azul);
+        }
+
         Atencao(sb, m, ci);
         Saude(sb, m, ci);
 
@@ -58,21 +71,30 @@ public static class CorpoEmailRelatorioI60
         }
 
         var nota = new[] { "Nota", "Série", "Tipo", "Transporte / onda", "Pacote", "Idade", "Quando" };
-        Tabela(sb, "Aguardando separação", m.ListaAguardando, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma nota aguardando.");
-        Tabela(sb, "Separadas na janela", m.SeparadasNaJanela, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma separação na janela.");
-        Tabela(sb, "I60 pendentes de envio", m.PendentesI60, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma I60 pendente de envio.");
-        Tabela(sb, "I60 associadas", m.Associadas, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma I60 associada na janela.");
+        if (!enxuto)
+        {
+            Tabela(sb, "Aguardando separação", m.ListaAguardando, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma nota aguardando.");
+            Tabela(sb, "Separadas na janela", m.SeparadasNaJanela, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma separação na janela.");
+            Tabela(sb, "I60 pendentes de envio", m.PendentesI60, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma I60 pendente de envio.");
+            Tabela(sb, "I60 associadas", m.Associadas, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma I60 associada na janela.");
+        }
 
         var prob = new[] { "Nota", "Tipo", "Pacote", "Operação", "Motivo", "Mensagem do WMS", "Ressalvas" };
         Tabela(sb, "I60 com problema", m.Problemas, prob, n => new[] { n.Numero, n.Tipo, n.Pacote, n.Operacao, n.Motivo, n.Mensagem, n.Ressalvas }, "Nenhuma I60 com problema.");
-        Tabela(sb, "I60 enviadas aguardando confirmação", m.AguardandoConfirmacao, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma I60 aguardando confirmação.");
+        if (!enxuto)
+        {
+            Tabela(sb, "I60 enviadas aguardando confirmação", m.AguardandoConfirmacao, nota, n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Quando }, "Nenhuma I60 aguardando confirmação.");
+        }
 
         TabelaAjustes(sb, m, ci);
         Tabela(sb, "Atrasadas", m.ListaAtrasadas, new[] { "Nota", "Série", "Tipo", "Transporte / onda", "Pacote", "Idade", "UNICO tentados" },
             n => new[] { n.Numero, n.Serie, n.Tipo, TransOnda(n), n.Pacote, n.Idade, n.Tentativas.ToString(ci) }, "Nenhuma nota atrasada.");
-        TabelaPacotes(sb, m, ci);
+        if (!enxuto)
+        {
+            TabelaPacotes(sb, m, ci);
+        }
 
-        if (m.MostrarCandidatasI40)
+        if (m.MostrarCandidatasI40 && !enxuto)
         {
             var aviso = m.DevolucaoDesligada
                 ? "A tela de devolução pela I40 está desligada (Devolucao:Habilitada=false)."

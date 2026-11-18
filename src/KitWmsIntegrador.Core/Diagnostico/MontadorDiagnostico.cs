@@ -27,8 +27,40 @@ public static class MontadorDiagnostico
             Cadastros(eventos, grupos),
             Separacao(eventos, e, linhas),
             Devolucao(e, linhas),
-            Saude(eventos, e.Saude));
+            Saude(eventos, e.Saude),
+            Memoria(eventos));
     }
+
+    private static SecaoMemoria Memoria(List<EventoDiagnostico> eventos)
+    {
+        var amostras = eventos.Where(x => x.Tipo == "saude-amostra").ToList();
+        var alertas = eventos.Where(x => x.Tipo == "saude-alerta").ToList();
+
+        var comWs = amostras.Where(x => x.ProcessoWsMb is not null).ToList();
+        var picoWs = comWs.Count == 0 ? null : comWs.MaxBy(x => x.ProcessoWsMb);
+        var comPrivado = amostras.Where(x => x.ProcessoPrivadoMb is not null).ToList();
+        var comLivre = amostras.Where(x => x.LivreMb is not null).ToList();
+        var minLivre = comLivre.Count == 0 ? null : comLivre.MinBy(x => x.LivreMb);
+        var comPaginacao = amostras.Where(x => x.PaginacaoUsadaMb is not null).ToList();
+
+        return new SecaoMemoria(
+            amostras.Count,
+            picoWs?.ProcessoWsMb, picoWs?.QuandoLocal, comWs.Count == 0 ? null : comWs.Average(x => (double)x.ProcessoWsMb!.Value),
+            comPrivado.Count == 0 ? null : comPrivado.Max(x => x.ProcessoPrivadoMb),
+            comPrivado.Count == 0 ? null : comPrivado.Average(x => (double)x.ProcessoPrivadoMb!.Value),
+            amostras.Where(x => x.Handles is not null).Select(x => x.Handles).Max(),
+            amostras.Where(x => x.Threads is not null).Select(x => x.Threads).Max(),
+            minLivre?.LivreMb, minLivre?.QuandoLocal, minLivre?.TotalMb ?? amostras.Select(x => x.TotalMb).LastOrDefault(t => t is not null),
+            comPaginacao.Count == 0 ? null : comPaginacao.Max(x => x.PaginacaoUsadaMb),
+            comPaginacao.Count == 0 ? null : comPaginacao.MaxBy(x => x.PaginacaoUsadaMb)!.PaginacaoTotalMb,
+            Consumidores(picoWs), Consumidores(minLivre),
+            alertas.Count, alertas.Count(x => x.Ok == true));
+    }
+
+    private static IReadOnlyList<ConsumidorMemoria> Consumidores(EventoDiagnostico? amostra) =>
+        (amostra?.Consumidores ?? new List<ConsumidorMemoria>())
+            .Select(c => new ConsumidorMemoria(Limpo(c.Nome) ?? "(sem nome)", c.Mb))
+            .ToList();
 
     private static string? Limpo(string? texto) => SanitizadorDiagnostico.Texto(texto, MaxMensagem);
 

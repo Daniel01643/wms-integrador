@@ -38,6 +38,18 @@ public sealed class OpcoesDiagnostico
     /// <summary>Quantidade máxima de grupos de mensagem listados por tabela.</summary>
     public int MaxGruposMensagem { get; set; } = 10;
 
+    /// <summary>
+    /// Intervalo, em minutos, da amostra de memória do processo e do servidor (padrão 15). 0 desliga a amostragem
+    /// (e o alerta de memória). Valores de 1 a 1440.
+    /// </summary>
+    public int IntervaloAmostraMinutos { get; set; } = 15;
+
+    /// <summary>
+    /// Alerta por e-mail (só destinatários de diagnóstico) quando a memória física livre do servidor ficar abaixo deste
+    /// valor, em MB, por 2 amostras seguidas (padrão 500; no máximo 1 e-mail por hora). 0 desliga o alerta.
+    /// </summary>
+    public int AlertaMemoriaLivreMb { get; set; } = 500;
+
     /// <summary>Destinatários já separados, sem vazios.</summary>
     public IReadOnlyList<string> ListaDestinatarios =>
         (Destinatarios ?? string.Empty)
@@ -60,6 +72,16 @@ public sealed class OpcoesDiagnostico
         if (MaxGruposMensagem < 1 || MaxGruposMensagem > 100)
         {
             p.Add($"Diagnostico:MaxGruposMensagem deve estar entre 1 e 100 (valor atual: {MaxGruposMensagem}).");
+        }
+
+        if (IntervaloAmostraMinutos < 0 || IntervaloAmostraMinutos > 1440)
+        {
+            p.Add($"Diagnostico:IntervaloAmostraMinutos deve estar entre 0 (desliga) e 1440 (valor atual: {IntervaloAmostraMinutos}).");
+        }
+
+        if (AlertaMemoriaLivreMb < 0 || AlertaMemoriaLivreMb > 1_048_576)
+        {
+            p.Add($"Diagnostico:AlertaMemoriaLivreMb deve estar entre 0 (desliga) e 1048576 (valor atual: {AlertaMemoriaLivreMb}).");
         }
 
         if ((AssuntoPrefixo?.Length ?? 0) > 40 || (AssuntoPrefixo?.IndexOfAny(new[] { '\r', '\n' }) ?? -1) >= 0)

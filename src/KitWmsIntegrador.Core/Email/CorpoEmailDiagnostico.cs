@@ -19,8 +19,16 @@ public static class CorpoEmailDiagnostico
     private const int LarguraCorpo = 760;
     private static readonly CultureInfo Ci = CultureInfo.InvariantCulture;
 
-    /// <summary>Gera o HTML e, no modo cid, a imagem inline da logo.</summary>
-    public static CorpoEmailResumo.CorpoEmail Montar(ModeloDiagnostico m, byte[]? logoPng, ModoLogoRelatorio modo)
+    /// <summary>Texto da linha que, no corpo enxuto do e-mail, aponta para o PDF anexo.</summary>
+    public const string LinhaDetalhesNoPdf = "Detalhes completos no PDF anexo";
+
+    /// <summary>
+    /// Gera o HTML e, no modo cid, a imagem inline da logo. Com <paramref name="enxuto"/> (corpo do e-mail) saem só os
+    /// cartões de resumo e os PROBLEMAS de cada seção (falhas, quedas, erros, notas não associadas) mais a memória, com a
+    /// linha "Detalhes completos no PDF anexo"; tabelas de detalhe ficam só no PDF. Sem <paramref name="enxuto"/> o HTML é
+    /// completo (arquivo em disco).
+    /// </summary>
+    public static CorpoEmailResumo.CorpoEmail Montar(ModeloDiagnostico m, byte[]? logoPng, ModoLogoRelatorio modo, bool enxuto = false)
     {
         ArgumentNullException.ThrowIfNull(m);
         var temLogo = logoPng is { Length: > 0 };
@@ -39,12 +47,18 @@ public static class CorpoEmailDiagnostico
 
         Cabecalho(sb, srcLogo);
         Periodo(sb, m);
-        Login(sb, m.Login);
+        if (enxuto)
+        {
+            Aviso(sb, LinhaDetalhesNoPdf, "#f5f9fd", IdentidadeVisual.AzulClaro, IdentidadeVisual.Azul);
+        }
+
+        Login(sb, m.Login, enxuto);
         Pacotes(sb, m.Pacotes);
-        Cadastros(sb, m.Cadastros);
-        Separacao(sb, m.Separacao);
-        Devolucao(sb, m.Devolucao);
-        Saude(sb, m.Saude);
+        Cadastros(sb, m.Cadastros, enxuto);
+        Separacao(sb, m.Separacao, enxuto);
+        Devolucao(sb, m.Devolucao, enxuto);
+        Saude(sb, m.Saude, enxuto);
+        Memoria(sb, m.Memoria);
         Assinatura(sb, srcLogo);
         sb.Append("</table></td></tr></table></body></html>");
 
@@ -77,7 +91,7 @@ public static class CorpoEmailDiagnostico
           .Append("</p></td></tr>");
     }
 
-    private static void Login(StringBuilder sb, SecaoLogin s)
+    private static void Login(StringBuilder sb, SecaoLogin s, bool enxuto)
     {
         Titulo(sb, "1. Login do WMS (GetToken)");
         Cartoes(sb, new (string, string, string)[]
@@ -92,8 +106,16 @@ public static class CorpoEmailDiagnostico
 
         Subtitulo2(sb, "Falhas por classe");
         TabelaContagem(sb, "Classe", s.FalhasPorClasse, "Nenhuma falha de login no período.");
-        Subtitulo2(sb, "Por servidor do balanceador");
-        if (s.PorBackend.Count == 0)
+        if (!enxuto)
+        {
+            Subtitulo2(sb, "Por servidor do balanceador");
+        }
+
+        if (enxuto)
+        {
+            // detalhe por servidor fica só no PDF
+        }
+        else if (s.PorBackend.Count == 0)
         {
             Aviso(sb, "Nenhuma tentativa de login no período.", "#f5f9fd", IdentidadeVisual.Cinza, IdentidadeVisual.Texto);
         }
@@ -159,7 +181,7 @@ public static class CorpoEmailDiagnostico
             "Nenhum erro por categoria no período.");
     }
 
-    private static void Cadastros(StringBuilder sb, SecaoCadastros s)
+    private static void Cadastros(StringBuilder sb, SecaoCadastros s, bool enxuto)
     {
         Titulo(sb, "3. Cadastros automáticos (I10 e I30)");
         foreach (var i in s.Interfaces)
@@ -174,7 +196,11 @@ public static class CorpoEmailDiagnostico
                 ("Já existia", N(i.JaExistia), IdentidadeVisual.CinzaNeutro),
                 ("Erros da " + i.Interface, N(i.Erros), i.Erros > 0 ? IdentidadeVisual.Vermelho : IdentidadeVisual.CinzaNeutro),
             });
-            TabelaContagem(sb, "Mensagem da I50 que disparou", i.GatilhosPorMensagem, "Nenhum disparo no período.");
+            if (!enxuto)
+            {
+                TabelaContagem(sb, "Mensagem da I50 que disparou", i.GatilhosPorMensagem, "Nenhum disparo no período.");
+            }
+
             if (i.ErrosPorMensagem.Count > 0)
             {
                 TabelaContagem(sb, "Mensagem de erro da " + i.Interface, i.ErrosPorMensagem, string.Empty);
@@ -182,7 +208,7 @@ public static class CorpoEmailDiagnostico
         }
     }
 
-    private static void Separacao(StringBuilder sb, SecaoSeparacao s)
+    private static void Separacao(StringBuilder sb, SecaoSeparacao s, bool enxuto)
     {
         Titulo(sb, "4. Separação (I51) e associação (I60)");
         if (!s.I51Habilitada)
@@ -207,8 +233,12 @@ public static class CorpoEmailDiagnostico
             TabelaContagem(sb, "Falhas de consulta da I51", s.ConsultasFalhas, string.Empty);
         }
 
-        Subtitulo2(sb, "I60 por desfecho");
-        TabelaContagem(sb, "Desfecho", s.I60PorDesfecho, "Nenhuma I60 processada no período.");
+        if (!enxuto)
+        {
+            Subtitulo2(sb, "I60 por desfecho");
+            TabelaContagem(sb, "Desfecho", s.I60PorDesfecho, "Nenhuma I60 processada no período.");
+        }
+
         Subtitulo2(sb, "Alertas imediatos da I60 (notas)");
         TabelaContagem(sb, "Evento", s.AlertasPorEvento, "Nenhum alerta da I60 no período.");
 
@@ -229,7 +259,7 @@ public static class CorpoEmailDiagnostico
         FimTabela(sb, s.NaoAssociadas.NaoExibidas);
     }
 
-    private static void Devolucao(StringBuilder sb, SecaoDevolucao s)
+    private static void Devolucao(StringBuilder sb, SecaoDevolucao s, bool enxuto)
     {
         Titulo(sb, "5. Devolução pela I40");
         if (s.Total == 0)
@@ -245,6 +275,11 @@ public static class CorpoEmailDiagnostico
             ("Com sucesso", N(s.Sucessos), IdentidadeVisual.Verde),
             ("Com falha", N(s.Falhas), s.Falhas > 0 ? IdentidadeVisual.Vermelho : IdentidadeVisual.CinzaNeutro),
         });
+        if (enxuto)
+        {
+            return;
+        }
+
         InicioTabela(sb, new[] { "Usuário (declarado na tela)", "Envios", "Sucesso", "Falha" });
         var i = 0;
         foreach (var u in s.PorUsuario)
@@ -255,9 +290,16 @@ public static class CorpoEmailDiagnostico
         FimTabela(sb, 0);
     }
 
-    private static void Saude(StringBuilder sb, SecaoSaude s)
+    private static void Saude(StringBuilder sb, SecaoSaude s, bool enxuto)
     {
         Titulo(sb, "6. Saúde do serviço");
+        if (enxuto)
+        {
+            Texto(sb, "Versão <b>" + Enc(s.Versao) + "</b> &nbsp;|&nbsp; reinícios na janela: <b>" + N(s.Reinicios)
+                + "</b> &nbsp;|&nbsp; espaço livre (disco da aplicação): <b>" + Enc(Bytes(s.EspacoLivreAplicacao)) + "</b>");
+            return;
+        }
+
         InicioTabela(sb, new[] { "Item", "Valor" });
         var itens = new List<string[]>
         {
@@ -286,6 +328,66 @@ public static class CorpoEmailDiagnostico
 
         FimTabela(sb, 0);
     }
+
+    private static void Memoria(StringBuilder sb, SecaoMemoria? s)
+    {
+        Titulo(sb, "7. Memória do integrador e do servidor");
+        if (s is null || s.Amostras == 0)
+        {
+            Aviso(sb, "Nenhuma amostra de memória no período (amostragem desligada ou serviço iniciado há pouco).",
+                "#f5f9fd", IdentidadeVisual.Cinza, IdentidadeVisual.Texto);
+            return;
+        }
+
+        var baixa = s.MinimoLivreMb is { } min && s.TotalMb is { } tot && tot > 0 && min * 100L < tot * 10L;
+        Cartoes(sb, new (string, string, string)[]
+        {
+            ("Amostras", N(s.Amostras), IdentidadeVisual.AzulClaro),
+            ("Pico do integrador (working set)", Mb(s.PicoWsMb), IdentidadeVisual.Azul),
+            ("Média do integrador (working set)", Mb(s.MediaWsMb), IdentidadeVisual.Azul),
+            ("Pico de memória privada", Mb(s.PicoPrivadoMb), IdentidadeVisual.AzulClaro),
+            ("Pico de handles / threads", Handles(s), IdentidadeVisual.CinzaNeutro),
+            ("Mínimo de memória livre do servidor", Mb(s.MinimoLivreMb) + (s.TotalMb is { } t ? " de " + N(t) + " MB" : string.Empty),
+                baixa ? IdentidadeVisual.Vermelho : IdentidadeVisual.Verde),
+        });
+        Texto(sb, "Pico de memória virtual comprometida (RAM + arquivo de paginação): <b>" + Enc(Mb(s.PicoPaginacaoUsadaMb))
+            + "</b> de <b>" + Enc(Mb(s.PaginacaoTotalMb)) + "</b>"
+            + (s.MinimoLivreMb is not null && s.QuandoMinimoLivre is { } q ? " &nbsp;|&nbsp; mínimo de memória livre às <b>" + Enc(IdentidadeVisual.Horario(q)) + "</b>" : string.Empty)
+            + (s.AlertasMemoria > 0 ? " &nbsp;|&nbsp; alertas de memória livre baixa: <b>" + N(s.AlertasMemoria) + "</b> (e-mails enviados: " + N(s.AlertasMemoriaEnviados) + ")" : string.Empty));
+
+        Subtitulo2(sb, "Maiores consumidores no pico do integrador" + (s.QuandoPicoWs is { } p ? " (" + IdentidadeVisual.Horario(p) + ")" : string.Empty));
+        TabelaConsumidores(sb, s.ConsumidoresNoPico);
+        if (s.ConsumidoresNoMinimoLivre.Count > 0 && s.QuandoMinimoLivre != s.QuandoPicoWs)
+        {
+            Subtitulo2(sb, "Maiores consumidores no mínimo de memória livre" + (s.QuandoMinimoLivre is { } m ? " (" + IdentidadeVisual.Horario(m) + ")" : string.Empty));
+            TabelaConsumidores(sb, s.ConsumidoresNoMinimoLivre);
+        }
+    }
+
+    private static void TabelaConsumidores(StringBuilder sb, IReadOnlyList<ConsumidorMemoria> consumidores)
+    {
+        if (consumidores.Count == 0)
+        {
+            Aviso(sb, "Lista de processos não coletada nesta amostra.", "#f5f9fd", IdentidadeVisual.Cinza, IdentidadeVisual.Texto);
+            return;
+        }
+
+        InicioTabela(sb, new[] { "Processo", "Memória (MB)" });
+        var i = 0;
+        foreach (var c in consumidores)
+        {
+            Linha(sb, i++, new[] { c.Nome, N(c.Mb) });
+        }
+
+        FimTabela(sb, 0);
+    }
+
+    private static string Handles(SecaoMemoria s) =>
+        (s.PicoHandles is { } h ? N(h) : "?") + " / " + (s.PicoThreads is { } t ? N(t) : "?");
+
+    private static string Mb(int? v) => v is { } x ? N(x) + " MB" : "sem dado";
+
+    private static string Mb(double? v) => v is { } x ? N((int)Math.Round(x)) + " MB" : "sem dado";
 
     private static string Bytes(long? valor)
     {

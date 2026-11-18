@@ -168,7 +168,9 @@ public sealed class DiagnosticoAgendadorTests : IDisposable
         var msg = Assert.Single(_a.Email.Enviadas);
         Assert.Equal("[TESTE] Diagnóstico agente integrador — 12/11/2026", msg.Assunto);
         Assert.Equal(new[] { "ti1@exemplo.com", "ti2@exemplo.com" }, msg.DestinatariosOverride);
-        Assert.Empty(msg.Anexos);
+        var anexo = Assert.Single(msg.Anexos);
+        Assert.Equal("diagnostico.pdf", anexo.Nome);
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(anexo.Conteudo, 0, 4));
         Assert.Contains("agente integrador", msg.CorpoHtml);
     }
 

@@ -13,10 +13,13 @@ public sealed record ResultadoLimpeza(int ArquivosRemovidos, int PastasRemovidas
 
 /// <summary>
 /// Remove arquivos antigos (por <c>LastWriteTimeUtc</c>) de Processados e Erro. Só atua dentro
-/// dessas duas pastas, recusa configuração perigosa e não segue reparse points.
+/// dessas duas pastas, recusa configuração perigosa e não segue reparse points. Também remove os logs
+/// rotacionados do NSSM (<c>worker.out-*.log</c>) da pasta de logs, com retenção própria.
 /// </summary>
 public sealed class LimpadorPastas
 {
+    private static readonly string[] PadroesLogsRotacionados = { "worker.out-*.log", "worker.err-*.log" };
+
     private readonly IClock _clock;
     private readonly OpcoesPasta _pastas;
     private readonly OpcoesLimpeza _limpeza;
@@ -49,15 +52,18 @@ public sealed class LimpadorPastas
                 return new ResultadoLimpeza(0, 0, erros);
             }
 
+            // Logs rotacionados do NSSM: independente da validação das pastas do fluxo (outra pasta, outra retenção).
+            LimparLogsRotacionados(erros, ref arquivos);
+
             if (_limpeza.DiasRetencao < 0)
             {
-                return Recusar(erros, "Limpeza:DiasRetencao não pode ser negativo.");
+                return Recusar(erros, "Limpeza:DiasRetencao não pode ser negativo.", arquivos);
             }
 
             var problemas = _pastas.Validar();
             if (problemas.Count > 0)
             {
-                return Recusar(erros, "Configuração de pastas insegura para limpeza: " + string.Join(" ", problemas));
+                return Recusar(erros, "Configuração de pastas insegura para limpeza: " + string.Join(" ", problemas), arquivos);
             }
 
             var limite = _clock.UtcNow.UtcDateTime - TimeSpan.FromDays(_limpeza.DiasRetencao);
@@ -79,11 +85,86 @@ public sealed class LimpadorPastas
         return new ResultadoLimpeza(arquivos, pastas, erros);
     }
 
-    private ResultadoLimpeza Recusar(List<string> erros, string motivo)
+    /// <summary>
+    /// Apaga os logs rotacionados do NSSM (<c>worker.out-*.log</c> e <c>worker.err-*.log</c>) mais antigos que
+    /// <c>Limpeza:DiasRetencaoLogs</c>. O arquivo atual (<c>worker.out.log</c>, sem hífen) nunca casa com o padrão. Pasta
+    /// ausente é ignorada; não segue reparse points; recusa raiz de drive.
+    /// </summary>
+    private void LimparLogsRotacionados(List<string> erros, ref int arquivos)
+    {
+        try
+        {
+            if (_limpeza.DiasRetencaoLogs < 1)
+            {
+                var motivo = "Limpeza:DiasRetencaoLogs deve ser 1 ou mais; logs rotacionados não foram limpos.";
+                _logger.LogError("Limpeza de logs recusada: {Motivo}", motivo);
+                erros.Add(motivo);
+                return;
+            }
+
+            var pasta = ResolverPastaLogs();
+            if (pasta is null || !Directory.Exists(pasta) || EhReparsePoint(pasta))
+            {
+                return;
+            }
+
+            var limite = _clock.UtcNow.UtcDateTime - TimeSpan.FromDays(_limpeza.DiasRetencaoLogs);
+            foreach (var padrao in PadroesLogsRotacionados)
+            {
+                foreach (var arquivo in Directory.EnumerateFiles(pasta, padrao))
+                {
+                    try
+                    {
+                        if (!EstaDentro(arquivo, pasta) || EhReparsePoint(arquivo))
+                        {
+                            continue;
+                        }
+
+                        var mtime = File.GetLastWriteTimeUtc(arquivo);
+                        if (mtime >= limite)
+                        {
+                            continue;
+                        }
+
+                        File.Delete(arquivo);
+                        arquivos++;
+                        _logger.LogInformation(
+                            "Limpeza removeu o log rotacionado {Arquivo} (idade {Dias:F1} dia(s)).",
+                            Path.GetFileName(arquivo), (_clock.UtcNow.UtcDateTime - mtime).TotalDays);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Limpeza não conseguiu remover o log {Arquivo}.", arquivo);
+                        erros.Add($"{arquivo}: {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao limpar os logs rotacionados.");
+            erros.Add(ex.Message);
+        }
+    }
+
+    /// <summary>Pasta de logs absoluta (configurada ou <c>&lt;app&gt;\..\..\logs</c>); <c>null</c> se insegura (raiz de drive).</summary>
+    private string? ResolverPastaLogs()
+    {
+        var bruto = string.IsNullOrWhiteSpace(_limpeza.PastaLogs)
+            ? Path.Combine(AppContext.BaseDirectory, "..", "..", "logs")
+            : _limpeza.PastaLogs.Trim();
+        var completo = Path.TrimEndingDirectorySeparator(Path.GetFullPath(bruto));
+        var raiz = Path.GetPathRoot(completo);
+        return string.IsNullOrEmpty(raiz) || string.Equals(Path.TrimEndingDirectorySeparator(raiz), completo, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : completo;
+    }
+
+    private ResultadoLimpeza Recusar(List<string> erros, string motivo, int arquivos = 0)
     {
         _logger.LogError("Limpeza recusada: {Motivo}", motivo);
         erros.Add(motivo);
-        return new ResultadoLimpeza(0, 0, erros);
+        return new ResultadoLimpeza(arquivos, 0, erros);
     }
 
     private void LimparRaiz(string raiz, DateTime limite, List<string> erros, ref int arquivos, ref int pastas)

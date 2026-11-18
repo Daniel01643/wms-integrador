@@ -69,7 +69,8 @@ public sealed class EnviadorRelatorioDiarioI60
         {
             try
             {
-                var (htmlEmail, imagem) = _gerador.GerarHtml(modelo, ModoLogoRelatorio.Cid);
+                // Corpo enxuto (resumo + problemas); o PDF anexo e as cópias em disco continuam completos.
+                var (htmlEmail, imagem) = _gerador.GerarHtml(modelo, ModoLogoRelatorio.Cid, enxuto: true);
                 var assunto = $"{_opcoes.AssuntoPrefixo} {IdentidadeVisual.Titulo} - I51/I60 - {modelo.GeradoEm.ToLocalTime():dd/MM/yyyy}".Trim();
                 var destinatarios = _destinatarios.Ler();
                 var resultado = await _email.EnviarAsync(

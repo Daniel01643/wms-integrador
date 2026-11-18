@@ -12,7 +12,7 @@ namespace KitWmsIntegrador.Worker;
 /// </summary>
 public static class RegistroDiagnostico
 {
-    /// <summary>Registra marca, coletor, saúde, gerador, enviador e serviço do diagnóstico.</summary>
+    /// <summary>Registra marca, coletor, saúde, gerador, enviador, serviço do diagnóstico e a amostragem de memória.</summary>
     public static IServiceCollection AdicionarDiagnostico(this IServiceCollection services)
     {
         services.AddSingleton<MarcaUltimoDiagnostico>();
@@ -23,6 +23,8 @@ public static class RegistroDiagnostico
         services.AddSingleton<IGeradorDiagnostico, GeradorDiagnostico>();
         services.AddSingleton<EnviadorDiagnostico>();
         services.AddSingleton<ServicoDiagnostico>();
+        services.AddSingleton<IColetorAmostraSistema, ColetorAmostraSistema>();
+        services.AddSingleton<ServicoAmostraSaude>();
         return services;
     }
 }
