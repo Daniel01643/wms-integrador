@@ -55,6 +55,13 @@ Documento curto para quem voltar ao tema. Primeiro fechamento: 09/11/2026. Pausa
 > 1 embalagem = 10 unidades e a I51 devolve `qtdeProdutoSep` em unidades. Antes da correção, 2 notas (16835431 e
 > 16835433) foram associadas com 180 e 110 em vez de 18 e 11; por decisão do usuário ficam como estão no WMS.
 > Situação na publicação: 610 associadas, 1 aguardando separação, 0 rejeitadas.
+> **18/11/2026:** o SRVAPPALC02 travou às 10:09 e 11:41 por memória virtual baixa causada por **outros sistemas**
+> (`node.exe` de outras aplicações, inclusive um Next.js em `npm run dev`, e o PowerBI Gateway). O integrador usava
+> ~155 MB. A "falha de token" de 09:48–09:56 foram timeouts do servidor sem memória. Release **2026.11.18-1 publicada às
+> 18:46**: e-mail diário "Diagnóstico agente integrador" às 14:00 só para a TI (`config\destinatarios-diagnostico.txt`),
+> alertas de login só para a TI, amostra de memória a cada 15 min com alerta abaixo de 500 MB livres, log HTTP em
+> Warning, limpeza dos logs do NSSM (30 dias), e-mail da I51/I60 com só resumo e problemas no corpo (detalhes no PDF).
+> Situação: 1.153 associadas, 839 aguardando separação, 0 rejeitadas.
 
 ## 1. Estado na pausa
 
