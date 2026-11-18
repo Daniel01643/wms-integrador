@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual Tecnico</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-17</span>
-    <span>Vers&atilde;o: 2026.11.17-6136eaa</span>
+    <span>Gerado em: 2026-11-18</span>
+    <span>Vers&atilde;o: 2026.11.18-89e6e73</span>
   </div>
 </section>
   <header class="hd">
@@ -131,6 +131,7 @@ powershell -ExecutionPolicy Bypass -File .\&lt;script&gt;.ps1 &lt;parâmetros&gt
 <li><a href="#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário">8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário</a> (inclui pré-requisitos do WMS, alerta imediato e calibração do ENC)</li>
 <li><a href="#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível">8.6. Última alternativa: tela de devolução pela I40 (seção removível)</a> (inclui o login simples)</li>
 <li><a href="#87-falha-de-login-do-wms-401-no-gettoken-tipos-de-separação-e-espera-de-coleta-release-20261116-1">8.7. Falha de login do WMS (401), tipos de separação e espera de coleta</a></li>
+<li><a href="#88-diagnóstico-agente-integrador-e-mail-técnico-diário-da-ti">8.8. Diagnóstico agente integrador (e-mail técnico diário da TI)</a></li>
 </ul>
 <ol>
 <li><a href="#9-publicar-nova-versão-e-rollback">Publicar nova versão e rollback</a></li>
@@ -560,6 +561,8 @@ gestor@friozem.com.br</code></pre>
 <li><code>Monitoramento:CaminhoDestinatarios</code> → <code>config\destinatarios-resumo.txt</code></li>
 </ul>
 <p>Confirme os valores efetivos em produção antes de supor onde os arquivos estão (ver lacuna no resumo). Lembre que <code>config\</code> tem ACL restrita (seção 13) e que as listas reais não são versionadas.</p>
+<h3>7.4. Diagnóstico agente integrador — <code>Diagnostico:CaminhoDestinatarios</code></h3>
+<p>Terceira lista, só da TI: recebe o e-mail "Diagnóstico agente integrador" (14:00) <strong>e</strong> o alerta/recuperação de falha do GetToken (seção 8.8). O arquivo no servidor é <code>config\destinatarios-diagnostico.txt</code> (modelo: <code>deploy\config-exemplo\destinatarios-diagnostico.exemplo.txt</code>), relido a cada envio, com a chave <code>Diagnostico:CaminhoDestinatarios</code>. Precedência: TXT, depois <code>Diagnostico:Destinatarios</code> (separado por <code>;</code>), depois <code>ti@friozem.com.br</code> (com aviso no log). Os destinatários do fechamento <strong>não</strong> recebem esses e-mails.</p>
 <h2>8. Dia/hora do resumo, janela de coleta e limpeza</h2>
 <p>Todas na config não-secreta (<code>appsettings.Production.json</code>), reinicie o serviço após alterar:</p>
 <table>
@@ -985,6 +988,17 @@ powershell -ExecutionPolicy Bypass -File .\limpar-extensao-invalida.ps1</code></
 </ul>
 <p><strong>Tipos de separação da I50.</strong> <code>I50:TipoSeparacao</code> = <code>PIC;FEF;PLL</code> (cabeçalho do pedido) e <code>I50:TipoSeparacao2</code> = <code>AGL;FEF;PLL</code>, enviados no cabeçalho e em cada item. Antes eram <code>RES;FEF;PLI</code>. Confira que o <code>appsettings.Production.json</code> do servidor não define esses valores antigos, pois ele sobrepõe o do pacote.</p>
 <p><strong>Espera de coleta.</strong> <code>Pacote:SilencioSegundos</code> = 20 (era 15), <code>Pacote:JanelaMaximaSegundos</code> = 180 e <code>Pacote:EstabilizacaoSegundos</code> = 3. Se um lote ainda for dividido, aumente <code>SilencioSegundos</code> no <code>appsettings.Production.json</code> (ou <code>Pacote__SilencioSegundos</code>) e reinicie o serviço.</p>
+<h3>8.8. Diagnóstico agente integrador (e-mail técnico diário da TI)</h3>
+<p>E-mail <strong>somente para a TI</strong>, todo dia às 14:00 (inclusive sábado e domingo), cobrindo as 24 h anteriores ao horário. Traz seis seções: login do WMS (GetToken: tentativas, falhas por classe e por backend, janelas de queda com início, fim e duração, cooldowns e pacotes interrompidos), pacotes e notas, cadastros automáticos I10/I30 (erros que geraram as chamadas, por mensagem do WMS, e erros das próprias chamadas), separação I51/I60 (inclui a lista de notas não associadas), devolução pela I40 (contagem por usuário) e saúde do serviço (versão, reinícios, tamanhos de pasta, espaço livre e última limpeza). "Warning/Error do log" e "lotes divididos" aparecem como <code>não coletado</code>: é esperado.</p>
+<ul>
+<li><strong>Agenda:</strong> um envio por dia; reiniciar o serviço não reenvia; se o serviço estava parado às 14:00, envia uma vez ao voltar. A marca é <code>&lt;telemetria&gt;\ultimo-diagnostico.txt</code>.</li>
+<li><strong>Chaves</strong> (<code>config\appsettings.Production.json</code>, seção <code>Diagnostico</code>; reiniciar o serviço): <code>Habilitado</code> (liga só o relatório; padrão <code>true</code>), <code>HoraDoDia</code> (<code>14:00</code>), <code>AssuntoPrefixo</code> (<code>[KitWms]</code>), <code>CaminhoDestinatarios</code> (seção 7.4), <code>Destinatarios</code> (<code>ti@friozem.com.br</code>), <code>MaxLinhasPorSecao</code> (100) e <code>MaxGruposMensagem</code> (10). Respeita <code>Email:Habilitado</code>: sem e-mail, só grava o HTML.</li>
+<li><strong>Onde fica:</strong> HTML em <code>Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html</code>. Os eventos ficam no diário <code>Estado\diagnostico\AAAAMMDD.jsonl</code> (uma linha JSON por evento; retenção <code>Limpeza:DiasRetencao</code>, 30 dias). Não mexer nesses arquivos.</li>
+<li><strong>Sob demanda:</strong> <code>&amp; 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --diagnostico</code> gera o HTML e mostra o caminho; com <code>--enviar</code> também envia o e-mail para a TI. Saída 0 = ok, 1 = erro.</li>
+<li><strong>Eventos do diário:</strong> <code>gettoken</code>, <code>auth-queda</code>, <code>auth-recuperada</code>, <code>auth-pacote-interrompido</code>, <code>cadastro-gatilho</code>, <code>cadastro-chamada</code>, <code>i51-consulta</code>, <code>i51-ciclo</code>, <code>i60-desfecho</code>, <code>i60-alerta</code>, <code>arquivos-ignorados</code> e <code>limpeza</code>. Cada linha tem tipo, horário local e campos curtos (status, quantidade, duração, nota e série). <strong>Nunca</strong> token, senha, cabeçalho Basic/Bearer nem corpo de nota: o texto é sanitizado ao gravar e de novo ao montar o relatório.</li>
+<li><strong>Roteamento dos alertas:</strong> o alerta e a recuperação do GetToken vão <strong>só</strong> para a TI (lista da seção 7.4), não mais para o fechamento. Alerta imediato e relatório diário da I60, fechamento do pacote e resumo semanal seguem para as listas de antes; a TI recebe apenas o resumo dos alertas I60 dentro do Diagnóstico.</li>
+<li><strong>Como agir:</strong> janela de queda "em andamento" ou repetida = rodar <code>--testar-token</code> (seção 8.7). Muitos gatilhos I10/I30 com a mesma mensagem = anotar a mensagem e avisar a IA de apoio. Notas não associadas = ver o relatório da I60 (seção 8.5).</li>
+</ul>
 <h2>9. Publicar nova versão e rollback</h2>
 <p>O <code>.zip</code> da nova versão é gerado <strong>na máquina de build</strong> (ver seção 0), rodando o <code>deploy\publicar.ps1</code> do repositório; o arquivo sai em <code>artifacts\&lt;versao&gt;\</code>. Copie esse <code>.zip</code> para o servidor (ex.: <code>C:\temp</code>) e faça o resto <strong>no servidor</strong>.</p>
 <p><strong>Publicar uma nova release</strong> (no servidor) com <code>publicar-release.ps1</code>, a partir de <code>C:\Friozem\importacao_notas\tools\deploy</code>. Informe a origem (<code>-ReleaseZip</code> <strong>ou</strong> <code>-ReleaseDir</code>, nunca os dois):</p>
@@ -1136,6 +1150,16 @@ powershell -ExecutionPolicy Bypass -File .\remover.ps1 -LimparPastas -Confirm</c
 <td>Destinatários do resumo semanal</td>
 <td>editar o TXT <code>config\destinatarios-resumo.txt</code> (<code>Monitoramento:CaminhoDestinatarios</code>)</td>
 <td>Não (vale no próximo envio)</td>
+</tr>
+<tr>
+<td>Destinatários do diagnóstico e do alerta de token</td>
+<td>editar o TXT <code>config\destinatarios-diagnostico.txt</code> (<code>Diagnostico:CaminhoDestinatarios</code>; seção 7.4)</td>
+<td>Não (vale no próximo envio)</td>
+</tr>
+<tr>
+<td>Gerar o diagnóstico agora / mudar a hora</td>
+<td><code>Worker.exe --diagnostico [--enviar]</code>; hora em <code>Diagnostico:HoraDoDia</code> (seção 8.8)</td>
+<td>Só para mudar a hora: <strong>Sim</strong></td>
 </tr>
 <tr>
 <td>Dia/hora do resumo</td>

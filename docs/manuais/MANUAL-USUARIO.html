@@ -95,8 +95,8 @@
   <p class="capa-sub">Integra&ccedil;&atilde;o autom&aacute;tica de notas fiscais com o WMS</p>
   <p class="capa-tipo">Manual do Usuario</p>
   <div class="capa-meta">
-    <span>Gerado em: 2026-11-17</span>
-    <span>Vers&atilde;o: 2026.11.17-6136eaa</span>
+    <span>Gerado em: 2026-11-18</span>
+    <span>Vers&atilde;o: 2026.11.18-89e6e73</span>
   </div>
 </section>
   <header class="hd">
@@ -306,7 +306,7 @@
 </ul>
 <p>Isso vale para a raiz, a <code>Puxada</code> e a <code>PuxadaTSP</code>. Se a TI precisar, ela consegue voltar para a janela fixa antiga de 10 segundos sem trocar a versão (ver o Manual Técnico).</p>
 <h3>Quando o WMS não aceita o login do sistema</h3>
-<p>Às vezes o WMS recusa o login do integrador por alguns minutos (erro 401), e isso não depende de você nem do arquivo. Nesse caso o sistema <strong>não manda as notas para <code>Erro</code></strong>: ele interrompe o pacote e **deixa os arquivos na pasta de entrada**, tenta de novo sozinho (esperando 1, 2, 5, 10 e depois 15 minutos entre as tentativas) e processa tudo quando o WMS voltar. A TI recebe um e-mail de alerta e outro quando normaliza. **Não apague nem mova esses arquivos e não deposite de novo.** Se o relatório mostrar "Falhas de autenticação (GetToken)", avise a TI.</p>
+<p>Às vezes o WMS recusa o login do integrador por alguns minutos (erro 401), e isso não depende de você nem do arquivo. Nesse caso o sistema <strong>não manda as notas para <code>Erro</code></strong>: ele interrompe o pacote e **deixa os arquivos na pasta de entrada**, tenta de novo sozinho (esperando 1, 2, 5, 10 e depois 15 minutos entre as tentativas) e processa tudo quando o WMS voltar. A TI (somente ela; os destinatários do fechamento não recebem esse alerta técnico) recebe um e-mail de alerta e outro quando normaliza. **Não apague nem mova esses arquivos e não deposite de novo.** Se o relatório mostrar "Falhas de autenticação (GetToken)", avise a TI. Você continua recebendo o e-mail de fechamento do pacote e os alertas de separação; os avisos técnicos (como o do login do WMS) e o resumo diário de diagnóstico vão só para a TI.</p>
 <h3>A placa do veículo</h3>
 <ul>
 <li><strong>Puxada normal (pasta <code>Puxada</code> e raiz):</strong> a nota vai ao WMS <strong>com a placa</strong> do veículo lida do XML.</li>

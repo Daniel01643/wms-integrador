@@ -61,7 +61,8 @@ C:\Friozem\importacao_notas\          (APP — binários, config, logs)
 │   ├── appsettings.Production.json
 │   ├── email.settings.json
 │   ├── destinatarios-resumo.txt
-│   └── destinatarios-fechamento.txt
+│   ├── destinatarios-fechamento.txt
+│   └── destinatarios-diagnostico.txt
 ├── data\                    (conveniência; a Entrada real fica em C:\Friozem\kitbrf)
 ├── logs\                    (worker.out.log / worker.err.log, rotação pelo NSSM)
 ├── backups\                 (zips do current anterior antes de cada virada)
@@ -246,9 +247,12 @@ Reaplica a ACL de `config\`. Depois de gravar as credenciais, o serviço precisa
 > validação), destinatários etc. O molde marca os pontos de virada com `_VIRADA` (apenas
 > WMS/credenciais/destinatários — a pasta de entrada **não** é um deles). Copie também
 > `destinatarios-resumo.exemplo.txt` para `config\destinatarios-resumo.txt` **e**
-> `destinatarios-fechamento.exemplo.txt` para `config\destinatarios-fechamento.txt`, apontando
-> `Monitoramento:CaminhoDestinatarios` e `Email:CaminhoDestinatarios` para eles (o molde de
-> `appsettings.Production.json` já traz os dois caminhos). O txt de fechamento tem **precedência**
+> `destinatarios-fechamento.exemplo.txt` para `config\destinatarios-fechamento.txt` **e**
+> `destinatarios-diagnostico.exemplo.txt` para `config\destinatarios-diagnostico.txt` (conteúdo
+> `ti@friozem.com.br`), apontando `Monitoramento:CaminhoDestinatarios`, `Email:CaminhoDestinatarios`
+> e `Diagnostico:CaminhoDestinatarios` para eles (o molde de `appsettings.Production.json` já traz os
+> três caminhos; o do diagnóstico é `C:\Friozem\importacao_notas\config\destinatarios-diagnostico.txt`,
+> e o diagnóstico e o alerta de token do WMS vão **só** para a TI). O txt de fechamento tem **precedência**
 > sobre `Email:Destinatarios` (que vira fallback; se ambos vazios, o e-mail do pacote não é enviado).
 
 ### 3.6 (Opcional) habilitar TLS 1.2 se o handshake com o WMS falhar
@@ -292,7 +296,8 @@ A virada é só troca de valores de config + restart:
    .\configurar-segredos.ps1 -Fase Producao
    ```
 3. Confirme destinatários de produção (fechamento em `config\destinatarios-fechamento.txt`, com
-   `Email:Destinatarios` como fallback; resumo em `config\destinatarios-resumo.txt`).
+   `Email:Destinatarios` como fallback; resumo em `config\destinatarios-resumo.txt`; diagnóstico e
+   alerta de token em `config\destinatarios-diagnostico.txt`, com `ti@friozem.com.br`).
 4. Reinicie:
    ```powershell
    .\servico.ps1 -Acao Restart

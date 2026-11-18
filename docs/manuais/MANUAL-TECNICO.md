@@ -42,6 +42,7 @@ powershell -ExecutionPolicy Bypass -File .\<script>.ps1 <parâmetros>
    - [8.5. I51 como gatilho da I60: retorno da separação, associação e relatório diário](#85-i51-como-gatilho-da-i60-retorno-da-separação-associação-e-relatório-diário) (inclui pré-requisitos do WMS, alerta imediato e calibração do ENC)
    - [8.6. Última alternativa: tela de devolução pela I40 (seção removível)](#86-última-alternativa-tela-de-devolução-pela-i40-seção-removível) (inclui o login simples)
    - [8.7. Falha de login do WMS (401), tipos de separação e espera de coleta](#87-falha-de-login-do-wms-401-no-gettoken-tipos-de-separação-e-espera-de-coleta-release-20261116-1)
+   - [8.8. Diagnóstico agente integrador (e-mail técnico diário da TI)](#88-diagnóstico-agente-integrador-e-mail-técnico-diário-da-ti)
 9. [Publicar nova versão e rollback](#9-publicar-nova-versão-e-rollback)
 10. [Estado e telemetria (não mexer)](#10-estado-e-telemetria-não-mexer)
 11. [O serviço não sobe — diagnóstico e TLS 1.2](#11-o-serviço-não-sobe--diagnóstico-e-tls-12)
@@ -316,6 +317,12 @@ Confirme os valores efetivos em produção antes de supor onde os arquivos estã
 resumo). Lembre que `config\` tem ACL restrita (seção 13) e que as listas reais não são
 versionadas.
 
+### 7.4. Diagnóstico agente integrador — `Diagnostico:CaminhoDestinatarios`
+
+Terceira lista, só da TI: recebe o e-mail "Diagnóstico agente integrador" (14:00) **e** o alerta/recuperação de falha do GetToken
+(seção 8.8). O arquivo no servidor é `config\destinatarios-diagnostico.txt` (modelo: `deploy\config-exemplo\destinatarios-diagnostico.exemplo.txt`),
+relido a cada envio, com a chave `Diagnostico:CaminhoDestinatarios`. Precedência: TXT, depois `Diagnostico:Destinatarios` (separado por `;`),
+depois `ti@friozem.com.br` (com aviso no log). Os destinatários do fechamento **não** recebem esses e-mails.
 ## 8. Dia/hora do resumo, janela de coleta e limpeza
 
 Todas na config não-secreta (`appsettings.Production.json`), reinicie o serviço após alterar:
@@ -817,6 +824,17 @@ antigos, pois ele sobrepõe o do pacote.
 
 **Espera de coleta.** `Pacote:SilencioSegundos` = 20 (era 15), `Pacote:JanelaMaximaSegundos` = 180 e `Pacote:EstabilizacaoSegundos` = 3. Se um
 lote ainda for dividido, aumente `SilencioSegundos` no `appsettings.Production.json` (ou `Pacote__SilencioSegundos`) e reinicie o serviço.
+### 8.8. Diagnóstico agente integrador (e-mail técnico diário da TI)
+
+E-mail **somente para a TI**, todo dia às 14:00 (inclusive sábado e domingo), cobrindo as 24 h anteriores ao horário. Traz seis seções: login do WMS (GetToken: tentativas, falhas por classe e por backend, janelas de queda com início, fim e duração, cooldowns e pacotes interrompidos), pacotes e notas, cadastros automáticos I10/I30 (erros que geraram as chamadas, por mensagem do WMS, e erros das próprias chamadas), separação I51/I60 (inclui a lista de notas não associadas), devolução pela I40 (contagem por usuário) e saúde do serviço (versão, reinícios, tamanhos de pasta, espaço livre e última limpeza). "Warning/Error do log" e "lotes divididos" aparecem como `não coletado`: é esperado.
+
+- **Agenda:** um envio por dia; reiniciar o serviço não reenvia; se o serviço estava parado às 14:00, envia uma vez ao voltar. A marca é `<telemetria>\ultimo-diagnostico.txt`.
+- **Chaves** (`config\appsettings.Production.json`, seção `Diagnostico`; reiniciar o serviço): `Habilitado` (liga só o relatório; padrão `true`), `HoraDoDia` (`14:00`), `AssuntoPrefixo` (`[KitWms]`), `CaminhoDestinatarios` (seção 7.4), `Destinatarios` (`ti@friozem.com.br`), `MaxLinhasPorSecao` (100) e `MaxGruposMensagem` (10). Respeita `Email:Habilitado`: sem e-mail, só grava o HTML.
+- **Onde fica:** HTML em `Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html`. Os eventos ficam no diário `Estado\diagnostico\AAAAMMDD.jsonl` (uma linha JSON por evento; retenção `Limpeza:DiasRetencao`, 30 dias). Não mexer nesses arquivos.
+- **Sob demanda:** `& 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --diagnostico` gera o HTML e mostra o caminho; com `--enviar` também envia o e-mail para a TI. Saída 0 = ok, 1 = erro.
+- **Eventos do diário:** `gettoken`, `auth-queda`, `auth-recuperada`, `auth-pacote-interrompido`, `cadastro-gatilho`, `cadastro-chamada`, `i51-consulta`, `i51-ciclo`, `i60-desfecho`, `i60-alerta`, `arquivos-ignorados` e `limpeza`. Cada linha tem tipo, horário local e campos curtos (status, quantidade, duração, nota e série). **Nunca** token, senha, cabeçalho Basic/Bearer nem corpo de nota: o texto é sanitizado ao gravar e de novo ao montar o relatório.
+- **Roteamento dos alertas:** o alerta e a recuperação do GetToken vão **só** para a TI (lista da seção 7.4), não mais para o fechamento. Alerta imediato e relatório diário da I60, fechamento do pacote e resumo semanal seguem para as listas de antes; a TI recebe apenas o resumo dos alertas I60 dentro do Diagnóstico.
+- **Como agir:** janela de queda "em andamento" ou repetida = rodar `--testar-token` (seção 8.7). Muitos gatilhos I10/I30 com a mesma mensagem = anotar a mensagem e avisar a IA de apoio. Notas não associadas = ver o relatório da I60 (seção 8.5).
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -966,6 +984,8 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Trocar URL do WMS | editar `Wms:BaseUrl` em `config\appsettings.Production.json` | **Sim** |
 | Destinatários do fechamento | editar o TXT `config\destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
 | Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
+| Destinatários do diagnóstico e do alerta de token | editar o TXT `config\destinatarios-diagnostico.txt` (`Diagnostico:CaminhoDestinatarios`; seção 7.4) | Não (vale no próximo envio) |
+| Gerar o diagnóstico agora / mudar a hora | `Worker.exe --diagnostico [--enviar]`; hora em `Diagnostico:HoraDoDia` (seção 8.8) | Só para mudar a hora: **Sim** |
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
 | Janela de coleta (silêncio 20 s, teto 180 s) ou voltar à janela fixa | `config\appsettings.Production.json`: `Pacote:ModoJanela` (`Silencio`/`Fixa`), `Pacote:SilencioSegundos`, `Pacote:JanelaMaximaSegundos`, `Pacote:JanelaColetaSegundos` (só no modo `Fixa`) | **Sim** |
 | Retenção/limpeza (30 dias) | `config\appsettings.Production.json`: `Limpeza:DiasRetencao` e `I51:DiasRetencaoEstado` | **Sim** |

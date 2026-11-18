@@ -489,7 +489,8 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
   `X-Correlation-Id` ou `traceparent`) e até 200 caracteres do corpo da resposta. Nunca token, usuário, senha
   ou header `Authorization`.
 - **Alerta por e-mail:** um e-mail quando a autenticação fica indisponível e um quando volta
-  (`Wms:AlertaAutenticacao=true`; respeita `Email:Habilitado` e usa os destinatários do fechamento). O
+  (`Wms:AlertaAutenticacao=true`; respeita `Email:Habilitado`). Desde o diagnóstico (seção 13) o alerta vai **somente** aos
+  destinatários de diagnóstico (TI), nunca aos do fechamento. O
   relatório e o e-mail do pacote mostram "Falhas de autenticação (GetToken): N" e o aviso de pacote
   interrompido só quando houve falha.
 - **Teste manual:** `KitWmsIntegrador.Worker.exe --testar-token` faz um GetToken com a configuração do serviço
@@ -535,7 +536,7 @@ Release preparada e **não publicada**; substituída pela 2026.11.16-1 (seção 
   de afinidade) e `latenciaMs`; o código de saída segue a última tentativa.
 
 **Sintomas**
-- E-mail "ALERTA: autenticação do WMS indisponível (GetToken)" e, quando volta, "RECUPERADO: autenticação do WMS (GetToken)".
+- E-mail "ALERTA: autenticação do WMS indisponível (GetToken)" e, quando volta, "RECUPERADO: autenticação do WMS (GetToken)" (só para a TI, destinatários de diagnóstico).
 - Log `worker.out.log`: "GetToken falhou" com status (401 em geral), "Pacote interrompido: autenticação do WMS
   indisponível" e "Aguardando autenticação do WMS até HH:mm:ss".
 - Notas paradas na pasta de entrada (`Puxada`/`PuxadaTSP`/raiz) e **nada** novo em `Erro`. Relatório do pacote com a
@@ -590,3 +591,48 @@ cerca de 10 min, sem falha de credencial, codificação, URL, TLS ou concorrênc
 (3 servidores com balanceador, token sem expiração) aponta um nó com problema. O token por envio com nova tentativa em
 outra conexão contorna o nó ruim; a correção do nó é do fornecedor. A release 2026.11.16-1 já tornava o 401 inofensivo
 (sem nota em `Erro`, sem rajada de chamadas, com alerta).
+
+## 13. Diagnóstico agente integrador (e-mail técnico diário da TI)
+
+E-mail técnico **somente para a TI**, enviado todos os dias às 14:00 (inclusive sábado e domingo), com título "Diagnóstico agente integrador". Ele resume as últimas 24 horas antes do horário do envio (janela do slot: das 14:00 do dia anterior às 14:00 do dia). Não substitui o relatório do pacote nem o relatório diário da I60; é uma leitura de saúde do integrador.
+
+- **Agendamento:** `DiagnosticoWorker` verifica a cada 60 s (atraso inicial de 30 s) e usa a mesma regra de slot do relatório da I60. Um slot é enviado uma vez; reiniciar o serviço não reenvia; se o serviço estava parado às 14:00, o slot perdido é enviado uma vez ao voltar. A marca fica em `<telemetria>\ultimo-diagnostico.txt`. Falha de coleta ou de disco não marca o slot e tenta de novo no minuto seguinte; falha de e-mail só é logada e o slot é marcado.
+- **Chaves (seção `Diagnostico`):**
+
+| Chave | Padrão | O que faz |
+|---|---|---|
+| `Diagnostico:Habilitado` | `true` | Liga ou desliga **só o relatório diário**. O diário de eventos e o alerta de token não dependem dela |
+| `Diagnostico:HoraDoDia` | `14:00` | Horário local do envio (`HH:mm`; valor inválido cai em 14:00) |
+| `Diagnostico:AssuntoPrefixo` | `[KitWms]` | Prefixo do assunto: `[KitWms] Diagnóstico agente integrador — dd/MM/aaaa` |
+| `Diagnostico:CaminhoDestinatarios` | vazio | TXT com um e-mail por linha (`#` comenta), relido a cada envio. Vazio = `<telemetria>\destinatarios-diagnostico.txt`. Em produção: `C:\Friozem\importacao_notas\config\destinatarios-diagnostico.txt` |
+| `Diagnostico:Destinatarios` | `ti@friozem.com.br` | Fallback, separado por `;` |
+| `Diagnostico:MaxLinhasPorSecao` | `100` | Teto de linhas das listas (aceita 10 a 1000); o excedente vira "N não exibidas" |
+| `Diagnostico:MaxGruposMensagem` | `10` | Quantas mensagens distintas do WMS (gatilhos I10/I30) aparecem; o resto vai em "outros" (1 a 100) |
+
+- **Destinatários (precedência):** TXT (`CaminhoDestinatarios`) > `Diagnostico:Destinatarios` > constante `ti@friozem.com.br` (com aviso no log). Valem para o relatório e para o alerta de falha/recuperação do GetToken. O e-mail respeita `Email:Habilitado` e SMTP configurado; sem eles, o HTML só é gravado.
+- **HTML:** `Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html`, gravado antes do e-mail (mesma identidade visual do relatório de integração).
+- **Sob demanda:** `KitWmsIntegrador.Worker.exe --diagnostico` gera o HTML (janela das últimas 24 h até agora) e imprime o caminho; `--diagnostico --enviar` também tenta o e-mail. Não mexe na marca do slot. Saída 0 = ok, 1 = erro.
+- **Diário de eventos:** o integrador grava um evento por linha (JSONL) em `<Pastas:CaminhoEstado>\diagnostico\AAAAMMDD.jsonl`, pelo dia local do evento. A gravação nunca derruba o fluxo (erro de disco só é logado). Retenção: os mesmos `Limpeza:DiasRetencao` (30), aplicada na limpeza diária, quando `Limpeza:Habilitada=true`. O texto é sanitizado: Bearer, Basic, JWT e `senha=` são mascarados; nunca há token, senha nem corpo de nota.
+- **Eventos:** `gettoken` (por tentativa), `auth-queda` (início/escalada, com cooldown), `auth-recuperada`, `auth-pacote-interrompido`, `cadastro-gatilho` (mensagem da I50 que disparou I10/I30), `cadastro-chamada` (resultado da I10/I30), `i51-consulta`, `i51-ciclo`, `i60-desfecho`, `i60-alerta`, `arquivos-ignorados` e `limpeza`.
+
+### 13.1. Como ler cada seção do e-mail
+1. **Login do WMS (GetToken):** tentativas, falhas por classe (HTTP, timeout, rede, sem-token) e por backend; janelas de queda com início, fim e duração ("em andamento" ou "início antes da janela" quando é o caso); cooldowns aplicados; pacotes interrompidos e notas que ficaram aguardando. Erro de token às 09:48 e volta às 09:56 aparece aqui como uma janela de 8 min.
+2. **Pacotes e notas:** resumo do período vindo da telemetria, arquivos ignorados e lotes divididos (
+ão coletado).
+3. **Cadastros automáticos (I10 e I30):** quantos erros da I50 geraram chamadas de I10 e I30 (agrupados por mensagem do WMS), quantas chamadas foram feitas e quantas delas deram erro (`ja-existe` conta como ok).
+4. **Separação (I51) e associação (I60):** consultas da I51 por status, notas separadas e atrasadas, I60 por desfecho (enviada, associada, ENC/IMP, rejeitada, comunicação), alertas I60 por evento e a **lista de notas não associadas** (a TI recebe só o resumo; o detalhe continua no relatório da I60).
+5. **Devolução pela I40:** total, sucessos e falhas por usuário, lidos da auditoria; sem chave nem nota.
+6. **Saúde do serviço:** versão, último início e reinícios, resultado da última limpeza, tamanho de `Processados`, `Erro` e `Estado`, espaço livre da entrada e do disco do aplicativo.
+- **"não coletado":** itens sem fonte hoje: "Warning/Error do log" e "lotes divididos". Aparecem assim de propósito, não são falha.
+
+### 13.2. Roteamento de alertas e e-mails
+| E-mail | Destinatários |
+|---|---|
+| Alerta e recuperação do GetToken (`Wms:AlertaAutenticacao`) | **Somente** diagnóstico (TXT > `Diagnostico:Destinatarios` > `ti@friozem.com.br`) |
+| Diagnóstico agente integrador (14:00) | Somente diagnóstico |
+| Alerta imediato da I60 | `destinatarios-i60.txt` (como antes) |
+| Relatório diário da I60 (12:00) | `destinatarios-i60.txt` (como antes) |
+| Fechamento do pacote | `destinatarios-fechamento.txt` (como antes) |
+| Resumo semanal | `destinatarios-resumo.txt` (como antes) |
+
+A TI recebe dos alertas da I60 apenas o resumo, dentro do Diagnóstico.

@@ -111,8 +111,8 @@ fixa antiga de 10 segundos sem trocar a versão (ver o Manual Técnico).
 Às vezes o WMS recusa o login do integrador por alguns minutos (erro 401), e isso não depende de você nem do arquivo.
 Nesse caso o sistema **não manda as notas para `Erro`**: ele interrompe o pacote e **deixa os arquivos na pasta de
 entrada**, tenta de novo sozinho (esperando 1, 2, 5, 10 e depois 15 minutos entre as tentativas) e processa tudo quando o
-WMS voltar. A TI recebe um e-mail de alerta e outro quando normaliza. **Não apague nem mova esses arquivos e não
-deposite de novo.** Se o relatório mostrar "Falhas de autenticação (GetToken)", avise a TI.
+WMS voltar. A TI (somente ela; os destinatários do fechamento não recebem esse alerta técnico) recebe um e-mail de alerta e outro quando normaliza. **Não apague nem mova esses arquivos e não
+deposite de novo.** Se o relatório mostrar "Falhas de autenticação (GetToken)", avise a TI. Você continua recebendo o e-mail de fechamento do pacote e os alertas de separação; os avisos técnicos (como o do login do WMS) e o resumo diário de diagnóstico vão só para a TI.
 
 ### A placa do veículo
 

@@ -366,3 +366,20 @@ ServicoRelatorioDiarioI60 (12:00) -> HTML + PDF + e-mail (bloco Atenção no top
 `AlertaI60` avisa uma vez por nota e evento (Rejeitada, ENC/IMP ou pendente, resposta não reconhecida, Atrasada); o carimbo `AlertaI60Em`/`AlertaAtrasoEm` fica no JSON da nota (à prova de reinício) e `reenfileirar-i60` o zera. Destinatários vêm de `IDestinatariosAlertaI60`, implementada por `FonteDestinatariosRelatorioI60` (mesma lista do relatório diário). Chave `I60:AlertaImediato`.
 
 Peças em `Core\Separacao`; uma única instância de `ClienteWmsHttp` (`IClienteWms` e `IClienteWmsBruto`) atende Orquestrador, I51 e devolução. Com `I51:Habilitada=false` o fluxo anterior permanece. A tela I40 segue como última alternativa, atrás de `Devolucao:Habilitada`.
+
+### 2.4 Diagnóstico agente integrador (diário de eventos e e-mail técnico diário)
+
+```
+Pontos de instrumentação -> IRegistroDiagnostico (RegistroDiagnosticoArquivo) -> Estado\diagnostico\AAAAMMDD.jsonl
+DiagnosticoWorker (60 s) -> ServicoDiagnostico (AgendadorRelatorioDiario, slot 14:00, MarcaUltimoDiagnostico)
+  -> ColetorDiagnostico (Ler do diário + telemetria + estado I51/I60 + auditoria da I40 + saúde)
+  -> MontadorDiagnostico (puro) -> ModeloDiagnostico -> GeradorDiagnostico/CorpoEmailDiagnostico (HTML)
+  -> EnviadorDiagnostico -> HTML em Relatorio:PastaSaida\diagnostico + e-mail só para FonteDestinatariosDiagnostico
+```
+
+- **`IRegistroDiagnostico` / `RegistroDiagnosticoArquivo`** (`Core\Diagnostico`): grava `EventoDiagnostico` em JSONL (um arquivo por dia local), nunca lança, sanitiza texto (`SanitizadorDiagnostico`: Bearer, Basic, JWT, `senha=`) e limpa por `Limpeza:DiasRetencao`. `RegistroDiagnosticoNulo` é o padrão dos construtores (parâmetro opcional final).
+- **Instrumentação:** `ClienteWmsHttp` (`gettoken` por tentativa, `auth-queda`, `auth-recuperada`), `ProcessadorLote` (`auth-pacote-interrompido`), `Orquestrador` (`cadastro-gatilho`, `cadastro-chamada` de I10/I30), `ServicoSeparacaoI51` (`i51-consulta`, `i51-ciclo`), `ProcessadorI60Separacao` (`i60-desfecho`), `AlertaI60` (`i60-alerta`), `GerenciadorPacote` (`arquivos-ignorados`) e `Worker` (`limpeza`).
+- **Relatório:** `ColetorDiagnostico` reúne os dados, `MontadorDiagnostico` agrega sem I/O (e sanitiza de novo o texto livre), `LeitorAuditoriaDevolucao` devolve só contagens por usuário e `ProvedorSaudeSistema` mede disco e pastas com teto de 20 s.
+- **Envio e agenda:** `ServicoDiagnostico` usa a mesma regra de slot do relatório da I60 (todo dia, slot perdido enviado uma vez, reinício não reenvia). `DiagnosticoManual` expõe `--diagnostico [--enviar]`.
+- **Destinatários:** `FonteDestinatariosDiagnostico` (TXT > `Diagnostico:Destinatarios` > `ti@friozem.com.br`) serve ao relatório e a `AlertaAutenticacaoWmsEmail`, que deixou de usar `FonteDestinatariosFechamento`: o alerta do GetToken vai só para a TI.
+- Operação e chaves: `docs\OPERACAO.md` seção 13.
