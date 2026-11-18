@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-003",
+  "type": "docs",
+  "description": "Documentação do diagnóstico: docs/OPERACAO.md (nova seção + roteamento de alertas), docs/INSTALACAO-SERVIDOR.md (criar config\\destinatarios-diagnostico.txt), docs/ARQUITETURA.md, Manual Técnico (regenerar HTML/PDF) e nota curta no Manual do Usuário (alertas técnicos vão para a TI). Depende de FEAT-001 e FEAT-002 (nomes de classes, chaves e CLI finais).",
+  "status": "completed",
+  "steps": [
+    "docs/OPERACAO.md: nova seção 'Diagnóstico agente integrador' (e-mail diário às 14:00 todo dia, janela de 24 h do slot, destinatários e precedência txt > Diagnostico:Destinatarios > ti@friozem.com.br, chaves Diagnostico:Habilitado/HoraDoDia/AssuntoPrefixo/CaminhoDestinatarios/Destinatarios/MaxLinhasPorSecao/MaxGruposMensagem, respeita Email:Habilitado, HTML em Relatorio:PastaSaida\\diagnostico, CLI --diagnostico [--enviar], diário Estado\\diagnostico\\AAAAMMDD.jsonl e retenção por Limpeza:DiasRetencao, itens 'não coletado', como ler cada seção) e tabela de roteamento de alertas (autenticação GetToken -> só diagnóstico; I60 imediato, relatório diário I60, fechamento do pacote, resumo semanal -> destinatários atuais; TI recebe só o resumo dos alertas I60). Ajustar a menção anterior de que o alerta de token vai aos destinatários de fechamento (seção 12/12.1 e as tabelas de appsettings) e o comentário em appsettings se houver texto igual.",
+    "docs/INSTALACAO-SERVIDOR.md: acrescentar destinatarios-diagnostico.txt à árvore de config\\ (linha ~63), ao passo de cópia dos exemplos (linhas ~248-252) e à conferência de destinatários (linhas ~294-295), com conteúdo ti@friozem.com.br e Diagnostico:CaminhoDestinatarios apontando para C:\\Friozem\\importacao_notas\\config\\destinatarios-diagnostico.txt.",
+    "docs/ARQUITETURA.md: componentes novos (IRegistroDiagnostico/RegistroDiagnosticoArquivo, ColetorDiagnostico/MontadorDiagnostico, ServicoDiagnostico/DiagnosticoWorker, FonteDestinatariosDiagnostico), pontos de instrumentação e fluxo do diário até o e-mail.",
+    "docs/manuais/MANUAL-TECNICO.md: seção do diagnóstico (arquitetura, eventos do diário com formato JSONL sem segredos, agendamento, configuração, CLI, roteamento de alertas). docs/manuais/MANUAL-USUARIO.md: nota curta de que os alertas técnicos (autenticação do WMS) passam a ir para a TI e que os usuários continuam recebendo fechamento e alertas de separação.",
+    "Regenerar: powershell -ExecutionPolicy Bypass -File c:\\wms-integrador\\docs\\manuais\\gerar-manuais.ps1; depois gerar os PDFs de MANUAL-TECNICO e MANUAL-USUARIO com Edge headless (--headless --disable-gpu --no-pdf-header-footer --print-to-pdf=<pdf> file:///<html>) seguindo docs/manuais/README.md. Abrir/conferir que o texto novo está no HTML.",
+    "Não editar docs/CONTROLE-ESFORCO.md, docs/controle/*, docs/diario/*. Sem valores monetários; esforço só em horas. Commit local em pt-BR: 'docs: diagnostico agente integrador (operacao, instalacao, arquitetura, manuais)'."
+  ],
+  "acceptance_criteria": [
+    "OPERACAO.md tem a seção do diagnóstico e a tabela de roteamento de alertas",
+    "INSTALACAO-SERVIDOR.md manda criar config\\destinatarios-diagnostico.txt com ti@friozem.com.br",
+    "ARQUITETURA.md descreve os componentes novos",
+    "MANUAL-TECNICO.html/.pdf e MANUAL-USUARIO.html/.pdf regenerados e contendo o texto novo",
+    "Nenhum arquivo proibido (CONTROLE-ESFORCO, controle/*, diario/*) foi alterado e nenhum valor monetário foi escrito"
+  ],
+  "verification": [
+    "powershell -ExecutionPolicy Bypass -File c:\\wms-integrador\\docs\\manuais\\gerar-manuais.ps1 termina sem erro",
+    "git status mostra só docs/*.md, docs/manuais/* alterados neste FEAT",
+    "dotnet build c:/wms-integrador/KitWmsIntegrador.sln -c Release segue com 0 avisos"
+  ],
+  "blocked_reason": null,
+  "findings": "Commit 9268aac na main. Docs: OPERACAO.md secao 13 (13.1 leitura das secoes, 13.2 roteamento de alertas; ajustada a frase da secao 12 sobre destinatarios do alerta de token), INSTALACAO-SERVIDOR.md (arvore config, copia dos exemplos, conferencia de destinatarios), ARQUITETURA.md secao 2.4, MANUAL-TECNICO.md secoes 7.4 e 8.8 + indice + tabela da secao 12, MANUAL-USUARIO.md nota na secao do login do WMS. HTML/PDF dos dois manuais regenerados (gerar-manuais.ps1 + Edge headless); texto novo conferido nos HTML. Build Release 0 avisos 0 erros; testes nao reexecutados (so docs). Nenhum arquivo proibido tocado. Observacao: CRLF/BOM preservados nos .md; ARQUITETURA.md e os HTML eram LF no working copy (aviso do git, sem efeito)."
+}

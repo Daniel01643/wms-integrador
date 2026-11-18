@@ -1,0 +1,7 @@
+{
+  "task_id": "task-diagnostico",
+  "task_description": "E-mail diário 'Diagnóstico agente integrador' (14:00, todo dia, só para destinatários técnicos), diário JSONL de eventos (Estado\\diagnostico), roteamento do alerta de autenticação (GetToken) só para a TI, CLI --diagnostico [--enviar], docs e manuais. Plano completo em c:/wms-integrador/.agents/tasks/plan-diagnostico.md",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}
