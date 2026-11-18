@@ -353,6 +353,12 @@ Pacote gerado na máquina de build por `publicar.ps1 -Versao 2026.11.16-1 -Saida
   usuário (I51 e I60 juntas, com os pré-requisitos do WMS de produção; tela de devolução conforme 3.12).
 - **Retenção de 30 dias:** ao subir, a limpeza passa a apagar `Processados`, `Erro` e estado terminal da I51 com mais de 30 dias
   (antes eram 60). A tela de devolução só encontra notas dos últimos 30 dias.
+- **Chaves da release 2026.11.18-1 (log menor, limpeza de logs, memória; padrões seguros no `appsettings.json` do pacote):**
+  `Logging:LogLevel:System.Net.Http.HttpClient` e `Logging:LogLevel:Microsoft.AspNetCore` (`Warning`),
+  `Limpeza:DiasRetencaoLogs` (30) e `Limpeza:PastaLogs` (vazio = `<pasta do app>\..\..\logs`; o modelo de produção aponta para
+  `C:\Friozem\importacao_notas\logs`), `Diagnostico:IntervaloAmostraMinutos` (15; 0 desliga) e `Diagnostico:AlertaMemoriaLivreMb`
+  (500; 0 desliga). **Conferir que o `config\appsettings.Production.json` do servidor não redefine `Logging:LogLevel` com valores
+  mais detalhados** e que a conta do serviço (LocalSystem) pode apagar arquivos em `logs\`. Detalhes em `docs\OPERACAO.md` §13.3.
 ### 3.10 Remoção
 ```powershell
 # A partir de C:\Friozem\importacao_notas\tools\deploy no servidor (RDP):
@@ -477,6 +483,20 @@ falhar. Ver §3.6.
 Stdout/stderr do serviço vão para `C:\Friozem\importacao_notas\logs\worker.out.log` e `worker.err.log`,
 com rotação do NSSM (diária ou a cada 10 MB, append entre ciclos). Os logs de negócio e o relatório do
 pacote seguem o descrito em `docs\OPERACAO.md`.
+
+**Tamanho e limpeza (release 2026.11.18-1):**
+
+| Chave | Padrão | O que faz |
+|---|---|---|
+| `Logging:LogLevel:System.Net.Http.HttpClient` | `Warning` | Tira ~4 linhas Information por chamada ao WMS do `worker.out.log` |
+| `Logging:LogLevel:Microsoft.AspNetCore` | `Warning` | Tira o log de cada acesso à tela de devolução (porta 8085) |
+| `Limpeza:DiasRetencaoLogs` | `30` | O NSSM rotaciona (`worker.out-*.log`, `worker.err-*.log`, 10 MB) mas não apaga; a limpeza diária apaga os rotacionados mais antigos que isto. Nunca apaga `worker.out.log`/`worker.err.log` |
+| `Limpeza:PastaLogs` | vazio | Vazio = `<pasta do app>\..\..\logs` (aqui, `C:\Friozem\importacao_notas\logs`). Pasta inexistente é ignorada |
+| `Diagnostico:IntervaloAmostraMinutos` | `15` | Amostra de memória do integrador e do servidor no diário do diagnóstico (0 desliga) |
+| `Diagnostico:AlertaMemoriaLivreMb` | `500` | E-mail à TI com memória livre abaixo disto por 2 amostras seguidas (no máximo 1 por hora; 0 desliga) |
+
+Para ver o detalhe HTTP de novo (diagnóstico pontual), sem release: variável de ambiente
+`Logging__LogLevel__System.Net.Http.HttpClient=Information` e reiniciar o serviço.
 
 ---
 

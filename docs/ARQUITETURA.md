@@ -373,8 +373,13 @@ Peças em `Core\Separacao`; uma única instância de `ClienteWmsHttp` (`ICliente
 Pontos de instrumentação -> IRegistroDiagnostico (RegistroDiagnosticoArquivo) -> Estado\diagnostico\AAAAMMDD.jsonl
 DiagnosticoWorker (60 s) -> ServicoDiagnostico (AgendadorRelatorioDiario, slot 14:00, MarcaUltimoDiagnostico)
   -> ColetorDiagnostico (Ler do diário + telemetria + estado I51/I60 + auditoria da I40 + saúde)
-  -> MontadorDiagnostico (puro) -> ModeloDiagnostico -> GeradorDiagnostico/CorpoEmailDiagnostico (HTML)
-  -> EnviadorDiagnostico -> HTML em Relatorio:PastaSaida\diagnostico + e-mail só para FonteDestinatariosDiagnostico
+  -> MontadorDiagnostico (puro) -> ModeloDiagnostico -> GeradorDiagnostico (CorpoEmailDiagnostico = HTML; RenderizadorPdfDiagnostico = PDF)
+  -> EnviadorDiagnostico -> HTML + PDF em Relatorio:PastaSaida\diagnostico + e-mail só para FonteDestinatariosDiagnostico
+     (corpo enxuto: resumo + problemas; PDF completo anexo)
+
+SaudeProcessoWorker (IntervaloAmostraMinutos, 15 min) -> ServicoAmostraSaude -> IColetorAmostraSistema (ColetorAmostraSistema:
+  Process + GlobalMemoryStatusEx) -> evento saude-amostra no mesmo diário
+  -> memória livre < AlertaMemoriaLivreMb por 2 amostras -> e-mail à TI (máx. 1 por hora) + evento saude-alerta
 ```
 
 - **`IRegistroDiagnostico` / `RegistroDiagnosticoArquivo`** (`Core\Diagnostico`): grava `EventoDiagnostico` em JSONL (um arquivo por dia local), nunca lança, sanitiza texto (`SanitizadorDiagnostico`: Bearer, Basic, JWT, `senha=`) e limpa por `Limpeza:DiasRetencao`. `RegistroDiagnosticoNulo` é o padrão dos construtores (parâmetro opcional final).
@@ -382,4 +387,7 @@ DiagnosticoWorker (60 s) -> ServicoDiagnostico (AgendadorRelatorioDiario, slot 1
 - **Relatório:** `ColetorDiagnostico` reúne os dados, `MontadorDiagnostico` agrega sem I/O (e sanitiza de novo o texto livre), `LeitorAuditoriaDevolucao` devolve só contagens por usuário e `ProvedorSaudeSistema` mede disco e pastas com teto de 20 s.
 - **Envio e agenda:** `ServicoDiagnostico` usa a mesma regra de slot do relatório da I60 (todo dia, slot perdido enviado uma vez, reinício não reenvia). `DiagnosticoManual` expõe `--diagnostico [--enviar]`.
 - **Destinatários:** `FonteDestinatariosDiagnostico` (TXT > `Diagnostico:Destinatarios` > `ti@friozem.com.br`) serve ao relatório e a `AlertaAutenticacaoWmsEmail`, que deixou de usar `FonteDestinatariosFechamento`: o alerta do GetToken vai só para a TI.
-- Operação e chaves: `docs\OPERACAO.md` seção 13.
+- **Saúde do processo e do servidor (release 2026.11.18-1):** `ColetorAmostraSistema` mede o processo (working set, memória privada, handles, threads), o servidor (memória física livre e total, memória virtual comprometida via `GlobalMemoryStatusEx`) e os 5 processos que mais usam memória (nome e MB, sem linha de comando); `ServicoAmostraSaude` grava `saude-amostra`, avalia o alerta (2 amostras seguidas abaixo de `Diagnostico:AlertaMemoriaLivreMb`, no máximo 1 e-mail por hora, também após reinício, pois lê o último `saude-alerta` do diário) e nunca lança. `MontadorDiagnostico` agrega a `SecaoMemoria` (pico e média do integrador, mínimo de memória livre, consumidores no pico e no mínimo).
+- **E-mails enxutos:** `CorpoEmailDiagnostico.Montar(..., enxuto: true)` e `CorpoEmailRelatorioI60.Montar(..., enxuto: true)` geram o corpo com resumo e problemas e a linha "Detalhes completos no PDF anexo"; `RenderizadorPdfDiagnostico` (novo) e `RenderizadorPdfRelatorioI60` geram o PDF completo, anexado pelos dois enviadores.
+- **Logs e limpeza:** `Logging:LogLevel` com `System.Net.Http.HttpClient` e `Microsoft.AspNetCore` em `Warning`; `LimpadorPastas` também apaga os logs rotacionados do NSSM (`Limpeza:DiasRetencaoLogs`, `Limpeza:PastaLogs`).
+- Operação e chaves: `docs\OPERACAO.md` seções 13 e 13.3.

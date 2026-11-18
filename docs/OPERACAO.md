@@ -138,7 +138,7 @@ vale o primeiro registrado. Uma nota em voo na queda ainda pode ser reenviada um
 existe", ela segue para `Processados` e a mensagem começa com "Já existia no WMS (reprocesso)".
 ## 3. Limpeza
 
-`Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **30**; o Plano B precisa achar o XML da venda original por até 30 dias). Roda na partida e a cada 24 h.
+`Limpeza:Habilitada` (padrão `true`) e `Limpeza:DiasRetencao` (padrão **30**; o Plano B precisa achar o XML da venda original por até 30 dias). Roda na partida e a cada 24 h. A mesma rotina apaga os logs rotacionados do NSSM (`Limpeza:DiasRetencaoLogs`, `Limpeza:PastaLogs`; ver 13.3).
 A limpeza opera por **subpasta de pacote**: cada subpasta imediata de `Processados`/`Erro` é removida
 **por inteiro** quando toda ela está vencida, usando a **maior** (`LastWriteTimeUtc` mais recente) data
 do seu conteúdo — assim um pacote que ainda tenha qualquer arquivo dentro do prazo é preservado inteiro.
@@ -460,6 +460,7 @@ resultado por chave.
 - **Arquivo de calibração:** `Estado\i51\alertas\AAAA-MM-DD.log`, uma linha por evento (colunas separadas por tabulação: horário local, evento, nota, série, transporte, onda, situação, motivo, texto do WMS em uma linha, até 500 caracteres). Limpo com `I51:DiasRetencaoEstado`. Log Warning: `I60 precisa de atencao: N nota(s) neste ciclo (e-mail: ...)` e `I60 atencao: nota ... serie ... situacao ... motivo ...`.
 - **Como calibrar o ENC:** o texto real do WMS para doccarga encerrado ainda não foi capturado. Quando chegar um alerta `NaoReconhecida` (ou `ENC/IMP` com texto diferente do esperado), copie um trecho característico do texto do WMS do e-mail ou do arquivo `alertas` para `I60:PadroesDocCargaEncerrado` (lista separada por `;`, sem acento e sem diferenciar maiúsculas) no `appsettings.Production.json` e reinicie o serviço.
 - **Relatório diário:** ganhou o bloco **Atenção** no topo (HTML, e-mail e PDF) com ENC/IMP, rejeitadas, respostas não reconhecidas, atrasadas e total (estado atual das notas); notas `Separada` com resposta não reconhecida aparecem em "I60 com problema".
+- **Corpo do e-mail enxuto (18/11/2026):** o corpo do e-mail das 12:00 leva só o resumo (cartões por situação, saúde da consulta) e os problemas (Atenção, I60 com problema, ajustes de quantidade, atrasadas), com a linha "Detalhes completos no PDF anexo". As listas do que deu certo (aguardando, separadas, I60 pendentes, associadas, aguardando confirmação, visão por pacote, candidatas à I40) ficam só no PDF `relatorio-i60.pdf`, que continua completo, e no HTML gravado em disco.
 - Logs não trazem token, senha nem corpo de nota. Roteiro de teste: `ROTEIRO-TESTE-I51-I60.md`.
 
 ## 11. Release 2026.11.13-1 (o que muda na operação)
@@ -608,10 +609,12 @@ E-mail técnico **somente para a TI**, enviado todos os dias às 14:00 (inclusiv
 | `Diagnostico:Destinatarios` | `ti@friozem.com.br` | Fallback, separado por `;` |
 | `Diagnostico:MaxLinhasPorSecao` | `100` | Teto de linhas das listas (aceita 10 a 1000); o excedente vira "N não exibidas" |
 | `Diagnostico:MaxGruposMensagem` | `10` | Quantas mensagens distintas do WMS (gatilhos I10/I30) aparecem; o resto vai em "outros" (1 a 100) |
+| `Diagnostico:IntervaloAmostraMinutos` | `15` | De quantos em quantos minutos o integrador mede memória e grava no diário (1 a 1440; `0` desliga a amostragem e o alerta de memória) |
+| `Diagnostico:AlertaMemoriaLivreMb` | `500` | Alerta por e-mail à TI quando a memória física livre do servidor ficar abaixo deste valor por 2 amostras seguidas, no máximo 1 e-mail por hora (`0` desliga o alerta) |
 
 - **Destinatários (precedência):** TXT (`CaminhoDestinatarios`) > `Diagnostico:Destinatarios` > constante `ti@friozem.com.br` (com aviso no log). Valem para o relatório e para o alerta de falha/recuperação do GetToken. O e-mail respeita `Email:Habilitado` e SMTP configurado; sem eles, o HTML só é gravado.
-- **HTML:** `Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html`, gravado antes do e-mail (mesma identidade visual do relatório de integração).
-- **Sob demanda:** `KitWmsIntegrador.Worker.exe --diagnostico` gera o HTML (janela das últimas 24 h até agora) e imprime o caminho; `--diagnostico --enviar` também tenta o e-mail. Não mexe na marca do slot. Saída 0 = ok, 1 = erro.
+- **HTML e PDF:** `Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html` e `.pdf` (completo), gravados antes do e-mail (mesma identidade visual do relatório de integração). O e-mail leva o PDF anexo (`diagnostico.pdf`) e o **corpo enxuto**: cartões de resumo e problemas de cada seção (falhas por classe, quedas, erros da I10/I30, falhas da I51, alertas da I60, notas não associadas) e a memória, com a linha "Detalhes completos no PDF anexo". Tabelas de detalhe (por servidor do balanceador, gatilhos I10/I30 por mensagem, I60 por desfecho, devolução por usuário, saúde) ficam só no PDF e no HTML em disco.
+- **Sob demanda:** `KitWmsIntegrador.Worker.exe --diagnostico` gera o HTML e o PDF (janela das últimas 24 h até agora) e imprime o caminho; `--diagnostico --enviar` também tenta o e-mail. Não mexe na marca do slot. Saída 0 = ok, 1 = erro.
 - **Diário de eventos:** o integrador grava um evento por linha (JSONL) em `<Pastas:CaminhoEstado>\diagnostico\AAAAMMDD.jsonl`, pelo dia local do evento. A gravação nunca derruba o fluxo (erro de disco só é logado). Retenção: os mesmos `Limpeza:DiasRetencao` (30), aplicada na limpeza diária, quando `Limpeza:Habilitada=true`. O texto é sanitizado: Bearer, Basic, JWT e `senha=` são mascarados; nunca há token, senha nem corpo de nota.
 - **Eventos:** `gettoken` (por tentativa), `auth-queda` (início/escalada, com cooldown), `auth-recuperada`, `auth-pacote-interrompido`, `cadastro-gatilho` (mensagem da I50 que disparou I10/I30), `cadastro-chamada` (resultado da I10/I30), `i51-consulta`, `i51-ciclo`, `i60-desfecho`, `i60-alerta`, `arquivos-ignorados` e `limpeza`.
 
@@ -623,6 +626,7 @@ E-mail técnico **somente para a TI**, enviado todos os dias às 14:00 (inclusiv
 4. **Separação (I51) e associação (I60):** consultas da I51 por status, notas separadas e atrasadas, I60 por desfecho (enviada, associada, ENC/IMP, rejeitada, comunicação), alertas I60 por evento e a **lista de notas não associadas** (a TI recebe só o resumo; o detalhe continua no relatório da I60).
 5. **Devolução pela I40:** total, sucessos e falhas por usuário, lidos da auditoria; sem chave nem nota.
 6. **Saúde do serviço:** versão, último início e reinícios, resultado da última limpeza, tamanho de `Processados`, `Erro` e `Estado`, espaço livre da entrada e do disco do aplicativo.
+7. **Memória do integrador e do servidor:** número de amostras, pico e média do working set do integrador, pico de memória privada, de handles e de threads, **mínimo de memória física livre do servidor** (e a hora), pico de memória virtual comprometida (RAM + arquivo de paginação), alertas de memória enviados e as tabelas dos **5 processos que mais usam memória** no momento do pico do integrador e no momento do mínimo de memória livre. Processos com o mesmo nome (vários `node.exe`) são somados. Só o nome do processo e os MB; nunca linha de comando. Sem amostras no período, a seção avisa.
 - **"não coletado":** itens sem fonte hoje: "Warning/Error do log" e "lotes divididos". Aparecem assim de propósito, não são falha.
 
 ### 13.2. Roteamento de alertas e e-mails
@@ -630,9 +634,18 @@ E-mail técnico **somente para a TI**, enviado todos os dias às 14:00 (inclusiv
 |---|---|
 | Alerta e recuperação do GetToken (`Wms:AlertaAutenticacao`) | **Somente** diagnóstico (TXT > `Diagnostico:Destinatarios` > `ti@friozem.com.br`) |
 | Diagnóstico agente integrador (14:00) | Somente diagnóstico |
+| Alerta de memória física livre baixa do servidor (`Diagnostico:AlertaMemoriaLivreMb`) | **Somente** diagnóstico |
 | Alerta imediato da I60 | `destinatarios-i60.txt` (como antes) |
 | Relatório diário da I60 (12:00) | `destinatarios-i60.txt` (como antes) |
 | Fechamento do pacote | `destinatarios-fechamento.txt` (como antes) |
 | Resumo semanal | `destinatarios-resumo.txt` (como antes) |
 
 A TI recebe dos alertas da I60 apenas o resumo, dentro do Diagnóstico.
+
+### 13.3. Release 2026.11.18-1: log HTTP menor, limpeza de logs, memória e e-mails enxutos
+Contexto de 18/11/2026: o SRVAPPALC02 travou duas vezes por memória virtual baixa (evento 2004). Os maiores consumidores eram `node.exe` de outras aplicações e o gateway do Power BI; o integrador usava cerca de 155 MB. As falhas de token das 09:48 às 09:56 foram timeouts do servidor sem memória, não 401. Esta release traz o que permite ver isso sem entrar no servidor.
+- **Log HTTP menor (`Logging:LogLevel`):** `System.Net.Http.HttpClient` e `Microsoft.AspNetCore` passam a `Warning` (antes, cada chamada ao WMS gerava 4 linhas Information e cada acesso à tela 8085 também). Os logs próprios do integrador (envio concluído, falhas, ciclo da I51) continuam em Information. Para voltar ao detalhe sem release: `Logging__LogLevel__System.Net.Http.HttpClient=Information` na variável de ambiente e reiniciar o serviço.
+- **Limpeza dos logs rotacionados do NSSM:** a limpeza diária (e a da partida) apaga `worker.out-*.log` e `worker.err-*.log` com mais de `Limpeza:DiasRetencaoLogs` dias (padrão **30**, mínimo 1; valor inválido não apaga nada e vai para o log). **Nunca** apaga o arquivo atual (`worker.out.log`, `worker.err.log`). Pasta: `Limpeza:PastaLogs`; vazio = `<pasta do app>\..\..\logs`, o que em produção é `C:\Friozem\importacao_notas\logs` (o exemplo de produção já aponta para ele). Pasta inexistente é ignorada; raiz de drive é recusada; links simbólicos não são seguidos. Só entram no cálculo arquivos que casam com o padrão do NSSM; qualquer outro arquivo da pasta fica.
+- **Brutos da I51:** `Estado\i51\brutos\processados` já era limpo no ciclo diário da I51 por `I51:DiasRetencaoEstado` (padrão 30). Confirmado por teste; nada mudou.
+- **Amostra de memória:** a cada `Diagnostico:IntervaloAmostraMinutos` (15) o serviço grava no diário (`saude-amostra`): working set e memória privada do processo, handles, threads, memória física livre e total do servidor, memória virtual comprometida (RAM + arquivo de paginação, via `GlobalMemoryStatusEx`) e os 5 processos que mais usam memória (nome e MB). Compatível com Windows Server 2012 R2, sem pacote novo. Falha de coleta nunca derruba o serviço. A "paginação" mostrada é a memória virtual comprometida, o número que o Windows usa no aviso de memória virtual baixa (evento 2004); não é a ocupação do arquivo `pagefile.sys` em si.
+- **Alerta de memória:** com a memória física livre abaixo de `Diagnostico:AlertaMemoriaLivreMb` (500 MB) em 2 amostras seguidas (30 min com o intervalo padrão), a TI recebe 1 e-mail ("memória livre do servidor baixa") com a memória livre, a do integrador e os 5 maiores consumidores; no máximo 1 por hora, inclusive depois de reiniciar o serviço (o último alerta fica no diário). Cada alerta também grava `saude-alerta` no diário e aparece no Diagnóstico das 14:00. Com `Email:Habilitado=false` só é registrado.

@@ -341,8 +341,12 @@ Nota **associada** nunca gera aviso. O texto do WMS que chega nesses e-mails aju
 sistema a reconhecer o aviso de "doccarga encerrado". Se você receber um desses e-mails, avise o
 responsável pela operação do WMS e informe a nota e o motivo.
 
-**Relatório diário, todo dia às 12:00.** O sistema envia por e-mail (com HTML e PDF) um relatório no
-mesmo visual do "Relatório de Integração", com:
+**Relatório diário, todo dia às 12:00.** O sistema envia por e-mail um relatório no mesmo visual do
+"Relatório de Integração". A partir de 18/11/2026 o **corpo do e-mail fica enxuto**: traz só o resumo (contagens por
+situação e saúde da consulta) e os **problemas** (rejeitadas, ENC/IMP, respostas não reconhecidas, atrasadas e
+ajustes de quantidade), com a linha "Detalhes completos no PDF anexo". As listas do que deu certo (aguardando,
+separadas, associadas, visão por pacote) ficam só no **PDF anexo**, que continua completo. O relatório completo
+tem:
 
 - no **topo**, o bloco **Atenção**: quantas notas estão como ENC/IMP, rejeitadas, com resposta não
   reconhecida e atrasadas, e o total. Se estiver zerado, o relatório diz que nenhuma nota exige atenção;

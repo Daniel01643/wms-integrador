@@ -167,7 +167,9 @@ C:\Friozem\importacao_notas\logs\worker.out.log   (saída normal)
 C:\Friozem\importacao_notas\logs\worker.err.log   (erros)
 ```
 
-São gravados pelo NSSM, com rotação diária ou a cada ~10 MB. Abra com o Bloco de Notas, com o
+São gravados pelo NSSM, com rotação diária ou a cada ~10 MB. Desde a release 2026.11.18-1 o log traz menos linhas
+(`System.Net.Http.HttpClient` e `Microsoft.AspNetCore` em `Warning`: some o "start/send/headers/end" de cada chamada
+ao WMS) e os arquivos rotacionados `worker.out-*.log` com mais de 30 dias são apagados pela limpeza diária (seção 8). Abra com o Bloco de Notas, com o
 `notepad`, ou acompanhe o fim do arquivo no PowerShell:
 
 ```powershell
@@ -367,7 +369,8 @@ Override por variável de ambiente: `Pacote__ModoJanela`, `Pacote__SilencioSegun
 
 ### Limpeza e retenção de 30 dias
 
-A limpeza roda na partida e a cada 24 h, atua **apenas** nas subpastas de `Processados` e `Erro`,
+A limpeza roda na partida e a cada 24 h, atua nas subpastas de `Processados` e `Erro` (e, à parte, nos logs
+rotacionados do NSSM, ver adiante),
 e **nunca** toca a entrada, o `Estado`, a telemetria ou os `relatorios`. Como a subpasta
 `Erro\<pacote>\ExtensaoInvalida` (arquivos não-XML; ver seção 8.1) fica dentro de `Erro`, ela
 **já é coberta** por essa limpeza de 30 dias — a pasta inteira do pacote é removida no vencimento,
@@ -382,6 +385,13 @@ sem configuração extra.
   expiram em 30 dias; notas não terminais nunca são apagadas.
 - Os logs de `Estado\i51\alertas` seguem a mesma retenção (`I51:DiasRetencaoEstado`).
 - `RegistroOndasTsp` (hash das ondas TSP, 90 dias) **não mudou**.
+
+**Logs rotacionados do NSSM (release 2026.11.18-1).** O NSSM rotaciona `worker.out.log` e `worker.err.log` a cada
+10 MB (`worker.out-AAAAMMDDTHHMMSS.mmm.log`) e não apaga os antigos. A limpeza diária apaga `worker.out-*.log` e
+`worker.err-*.log` mais antigos que `Limpeza:DiasRetencaoLogs` (padrão 30, mínimo 1) na pasta `Limpeza:PastaLogs`
+(vazio = `<pasta do app>\..\..\logs`, em produção `C:\Friozem\importacao_notas\logs`). Nunca apaga o arquivo atual;
+pasta inexistente é ignorada; raiz de drive é recusada; links simbólicos não são seguidos. Os brutos da I51
+(`Estado\i51\brutos\processados`) já seguem `I51:DiasRetencaoEstado` (30), no ciclo diário da I51. Classe: `LimpadorPastas`.
 
 ### 8.1. Arquivos não-XML (ExtensaoInvalida) e a flag `Pastas:TratarNaoXmlComoErro`
 
@@ -663,6 +673,13 @@ rejeitadas como **candidatas à devolução pela I40** (`RelatorioI60:ListarCand
 TXT `RelatorioI60:CaminhoDestinatarios` (um e-mail por linha); se não existir, usa a lista do resumo
 semanal. Gerar na hora: `Worker.exe --relatorio-i60 [--enviar]`.
 
+**Corpo do e-mail enxuto (18/11/2026).** O corpo do e-mail leva só o resumo (cartões por situação e saúde da
+consulta) e os problemas (Atenção, I60 com problema, ajustes de quantidade e atrasadas), com a linha "Detalhes
+completos no PDF anexo". As listas do que deu certo (aguardando separação, separadas, I60 pendentes, I60 associadas,
+aguardando confirmação, visão por pacote e candidatas à I40) ficam só no PDF anexo (`relatorio-i60.pdf`), que continua
+completo, e no HTML gravado em disco. Classe: `CorpoEmailRelatorioI60.Montar(..., enxuto: true)`, chamada por
+`EnviadorRelatorioDiarioI60`.
+
 **Comandos úteis** (no servidor, em `app\`): `--consultar-i51` (só UNICO), `--reenfileirar-i60
 [--motivo <motivo>] [--chave <chave>]` e `--relatorio-i60 [--enviar]`. O reenfileiramento grava um
 pedido em `Estado\i51\comandos`, que o serviço em execução aplica no ciclo seguinte (sem reiniciar).
@@ -826,15 +843,22 @@ antigos, pois ele sobrepõe o do pacote.
 lote ainda for dividido, aumente `SilencioSegundos` no `appsettings.Production.json` (ou `Pacote__SilencioSegundos`) e reinicie o serviço.
 ### 8.8. Diagnóstico agente integrador (e-mail técnico diário da TI)
 
-E-mail **somente para a TI**, todo dia às 14:00 (inclusive sábado e domingo), cobrindo as 24 h anteriores ao horário. Traz seis seções: login do WMS (GetToken: tentativas, falhas por classe e por backend, janelas de queda com início, fim e duração, cooldowns e pacotes interrompidos), pacotes e notas, cadastros automáticos I10/I30 (erros que geraram as chamadas, por mensagem do WMS, e erros das próprias chamadas), separação I51/I60 (inclui a lista de notas não associadas), devolução pela I40 (contagem por usuário) e saúde do serviço (versão, reinícios, tamanhos de pasta, espaço livre e última limpeza). "Warning/Error do log" e "lotes divididos" aparecem como `não coletado`: é esperado.
+E-mail **somente para a TI**, todo dia às 14:00 (inclusive sábado e domingo), cobrindo as 24 h anteriores ao horário. O corpo é **enxuto** (resumo e problemas de cada seção, mais a memória, com a linha "Detalhes completos no PDF anexo") e o **PDF completo** vai anexo (`diagnostico.pdf`). Traz sete seções, a sétima descrita adiante (memória). As seis primeiras: login do WMS (GetToken: tentativas, falhas por classe e por backend, janelas de queda com início, fim e duração, cooldowns e pacotes interrompidos), pacotes e notas, cadastros automáticos I10/I30 (erros que geraram as chamadas, por mensagem do WMS, e erros das próprias chamadas), separação I51/I60 (inclui a lista de notas não associadas), devolução pela I40 (contagem por usuário) e saúde do serviço (versão, reinícios, tamanhos de pasta, espaço livre e última limpeza). "Warning/Error do log" e "lotes divididos" aparecem como `não coletado`: é esperado.
 
 - **Agenda:** um envio por dia; reiniciar o serviço não reenvia; se o serviço estava parado às 14:00, envia uma vez ao voltar. A marca é `<telemetria>\ultimo-diagnostico.txt`.
-- **Chaves** (`config\appsettings.Production.json`, seção `Diagnostico`; reiniciar o serviço): `Habilitado` (liga só o relatório; padrão `true`), `HoraDoDia` (`14:00`), `AssuntoPrefixo` (`[KitWms]`), `CaminhoDestinatarios` (seção 7.4), `Destinatarios` (`ti@friozem.com.br`), `MaxLinhasPorSecao` (100) e `MaxGruposMensagem` (10). Respeita `Email:Habilitado`: sem e-mail, só grava o HTML.
-- **Onde fica:** HTML em `Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html`. Os eventos ficam no diário `Estado\diagnostico\AAAAMMDD.jsonl` (uma linha JSON por evento; retenção `Limpeza:DiasRetencao`, 30 dias). Não mexer nesses arquivos.
+- **Chaves** (`config\appsettings.Production.json`, seção `Diagnostico`; reiniciar o serviço): `Habilitado` (liga só o relatório; padrão `true`), `HoraDoDia` (`14:00`), `AssuntoPrefixo` (`[KitWms]`), `CaminhoDestinatarios` (seção 7.4), `Destinatarios` (`ti@friozem.com.br`), `MaxLinhasPorSecao` (100), `MaxGruposMensagem` (10), `IntervaloAmostraMinutos` (15; 0 desliga a amostra de memória) e `AlertaMemoriaLivreMb` (500; 0 desliga o alerta de memória). Respeita `Email:Habilitado`: sem e-mail, só grava o HTML e o PDF.
+- **Onde fica:** HTML e PDF em `Relatorio:PastaSaida\diagnostico\diagnostico_aaaaMMdd_HHmm.html` / `.pdf`. Os eventos ficam no diário `Estado\diagnostico\AAAAMMDD.jsonl` (uma linha JSON por evento; retenção `Limpeza:DiasRetencao`, 30 dias). Não mexer nesses arquivos.
 - **Sob demanda:** `& 'C:\Friozem\importacao_notas\app\current\KitWmsIntegrador.Worker.exe' --diagnostico` gera o HTML e mostra o caminho; com `--enviar` também envia o e-mail para a TI. Saída 0 = ok, 1 = erro.
 - **Eventos do diário:** `gettoken`, `auth-queda`, `auth-recuperada`, `auth-pacote-interrompido`, `cadastro-gatilho`, `cadastro-chamada`, `i51-consulta`, `i51-ciclo`, `i60-desfecho`, `i60-alerta`, `arquivos-ignorados` e `limpeza`. Cada linha tem tipo, horário local e campos curtos (status, quantidade, duração, nota e série). **Nunca** token, senha, cabeçalho Basic/Bearer nem corpo de nota: o texto é sanitizado ao gravar e de novo ao montar o relatório.
 - **Roteamento dos alertas:** o alerta e a recuperação do GetToken vão **só** para a TI (lista da seção 7.4), não mais para o fechamento. Alerta imediato e relatório diário da I60, fechamento do pacote e resumo semanal seguem para as listas de antes; a TI recebe apenas o resumo dos alertas I60 dentro do Diagnóstico.
 - **Como agir:** janela de queda "em andamento" ou repetida = rodar `--testar-token` (seção 8.7). Muitos gatilhos I10/I30 com a mesma mensagem = anotar a mensagem e avisar a IA de apoio. Notas não associadas = ver o relatório da I60 (seção 8.5).
+
+**Sétima seção: memória do integrador e do servidor, e alerta (release 2026.11.18-1).** Motivo: em 18/11/2026 o servidor travou por memória virtual baixa (evento 2004 do Windows); os maiores consumidores eram `node.exe` de outras aplicações e o gateway do Power BI, e o integrador usava cerca de 155 MB. Os timeouts de GetToken desse dia vieram do servidor sem memória, não de credencial.
+
+- **Amostra:** `ServicoAmostraSaude`, chamado pelo `SaudeProcessoWorker` a cada `Diagnostico:IntervaloAmostraMinutos` (15 min; atraso inicial de 15 s), grava o evento `saude-amostra` no diário: working set e memória privada do processo, handles, threads, memória física livre e total do servidor, memória virtual comprometida (RAM + arquivo de paginação) e os 5 processos que mais usam memória (nome e MB somados por nome, sem linha de comando). `ColetorAmostraSistema` usa `System.Diagnostics.Process` e `GlobalMemoryStatusEx` (kernel32), sem pacote novo, compatível com Windows Server 2012 R2. Falha de coleta só vira aviso no log.
+- **No e-mail das 14:00:** número de amostras, pico e média do working set do integrador, pico da memória privada, de handles e de threads, **mínimo de memória livre do servidor** (e a hora), pico de memória virtual comprometida, alertas enviados e a lista dos 5 maiores consumidores no momento do pico do integrador e no momento do mínimo de memória livre. Sem amostras, a seção diz isso.
+- **Alerta:** com a memória física livre abaixo de `Diagnostico:AlertaMemoriaLivreMb` (500 MB) em 2 amostras seguidas, a TI recebe 1 e-mail "memória livre do servidor baixa" (livre, memória do integrador e 5 maiores consumidores), no máximo 1 por hora (vale também depois de reiniciar o serviço: o evento `saude-alerta` fica no diário). Só destinatários de diagnóstico; respeita `Email:Habilitado`.
+- **Como agir:** se o mínimo de memória livre ficar baixo e o integrador estiver na faixa de 80 a 250 MB, o problema é de outro processo do servidor (aparece na lista de consumidores). Memória privada do integrador acima de ~500 MB ou crescendo entre dias é motivo para avisar a IA de apoio.
 ## 9. Publicar nova versão e rollback
 
 O `.zip` da nova versão é gerado **na máquina de build** (ver seção 0), rodando o
@@ -984,6 +1008,8 @@ arquivos de config ficam em **`C:\Friozem\importacao_notas\config\`**.
 | Trocar URL do WMS | editar `Wms:BaseUrl` em `config\appsettings.Production.json` | **Sim** |
 | Destinatários do fechamento | editar o TXT `config\destinatarios-fechamento.txt` (`Email:CaminhoDestinatarios`); `Email:Destinatarios` no JSON é só fallback | Não (vale no próximo envio) |
 | Destinatários do resumo semanal | editar o TXT `config\destinatarios-resumo.txt` (`Monitoramento:CaminhoDestinatarios`) | Não (vale no próximo envio) |
+| Mudar o intervalo da amostra de memória ou o limite do alerta de memória livre | `config\appsettings.Production.json`, `Diagnostico:IntervaloAmostraMinutos` (15) / `Diagnostico:AlertaMemoriaLivreMb` (500); `0` desliga (seção 8.8) | **Sim** |
+| Mudar a retenção dos logs rotacionados do NSSM | `Limpeza:DiasRetencaoLogs` (30) e `Limpeza:PastaLogs` (seção 8) | **Sim** |
 | Destinatários do diagnóstico e do alerta de token | editar o TXT `config\destinatarios-diagnostico.txt` (`Diagnostico:CaminhoDestinatarios`; seção 7.4) | Não (vale no próximo envio) |
 | Gerar o diagnóstico agora / mudar a hora | `Worker.exe --diagnostico [--enviar]`; hora em `Diagnostico:HoraDoDia` (seção 8.8) | Só para mudar a hora: **Sim** |
 | Dia/hora do resumo | `config\appsettings.Production.json`: `Monitoramento:DiaDaSemana`/`Hora` | **Sim** |
